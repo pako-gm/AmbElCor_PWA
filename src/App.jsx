@@ -1,0 +1,71 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import ProtectedRoute from '@/components/layout/ProtectedRoute'
+import PageWrapper from '@/components/layout/PageWrapper'
+
+// Auth
+import Login from '@/pages/Login'
+import Setup2FA from '@/pages/Setup2FA'
+import Verify2FA from '@/pages/Verify2FA'
+
+// CRM
+import Dashboard from '@/pages/Dashboard'
+import EncargosLista from '@/pages/Encargos/EncargosLista'
+import NuevoEncargo from '@/pages/Encargos/NuevoEncargo'
+import EncargoDetalle from '@/pages/Encargos/EncargoDetalle'
+
+// Seguimiento público
+import SeguimientoForm from '@/pages/Seguimiento/SeguimientoForm'
+import SeguimientoDetalle from '@/pages/Seguimiento/SeguimientoDetalle'
+
+const Placeholder = ({ title }) => (
+  <PageWrapper>
+    <div className="p-8 text-center text-[--text-light]">
+      <h2 className="font-display text-2xl mb-2">{title}</h2>
+      <p className="text-sm">Próximamente</p>
+    </div>
+  </PageWrapper>
+)
+
+const Protected = ({ children }) => (
+  <ProtectedRoute>{children}</ProtectedRoute>
+)
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Rutas públicas */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/setup-2fa" element={<Setup2FA />} />
+        <Route path="/verify-2fa" element={<Verify2FA />} />
+        <Route path="/seguimiento" element={<SeguimientoForm />} />
+        <Route path="/seguimiento/:token" element={<SeguimientoDetalle />} />
+
+        {/* Rutas protegidas */}
+        <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
+
+        <Route path="/encargos" element={<Protected><EncargosLista /></Protected>} />
+        <Route path="/encargos/nuevo" element={<Protected><NuevoEncargo /></Protected>} />
+        <Route path="/encargos/:id" element={<Protected><EncargoDetalle /></Protected>} />
+
+        <Route path="/clientes" element={<Protected><Placeholder title="Clientes" /></Protected>} />
+        <Route path="/clientes/nuevo" element={<Protected><Placeholder title="Nuevo Cliente" /></Protected>} />
+        <Route path="/clientes/:id" element={<Protected><Placeholder title="Ficha Cliente" /></Protected>} />
+
+        <Route path="/proveedores" element={<Protected><Placeholder title="Proveedores" /></Protected>} />
+        <Route path="/proveedores/nuevo" element={<Protected><Placeholder title="Nuevo Proveedor" /></Protected>} />
+        <Route path="/proveedores/:id" element={<Protected><Placeholder title="Ficha Proveedor" /></Protected>} />
+
+        <Route path="/inventario" element={<Protected><Placeholder title="Inventario" /></Protected>} />
+
+        <Route path="/contabilidad/cobros" element={<Protected><Placeholder title="Cobros" /></Protected>} />
+        <Route path="/contabilidad/pagos" element={<Protected><Placeholder title="Pagos a Proveedores" /></Protected>} />
+        <Route path="/contabilidad/reportes" element={<Protected><Placeholder title="Reportes Excel" /></Protected>} />
+
+        <Route path="/admin" element={<Protected><Placeholder title="Administración" /></Protected>} />
+
+        <Route path="/" element={<Navigate to="/encargos" replace />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}

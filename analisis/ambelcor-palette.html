@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paleta de Colores · Amb el Cor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary:         #30BAAA;
+      --primary-dark:    #259990;
+      --primary-darker:  #1A7A6D;
+      --primary-light:   #E0F5F3;
+      --primary-ultra:   #F0FAFA;
+      --gold:            #C8A96E;
+      --gold-light:      #F5EDD8;
+      --text-dark:       #1A1A1A;
+      --text-medium:     #555555;
+      --text-light:      #888888;
+      --bg-white:        #FFFFFF;
+      --bg-alt:          #F8FCFB;
+      --bg-gray:         #F5F5F5;
+      --border:          #E0E0E0;
+      --footer-bg:       #1C1C1C;
+      --footer-text:     #CCCCCC;
+      --hero-dark:       #082220;
+      --serif: 'Playfair Display', Georgia, serif;
+      --sans:  'Open Sans', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg-gray);
+      color: var(--text-dark);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--hero-dark);
+      padding: 72px 48px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 80% at 80% 50%, rgba(48,186,170,0.12), transparent);
+      pointer-events: none;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0; right: 0;
+      height: 60px;
+      background: var(--bg-gray);
+      clip-path: ellipse(55% 100% at 50% 100%);
+    }
+    .header-inner { position: relative; z-index: 1; max-width: 900px; }
+    .header-tag {
+      display: inline-block;
+      font-size: 10px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--primary); border: 1px solid rgba(48,186,170,0.4);
+      padding: 5px 14px; border-radius: 30px; margin-bottom: 20px;
+    }
+    .header-title {
+      font-family: var(--serif);
+      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      font-weight: 700; font-style: italic;
+      color: #ffffff;
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+    .header-title span { color: var(--primary); font-style: normal; }
+    .header-subtitle {
+      font-size: 0.95rem; font-weight: 300; letter-spacing: 0.3px;
+      color: rgba(255,255,255,0.5);
+      margin-top: 8px;
+    }
+
+    /* ── LAYOUT ── */
+    main { max-width: 960px; margin: 0 auto; padding: 56px 32px 80px; }
+
+    /* ── SECTION ── */
+    .section { margin-bottom: 56px; }
+    .section-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--primary); margin-bottom: 18px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .section-label::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* ── SWATCH GRID ── */
+    .swatch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 14px;
+    }
+    .swatch-grid.tight { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+
+    .swatch {
+      background: white;
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.25s cubic-bezier(.4,0,.2,1), box-shadow 0.25s ease;
+      border: 1px solid var(--border);
+      animation: fadeUp 0.5s ease both;
+    }
+    .swatch:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 14px 36px rgba(0,0,0,0.1);
+    }
+    .swatch-color {
+      height: 88px;
+      position: relative;
+      transition: filter 0.2s;
+    }
+    .swatch:hover .swatch-color { filter: brightness(1.05); }
+
+    .swatch-copy-hint {
+      position: absolute;
+      inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+      font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+      color: rgba(255,255,255,0.9);
+      background: rgba(0,0,0,0.18);
+      backdrop-filter: blur(2px);
+    }
+    .swatch:hover .swatch-copy-hint { opacity: 1; }
+
+    .swatch-info {
+      padding: 12px 14px 14px;
+    }
+    .swatch-hex {
+      font-family: 'Courier New', monospace;
+      font-size: 13px; font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 2px;
+    }
+    .swatch-name {
+      font-size: 11px; color: var(--text-light);
+    }
+
+    /* ── SWATCH LARGE (hero dark / footer) ── */
+    .swatch.large .swatch-color { height: 120px; }
+
+    /* ── TYPOGRAPHY BLOCK ── */
+    .typo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 560px) { .typo-grid { grid-template-columns: 1fr; } }
+
+    .typo-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px 28px 20px;
+    }
+    .typo-tag {
+      font-size: 10px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--primary); margin-bottom: 12px;
+    }
+    .typo-sample-serif {
+      font-family: var(--serif);
+      font-size: 2rem; font-style: italic; font-weight: 600;
+      color: var(--text-dark); line-height: 1.2;
+      margin-bottom: 8px;
+    }
+    .typo-sample-sans {
+      font-family: var(--sans);
+      font-size: 1.1rem; font-weight: 300;
+      color: var(--text-medium); line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .typo-detail {
+      font-size: 11px; color: var(--text-light);
+      border-top: 1px solid var(--border); padding-top: 10px; margin-top: 4px;
+    }
+
+    /* ── CSS BLOCK ── */
+    .code-block {
+      background: var(--hero-dark);
+      border-radius: 14px;
+      padding: 28px 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .code-block::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--gold));
+    }
+    .code-block pre {
+      font-family: 'Courier New', monospace;
+      font-size: 12.5px; line-height: 1.8;
+      color: rgba(255,255,255,0.82);
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .code-comment { color: rgba(48,186,170,0.6); }
+    .code-var { color: #E0F5F3; font-weight: 600; }
+    .code-val { color: var(--gold); }
+    .code-btn {
+      position: absolute; top: 16px; right: 16px;
+      background: rgba(48,186,170,0.15); border: 1px solid rgba(48,186,170,0.3);
+      color: var(--primary); font-family: var(--sans); font-size: 11px;
+      font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+      padding: 6px 16px; border-radius: 20px; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .code-btn:hover { background: rgba(48,186,170,0.28); }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: var(--text-dark); color: white;
+      font-family: var(--sans); font-size: 13px; font-weight: 600;
+      padding: 10px 22px; border-radius: 30px;
+      opacity: 0; transition: all 0.3s cubic-bezier(.4,0,.2,1);
+      pointer-events: none; white-space: nowrap; z-index: 999;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #toast.show {
+      opacity: 1; transform: translateX(-50%) translateY(0);
+    }
+    #toast::before {
+      content: ''; width: 7px; height: 7px;
+      background: var(--primary); border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--footer-bg); color: var(--footer-text);
+      text-align: center; padding: 28px;
+      font-size: 12px; font-weight: 300; letter-spacing: 0.5px;
+    }
+    footer strong { color: var(--primary); font-weight: 600; }
+
+    /* ── ANIMATION ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .swatch:nth-child(1) { animation-delay: 0.05s; }
+    .swatch:nth-child(2) { animation-delay: 0.10s; }
+    .swatch:nth-child(3) { animation-delay: 0.15s; }
+    .swatch:nth-child(4) { animation-delay: 0.20s; }
+    .swatch:nth-child(5) { animation-delay: 0.25s; }
+
+    @media (max-width: 600px) {
+      header { padding: 48px 24px 64px; }
+      main { padding: 40px 20px 60px; }
+      .swatch-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="header-tag">Identidad visual</div>
+      <h1 class="header-title">Amb el <span>Cor</span></h1>
+      <p class="header-subtitle">Paleta de colores · Sistema de diseño · Tipografía</p>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- PRIMARIO -->
+    <div class="section">
+      <div class="section-label">Primario · Teal / Turquesa</div>
+      <div class="swatch-grid">
+        <div class="swatch" onclick="copy('#30BAAA','primary')">
+          <div class="swatch-color" style="background:#30BAAA;">
+            <div class="swatch-copy-hint">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#30BAAA</div>
+            <div class="swatch-name">--primary</div>
+          </div>
+        </div>
+        <div class="swatch" onclick="copy('#259990','primary-dark')">
+          <div class="swatch-color" style="background:#259990;">
+            <div class="swatch-copy-hint">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#259990</div>
+            <div class="swatch-name">--primary-dark</div>
+          </div>
+        </div>
+        <div class="swatch" onclick="copy('#1A7A6D','primary-darker')">
+          <div class="swatch-color" style="background:#1A7A6D;">
+            <div class="swatch-copy-hint">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#1A7A6D</div>
+            <div class="swatch-name">--primary-darker</div>
+          </div>
+        </div>
+        <div class="swatch" onclick="copy('#E0F5F3','primary-light')">
+          <div class="swatch-color" style="background:#E0F5F3; border-bottom:1px solid #d0ecea;">
+            <div class="swatch-copy-hint">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#E0F5F3</div>
+            <div class="swatch-name">--primary-light</div>
+          </div>
+        </div>
+        <div class="swatch" onclick="copy('#F0FAFA','primary-ultra')">
+          <div class="swatch-color" style="background:#F0FAFA; border-bottom:1px solid #e0f0f0;">
+            <div class="swatch-copy-hint">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#F0FAFA</div>
+            <div class="swatch-name">--primary-ultra</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DORADO -->
+    <div class="section">
+      <div class="section-label">Acento · Dorado</div>
+      <div class="swatch-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+        <div class="swatch" onclick="copy('#C8A96E','gold')">
+          <div class="swatch-color" style="background:#C8A96E;">
+            <div class="swatch-copy-hint">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#C8A96E</div>
+            <div class="swatch-name">--gold</div>
+          </div>
+        </div>
+        <div class="swatch" onclick="copy('#F5EDD8','gold-light')">
+          <div class="swatch-color" style="background:#F5EDD8; border-bottom:1px solid #ece0c8;">
+            <div class="swatch-copy-hint">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#F5EDD8</div>
+            <div class="swatch-name">--gold-light</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEXTOS -->
+    <div class="section">
+      <div class="section-label">Textos</div>
+      <div class="swatch-grid tight">
+        <div class="swatch" onclick="copy('#1A1A1A','text-dark')">
+          <div class="swatch-color" style="background:#1A1A1A;">
+            <div class="swatch-copy-hint">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#1A1A1A</div>
+            <div class="swatch-name">--text-dark</div>
+          </div>
+        </div>
+        <div class="swatch" onclick="copy('#555555','text-medium')">
+          <div class="swatch-color" style="background:#555555;">
+            <div class="swatch-copy-hint">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#555555</div>
+            <div class="swatch-name">--text-medium</div>
+          </div>
+        </div>
+        <div class="swatch" onclick="copy('#888888','text-light')">
+          <div class="swatch-color" style="background:#888888;">
+            <div class="swatch-copy-hint">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#888888</div>
+            <div class="swatch-name">--text-light</div>
+          </div>
+        </div>
+        <div class="swatch" onclick="copy('#CCCCCC','footer-text')">
+          <div class="swatch-color" style="background:#CCCCCC;">
+            <div class="swatch-copy-hint">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#CCCCCC</div>
+            <div class="swatch-name">--footer-text</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FONDOS & ESPECIALES -->
+    <div class="section">
+      <div class="section-label">Fondos &amp; Especiales</div>
+      <div class="swatch-grid tight">
+        <div class="swatch" onclick="copy('#FFFFFF','bg-white')">
+          <div class="swatch-color" style="background:#FFFFFF; border-bottom:1px solid #eee;">
+            <div class="swatch-copy-hint" style="color:rgba(0,0,0,0.5); background:rgba(0,0,0,0.06);">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#FFFFFF</div>
+            <div class="swatch-name">--bg-white</div>
+          </div>
+        </div>
+        <div class="swatch" onclick="copy('#F8FCFB','bg-alt')">
+          <div class="swatch-color" style="background:#F8FCFB; border-bottom:1px solid #eaeeed;">
+            <div class="swatch-copy-hint" style="color:rgba(0,0,0,0.5); background:rgba(0,0,0,0.06);">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#F8FCFB</div>
+            <div class="swatch-name">--bg-alt</div>
+          </div>
+        </div>
+        <div class="swatch" onclick="copy('#F5F5F5','bg-gray')">
+          <div class="swatch-color" style="background:#F5F5F5; border-bottom:1px solid #e8e8e8;">
+            <div class="swatch-copy-hint" style="color:rgba(0,0,0,0.5); background:rgba(0,0,0,0.06);">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#F5F5F5</div>
+            <div class="swatch-name">--bg-gray</div>
+          </div>
+        </div>
+        <div class="swatch" onclick="copy('#E0E0E0','border')">
+          <div class="swatch-color" style="background:#E0E0E0;">
+            <div class="swatch-copy-hint" style="color:rgba(0,0,0,0.5); background:rgba(0,0,0,0.08);">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#E0E0E0</div>
+            <div class="swatch-name">--border</div>
+          </div>
+        </div>
+        <div class="swatch large" onclick="copy('#1C1C1C','footer-bg')">
+          <div class="swatch-color" style="background:#1C1C1C;">
+            <div class="swatch-copy-hint">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#1C1C1C</div>
+            <div class="swatch-name">--footer-bg</div>
+          </div>
+        </div>
+        <div class="swatch large" onclick="copy('#082220','hero-dark')">
+          <div class="swatch-color" style="background:#082220;">
+            <div class="swatch-copy-hint">Copiar</div>
+          </div>
+          <div class="swatch-info">
+            <div class="swatch-hex">#082220</div>
+            <div class="swatch-name">--hero-dark</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIPOGRAFÍA -->
+    <div class="section">
+      <div class="section-label">Tipografía</div>
+      <div class="typo-grid">
+        <div class="typo-card">
+          <div class="typo-tag">Display · Serif</div>
+          <div class="typo-sample-serif">Amb el Cor</div>
+          <div class="typo-detail">Playfair Display · italic 600<br>Titulares, logo, citas</div>
+        </div>
+        <div class="typo-card">
+          <div class="typo-tag">Body · Sans-serif</div>
+          <div class="typo-sample-sans">Indumentaria valenciana artesanal</div>
+          <div class="typo-detail">Open Sans · 300–700<br>Cuerpo de texto, UI</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CSS VARIABLES -->
+    <div class="section">
+      <div class="section-label">CSS Custom Properties</div>
+      <div class="code-block">
+        <button class="code-btn" onclick="copyCSS()">Copiar todo</button>
+        <pre id="css-code"><span class="code-comment">/* ── Primario ── */</span>
+<span class="code-var">--primary</span>:         <span class="code-val">#30BAAA</span>;
+<span class="code-var">--primary-dark</span>:    <span class="code-val">#259990</span>;
+<span class="code-var">--primary-darker</span>:  <span class="code-val">#1A7A6D</span>;
+<span class="code-var">--primary-light</span>:   <span class="code-val">#E0F5F3</span>;
+<span class="code-var">--primary-ultra</span>:   <span class="code-val">#F0FAFA</span>;
+
+<span class="code-comment">/* ── Dorado ── */</span>
+<span class="code-var">--gold</span>:            <span class="code-val">#C8A96E</span>;
+<span class="code-var">--gold-light</span>:      <span class="code-val">#F5EDD8</span>;
+
+<span class="code-comment">/* ── Textos ── */</span>
+<span class="code-var">--text-dark</span>:       <span class="code-val">#1A1A1A</span>;
+<span class="code-var">--text-medium</span>:     <span class="code-val">#555555</span>;
+<span class="code-var">--text-light</span>:      <span class="code-val">#888888</span>;
+
+<span class="code-comment">/* ── Fondos ── */</span>
+<span class="code-var">--bg-white</span>:        <span class="code-val">#FFFFFF</span>;
+<span class="code-var">--bg-alt</span>:          <span class="code-val">#F8FCFB</span>;
+<span class="code-var">--bg-gray</span>:         <span class="code-val">#F5F5F5</span>;
+
+<span class="code-comment">/* ── Bordes ── */</span>
+<span class="code-var">--border</span>:          <span class="code-val">#E0E0E0</span>;
+
+<span class="code-comment">/* ── Footer & Hero ── */</span>
+<span class="code-var">--footer-bg</span>:       <span class="code-val">#1C1C1C</span>;
+<span class="code-var">--footer-text</span>:     <span class="code-val">#CCCCCC</span>;
+<span class="code-var">--hero-dark</span>:       <span class="code-val">#082220</span>;
+
+<span class="code-comment">/* ── Tipografía ── */</span>
+<span class="code-var">--serif</span>:           <span class="code-val">'Playfair Display', Georgia, serif</span>;
+<span class="code-var">--sans</span>:            <span class="code-val">'Open Sans', system-ui, sans-serif</span>;</pre>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <strong>Amb el Cor</strong> · Indumentaria Valenciana Artesanal · Sistema de diseño
+  </footer>
+
+  <div id="toast"></div>
+
+  <script>
+    function copy(hex, name) {
+      navigator.clipboard.writeText(hex).catch(() => {});
+      showToast(hex + ' — ' + name);
+    }
+
+    function copyCSS() {
+      const css = `:root {\n  --primary:         #30BAAA;\n  --primary-dark:    #259990;\n  --primary-darker:  #1A7A6D;\n  --primary-light:   #E0F5F3;\n  --primary-ultra:   #F0FAFA;\n  --gold:            #C8A96E;\n  --gold-light:      #F5EDD8;\n  --text-dark:       #1A1A1A;\n  --text-medium:     #555555;\n  --text-light:      #888888;\n  --bg-white:        #FFFFFF;\n  --bg-alt:          #F8FCFB;\n  --bg-gray:         #F5F5F5;\n  --border:          #E0E0E0;\n  --footer-bg:       #1C1C1C;\n  --footer-text:     #CCCCCC;\n  --hero-dark:       #082220;\n  --serif:           'Playfair Display', Georgia, serif;\n  --sans:            'Open Sans', system-ui, sans-serif;\n}`;
+      navigator.clipboard.writeText(css).catch(() => {});
+      showToast('CSS variables copiadas');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(window._t);
+      window._t = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+  </script>
+</body>
+</html>
