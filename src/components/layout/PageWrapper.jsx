@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { ClipboardList, Users, CalendarDays, BarChart2, LayoutDashboard, LogOut } from 'lucide-react'
+import { ClipboardList, Users, Truck, CalendarDays, BarChart2, LayoutDashboard, LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import BottomNav from './BottomNav'
 
@@ -7,6 +7,7 @@ const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Inicio' },
   { to: '/encargos', icon: ClipboardList, label: 'Encargos' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
+  { to: '/proveedores', icon: Truck, label: 'Proveedores' },
   { to: '/cronograma', icon: CalendarDays, label: 'Cronograma' },
   { to: '/contabilidad/cobros', icon: BarChart2, label: 'Contabilidad' },
 ]

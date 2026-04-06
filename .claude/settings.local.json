@@ -3,7 +3,8 @@
     "allow": [
       "mcp__supabase__apply_migration",
       "Bash(npm run:*)",
-      "mcp__supabase__execute_sql"
+      "mcp__supabase__execute_sql",
+      "Read(//c/Users/Usuario/Documents/GitHub/AmbElCor_PWA/**)"
     ]
   },
   "enableAllProjectMcpServers": true,

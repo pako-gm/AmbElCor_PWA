@@ -14,6 +14,16 @@ import NuevoEncargo from '@/pages/Encargos/NuevoEncargo'
 import EncargoDetalle from '@/pages/Encargos/EncargoDetalle'
 import Cronograma from '@/pages/Cronograma/Cronograma'
 
+// Clientes
+import ClientesLista from '@/pages/Clientes/ClientesLista'
+import NuevoCliente from '@/pages/Clientes/NuevoCliente'
+import ClienteDetalle from '@/pages/Clientes/ClienteDetalle'
+
+// Proveedores
+import ProveedoresLista from '@/pages/Proveedores/ProveedoresLista'
+import NuevoProveedor from '@/pages/Proveedores/NuevoProveedor'
+import ProveedorDetalle from '@/pages/Proveedores/ProveedorDetalle'
+
 // Seguimiento público
 import SeguimientoForm from '@/pages/Seguimiento/SeguimientoForm'
 import SeguimientoDetalle from '@/pages/Seguimiento/SeguimientoDetalle'
@@ -49,13 +59,13 @@ export default function App() {
         <Route path="/encargos/nuevo" element={<Protected><NuevoEncargo /></Protected>} />
         <Route path="/encargos/:id" element={<Protected><EncargoDetalle /></Protected>} />
 
-        <Route path="/clientes" element={<Protected><Placeholder title="Clientes" /></Protected>} />
-        <Route path="/clientes/nuevo" element={<Protected><Placeholder title="Nuevo Cliente" /></Protected>} />
-        <Route path="/clientes/:id" element={<Protected><Placeholder title="Ficha Cliente" /></Protected>} />
+        <Route path="/clientes" element={<Protected><ClientesLista /></Protected>} />
+        <Route path="/clientes/nuevo" element={<Protected><NuevoCliente /></Protected>} />
+        <Route path="/clientes/:id" element={<Protected><ClienteDetalle /></Protected>} />
 
-        <Route path="/proveedores" element={<Protected><Placeholder title="Proveedores" /></Protected>} />
-        <Route path="/proveedores/nuevo" element={<Protected><Placeholder title="Nuevo Proveedor" /></Protected>} />
-        <Route path="/proveedores/:id" element={<Protected><Placeholder title="Ficha Proveedor" /></Protected>} />
+        <Route path="/proveedores" element={<Protected><ProveedoresLista /></Protected>} />
+        <Route path="/proveedores/nuevo" element={<Protected><NuevoProveedor /></Protected>} />
+        <Route path="/proveedores/:id" element={<Protected><ProveedorDetalle /></Protected>} />
 
         <Route path="/inventario" element={<Protected><Placeholder title="Inventario" /></Protected>} />
         <Route path="/cronograma" element={<Protected><Cronograma /></Protected>} />
