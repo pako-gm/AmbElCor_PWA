@@ -1,10 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { ClipboardList, Users, Truck, CalendarDays, BarChart2, LayoutDashboard, LogOut } from 'lucide-react'
+import logoAmbelcor from '@/public/img/negro-logo-ambelcor.jpg'
+import { ClipboardList, Users, Truck, CalendarDays, BarChart2, LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import BottomNav from './BottomNav'
 
 const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Inicio' },
   { to: '/encargos', icon: ClipboardList, label: 'Encargos' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
   { to: '/proveedores', icon: Truck, label: 'Proveedores' },
@@ -25,8 +25,9 @@ export default function PageWrapper({ children }) {
     <div className="min-h-screen bg-[--bg-gray]">
       {/* Sidebar — solo desktop */}
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-52 bg-white border-r border-[--border] flex-col z-40">
-        <div className="px-5 py-5 border-b border-[--border]">
-          <span className="font-display text-lg font-semibold text-primary">AmbElCor</span>
+        <div className="px-5 py-4 border-b border-[--border] flex items-center justify-between gap-2">
+          <span className="font-display text-base font-semibold text-primary leading-tight">Amb el Cor<br /><span className="text-xs font-normal text-[--text-light] tracking-wide">CRM</span></span>
+          <img src={logoAmbelcor} alt="AmbElCor" className="h-10 w-auto object-contain" />
         </div>
         <nav className="flex-1 py-3">
           {navItems.map(({ to, icon: Icon, label }) => (

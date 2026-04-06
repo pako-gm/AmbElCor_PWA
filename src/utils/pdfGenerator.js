@@ -1,33 +1,61 @@
 import jsPDF from 'jspdf'
 import { formatFecha, formatImporte, TIPO_PAGO_LABELS, FORMA_PAGO_LABELS } from './formatters'
+import logoUrl from '@/public/img/negro-logo-ambelcor.jpg'
 
-const BRAND = 'AmbElCor'
 const PRIMARY = [48, 186, 170] // #30BAAA
 
-function addHeader(doc, titulo, numero) {
+async function cargarLogo() {
+  const resp = await fetch(logoUrl)
+  const blob = await resp.blob()
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result)
+    reader.readAsDataURL(blob)
+  })
+}
+
+function addHeader(doc, titulo, numero, logoData) {
   // Banda de color
   doc.setFillColor(...PRIMARY)
-  doc.rect(0, 0, 210, 18, 'F')
+  doc.rect(0, 0, 210, 20, 'F')
 
+  // Logo a la izquierda
+  let textX = 14
+  if (logoData) {
+    doc.addImage(logoData, 'JPEG', 14, 3, 14, 14)
+    textX = 30
+  }
+
+  // Texto marca
   doc.setTextColor(255, 255, 255)
-  doc.setFontSize(13)
+  doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
-  doc.text(BRAND, 14, 12)
-
-  doc.setFontSize(10)
+  doc.text('Amb el Cor', textX, 10)
+  doc.setFontSize(7)
   doc.setFont('helvetica', 'normal')
-  doc.text(titulo, 210 - 14, 12, { align: 'right' })
+  doc.text('Taller de Costura Artesanal', textX, 16)
+
+  // Número grande a la derecha
+  doc.setFontSize(18)
+  doc.setFont('helvetica', 'bold')
+  doc.text(numero ?? '', 196, 14, { align: 'right' })
+  // Título pequeño justo antes del número
+  const numWidth = doc.getTextWidth(numero ?? '')
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.text(titulo, 196 - numWidth - 3, 14, { align: 'right' })
 
   doc.setTextColor(40, 40, 40)
-  return 28
+  return 30
 }
 
 function addInfo(doc, y, label, value) {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(9)
   doc.text(label, 14, y)
+  const labelWidth = doc.getTextWidth(label)
   doc.setFont('helvetica', 'normal')
-  doc.text(value ?? '—', 50, y)
+  doc.text(value ?? '—', 14 + labelWidth + 3, y)
   return y + 6
 }
 
@@ -38,9 +66,9 @@ function addLineasTable(doc, lineas, y) {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(9)
   doc.text('Descripción', 16, y + 5.5)
-  doc.text('Cant.', 130, y + 5.5)
-  doc.text('Precio unit.', 148, y + 5.5)
-  doc.text('Subtotal', 175, y + 5.5, { align: 'right' })
+  doc.text('Cantidad', 122, y + 5.5, { align: 'right' })
+  doc.text('Precio unit.', 154, y + 5.5, { align: 'right' })
+  doc.text('Subtotal', 196, y + 5.5, { align: 'right' })
   y += 10
 
   doc.setFont('helvetica', 'normal')
@@ -51,26 +79,27 @@ function addLineasTable(doc, lineas, y) {
     }
     const desc = l.descripcion || l.prendas_catalogo?.nombre || '—'
     const subtotal = (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1)
-    doc.text(doc.splitTextToSize(desc, 108)[0], 16, y + 3.5)
-    doc.text(String(l.cantidad ?? 1), 133, y + 3.5)
-    doc.text(formatImporte(l.precio_unitario), 150, y + 3.5)
-    doc.text(formatImporte(subtotal), 195, y + 3.5, { align: 'right' })
+    doc.text(doc.splitTextToSize(desc, 100)[0], 16, y + 3.5)
+    doc.text(String(l.cantidad ?? 1), 122, y + 3.5, { align: 'right' })
+    doc.text(formatImporte(l.precio_unitario), 154, y + 3.5, { align: 'right' })
+    doc.text(formatImporte(subtotal), 196, y + 3.5, { align: 'right' })
     y += 8
   })
 
   return y
 }
 
-export function generarPresupuestoPDF(encargo) {
+export async function generarPresupuestoPDF(encargo) {
+  const logoData = await cargarLogo()
   const doc = new jsPDF()
-  let y = addHeader(doc, 'PRESUPUESTO', encargo.numero)
+  let y = addHeader(doc, 'PRESUPUESTO', encargo.numero, logoData)
 
   // Datos encargo
   doc.setFontSize(9)
   y = addInfo(doc, y, 'Nº Encargo:', encargo.numero)
-  y = addInfo(doc, y, 'Fecha:', formatFecha(encargo.fecha_encargo))
+  y = addInfo(doc, y, 'Fecha Presupuesto:', formatFecha(encargo.fecha_encargo))
   if (encargo.fecha_entrega_estimada) {
-    y = addInfo(doc, y, 'Entrega est.:', formatFecha(encargo.fecha_entrega_estimada))
+    y = addInfo(doc, y, 'Entrega estimada:', formatFecha(encargo.fecha_entrega_estimada))
   }
   y += 4
 
@@ -91,7 +120,7 @@ export function generarPresupuestoPDF(encargo) {
   // Líneas
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(10)
-  doc.text('Detalle del encargo', 14, y)
+  doc.text('Detalle del Presupuesto', 14, y)
   y += 6
   y = addLineasTable(doc, encargo.encargo_lineas ?? [], y)
   y += 4
@@ -119,15 +148,16 @@ export function generarPresupuestoPDF(encargo) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   doc.setTextColor(150, 150, 150)
-  doc.text('Presupuesto válido por 30 días. AmbElCor — Costura artesanal.', 14, 285)
+  doc.text('Presupuesto válido por 30 días. Todos los precios son con IVA incluido. AmbElCor — Taller de Costura artesanal.', 14, 285)
 
   const nombreFichero = `presupuesto-${(encargo.numero ?? 'encargo').replace('/', '-')}.pdf`
   doc.save(nombreFichero)
 }
 
-export function generarFacturaPDF(encargo, datosFiscales) {
+export async function generarFacturaPDF(encargo, datosFiscales) {
+  const logoData = await cargarLogo()
   const doc = new jsPDF()
-  let y = addHeader(doc, 'FACTURA', encargo.numero)
+  let y = addHeader(doc, 'FACTURA', encargo.numero, logoData)
 
   // Datos emisor (Carmen)
   if (datosFiscales) {

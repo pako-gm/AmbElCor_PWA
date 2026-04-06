@@ -235,7 +235,7 @@ export default function EncargoDetalle() {
             <button
               onClick={async () => {
                 const e = await fetchEncargo(id)
-                generarPresupuestoPDF(e)
+                await generarPresupuestoPDF(e)
               }}
               className="flex items-center gap-1.5 text-xs border border-[--border] px-3 py-2 rounded-md text-[--text-medium] hover:border-primary hover:text-primary bg-white transition-colors"
             >
@@ -247,7 +247,7 @@ export default function EncargoDetalle() {
                 onClick={async () => {
                   const e = await fetchEncargo(id)
                   const { data: fiscal } = await supabase.from('datos_fiscales').select('*').limit(1).maybeSingle()
-                  generarFacturaPDF(e, fiscal)
+                  await generarFacturaPDF(e, fiscal)
                 }}
                 className="flex items-center gap-1.5 text-xs border border-[--border] px-3 py-2 rounded-md text-[--text-medium] hover:border-primary hover:text-primary bg-white transition-colors"
               >
@@ -583,10 +583,10 @@ export default function EncargoDetalle() {
                   setModalPdf(null)
                   const actualizado = await fetchEncargo(id)
                   if (modalPdf === 'presupuesto') {
-                    generarPresupuestoPDF(actualizado)
+                    await generarPresupuestoPDF(actualizado)
                   } else {
                     const { data: fiscal } = await supabase.from('datos_fiscales').select('*').limit(1).maybeSingle()
-                    generarFacturaPDF(actualizado, fiscal)
+                    await generarFacturaPDF(actualizado, fiscal)
                   }
                 }}
                 className="flex-1 text-sm bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark transition-colors"

@@ -8,7 +8,6 @@ import Setup2FA from '@/pages/Setup2FA'
 import Verify2FA from '@/pages/Verify2FA'
 
 // CRM
-import Dashboard from '@/pages/Dashboard'
 import EncargosLista from '@/pages/Encargos/EncargosLista'
 import NuevoEncargo from '@/pages/Encargos/NuevoEncargo'
 import EncargoDetalle from '@/pages/Encargos/EncargoDetalle'
@@ -53,8 +52,6 @@ export default function App() {
         <Route path="/seguimiento/:token" element={<SeguimientoDetalle />} />
 
         {/* Rutas protegidas */}
-        <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
-
         <Route path="/encargos" element={<Protected><EncargosLista /></Protected>} />
         <Route path="/encargos/nuevo" element={<Protected><NuevoEncargo /></Protected>} />
         <Route path="/encargos/:id" element={<Protected><EncargoDetalle /></Protected>} />
