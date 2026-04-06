@@ -103,7 +103,7 @@ export default function EncargosLista() {
                     </p>
                     <p className="text-xs text-[--text-light] mt-1">
                       {e.encargo_lineas?.length ?? 0} prenda{(e.encargo_lineas?.length ?? 0) !== 1 ? 's' : ''}
-                      {e.fecha_entrega_estimada && ` · Entrega: ${formatFecha(e.fecha_entrega_estimada)}`}
+                      {e.fecha_entrega_estimada && ` · Entrega prevista: ${formatFecha(e.fecha_entrega_estimada)}`}
                     </p>
                   </div>
                   <div className="text-right space-y-1.5">

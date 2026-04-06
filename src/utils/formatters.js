@@ -46,5 +46,6 @@ export const FORMA_PAGO_LABELS = {
   efectivo: 'Efectivo',
   transferencia: 'Transferencia',
   tarjeta: 'Tarjeta',
+  bizum: 'Bizum',
   stripe: 'Online',
 }

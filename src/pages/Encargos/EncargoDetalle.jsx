@@ -17,7 +17,7 @@ import {
 const ESTADOS = ['presupuestado', 'confirmado', 'en_confeccion', 'listo', 'entregado']
 
 const TIPOS_PAGO = ['señal', 'parcial', 'final', 'devolucion']
-const FORMAS_PAGO = ['efectivo', 'transferencia', 'tarjeta']
+const FORMAS_PAGO = ['efectivo', 'transferencia', 'tarjeta', 'bizum']
 
 export default function EncargoDetalle() {
   const { id } = useParams()
@@ -38,6 +38,9 @@ export default function EncargoDetalle() {
   const [catalogo, setCatalogo] = useState([])
   const [nuevaLinea, setNuevaLinea] = useState({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', medidas_ajuste: '', notas: '' })
   const [guardandoLinea, setGuardandoLinea] = useState(false)
+
+  // Modal confirmación eliminar
+  const [confirmDelete, setConfirmDelete] = useState(null) // { tipo: 'encargo' | 'pago', pagoId? }
 
   // Formulario pago
   const [mostrarFormPago, setMostrarFormPago] = useState(false)
@@ -115,10 +118,20 @@ export default function EncargoDetalle() {
     }
   }
 
-  const handleEliminarEncargo = async () => {
-    if (!confirm(`¿Eliminar el encargo ${encargo.numero}? Esta acción no se puede deshacer.`)) return
-    await eliminarEncargo(id)
-    navigate('/encargos')
+  const handleEliminarEncargo = () => {
+    setConfirmDelete({ tipo: 'encargo' })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (confirmDelete?.tipo === 'encargo') {
+      await eliminarEncargo(id)
+      navigate('/encargos')
+    } else if (confirmDelete?.tipo === 'pago') {
+      const pago = encargo.pagos?.find(p => p.id === confirmDelete.pagoId)
+      await eliminarPago(confirmDelete.pagoId, id, pago?.importe)
+      cargar()
+    }
+    setConfirmDelete(null)
   }
 
   const handleCopiarEnlace = () => {
@@ -148,11 +161,8 @@ export default function EncargoDetalle() {
     }
   }
 
-  const handleEliminarPago = async (pagoId) => {
-    if (!confirm('¿Eliminar este pago?')) return
-    const pago = encargo.pagos?.find(p => p.id === pagoId)
-    await eliminarPago(pagoId, id, pago?.importe)
-    cargar()
+  const handleEliminarPago = (pagoId) => {
+    setConfirmDelete({ tipo: 'pago', pagoId })
   }
 
   const totalPagado = (encargo.pagos ?? []).reduce((s, p) => s + parseFloat(p.importe), 0)
@@ -206,7 +216,7 @@ export default function EncargoDetalle() {
                     onClick={() => !avanzando && esAdyacente && handleCambiarEstado(estado)}
                     className={`flex-1 text-center text-[10px] font-medium px-1 py-1.5 rounded leading-tight transition-opacity ${
                       i <= estadoActual ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'
-                    } ${esAdyacente && !avanzando ? 'cursor-pointer hover:opacity-75' : 'cursor-default'}`}
+                    } ${esAdyacente && !avanzando ? 'cursor-pointer hover:bg-gray-400 hover:text-white' : 'cursor-default'}`}
                   >
                     {ESTADO_LABELS[estado]}
                   </span>
@@ -582,6 +592,49 @@ export default function EncargoDetalle() {
                 className="flex-1 text-sm bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark transition-colors"
               >
                 Descargar PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmar eliminación */}
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setConfirmDelete(null)}
+        >
+          <div
+            className="bg-white rounded-xl w-full max-w-sm p-6 space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                <Trash2 size={18} className="text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-display text-base text-[--text-dark]">
+                  {confirmDelete.tipo === 'encargo' ? 'Eliminar encargo' : 'Eliminar pago'}
+                </h3>
+                <p className="text-xs text-[--text-light]">
+                  {confirmDelete.tipo === 'encargo'
+                    ? `¿Eliminar el encargo ${encargo.numero}? Esta acción no se puede deshacer.`
+                    : '¿Eliminar este pago? Esta acción no se puede deshacer.'}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 text-sm border border-[--border] px-4 py-2 rounded-md text-[--text-medium] hover:bg-[--bg-alt] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 text-sm bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors"
+              >
+                Eliminar
               </button>
             </div>
           </div>

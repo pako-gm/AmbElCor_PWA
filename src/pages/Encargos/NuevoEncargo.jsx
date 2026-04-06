@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Trash2, ChevronLeft, UserPlus } from 'lucide-react'
+import { Plus, Trash2, ChevronLeft, UserPlus, X } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import {
   crearEncargo, buscarClientes, crearClienteRapido, fetchCatalogo
@@ -145,8 +145,17 @@ export default function NuevoEncargo() {
               placeholder="Buscar cliente por nombre…"
               value={clienteQuery}
               onChange={e => { setClienteQuery(e.target.value); setClienteSeleccionado(null) }}
-              className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full border border-[--border] rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
+            {clienteQuery && (
+              <button
+                type="button"
+                onClick={() => { setClienteQuery(''); setClienteSeleccionado(null); setSugerencias([]) }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[--text-light] hover:text-[--text-dark]"
+              >
+                <X size={15} />
+              </button>
+            )}
             {sugerencias.length > 0 && (
               <ul className="absolute z-10 left-0 right-0 top-full mt-1 bg-white border border-[--border] rounded-md shadow-lg text-sm overflow-hidden">
                 {sugerencias.map(c => (
@@ -217,13 +226,22 @@ export default function NuevoEncargo() {
                 />
                 {erroresCliente.email && <p className="text-xs text-red-500 mt-0.5">{erroresCliente.email}</p>}
               </div>
-              <button
-                type="button"
-                onClick={crearCliente}
-                className="bg-primary text-white text-xs px-4 py-1.5 rounded hover:bg-primary-dark transition-colors"
-              >
-                Guardar cliente
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={crearCliente}
+                  className="bg-primary text-white text-xs px-4 py-1.5 rounded hover:bg-primary-dark transition-colors"
+                >
+                  Guardar cliente
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMostrarFormCliente(false); setNuevoCliente({ nombre: '', apellidos: '', telefono: '', email: '' }); setErroresCliente({}) }}
+                  className="bg-gray-100 text-gray-500 text-xs px-4 py-1.5 rounded hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           )}
         </section>
