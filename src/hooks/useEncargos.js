@@ -1,5 +1,16 @@
 import { supabase } from '@/lib/supabase'
 
+const ESTADO_LABELS = {
+  presupuestado: 'Presupuestado',
+  confirmado: 'Confirmado',
+  en_confeccion: 'En confección',
+  listo: 'Listo',
+  entregado: 'Entregado',
+}
+
+const registrarHistorial = (encargo_id, descripcion) =>
+  supabase.from('historial_encargo').insert({ encargo_id, descripcion })
+
 // Lista de encargos con datos del cliente
 export async function fetchEncargos({ estado } = {}) {
   let query = supabase
@@ -30,7 +41,7 @@ export async function fetchEncargo(id) {
         id, descripcion, cantidad, precio_unitario, medidas_ajuste, notas,
         prendas_catalogo (id, nombre)
       ),
-      historial_estados (id, estado_anterior, estado_nuevo, fecha, notas),
+      historial_encargo (id, fecha, descripcion),
       pagos (id, fecha, importe, tipo, forma_pago, referencia, notas)
     `)
     .eq('id', id)
@@ -47,6 +58,9 @@ export async function crearEncargo({ cliente_id, fecha_entrega_estimada, notas, 
     0
   )
 
+  // El campo `numero` lo genera automáticamente el trigger `generar_numero_encargo` en Supabase.
+  // Formato: YY/NNN (ej. 26/001). Se reinicia cada año.
+  // AVISO: usa MAX()+1, no es atómico. Válido porque el CRM es de usuario único.
   const { data: encargo, error } = await supabase
     .from('encargos')
     .insert({ cliente_id, fecha_entrega_estimada: fecha_entrega_estimada || null, notas, precio_total })
@@ -68,6 +82,8 @@ export async function crearEncargo({ cliente_id, fecha_entrega_estimada, notas, 
     if (lineasError) throw lineasError
   }
 
+  await registrarHistorial(encargo.id, 'Encargo creado')
+
   return encargo
 }
 
@@ -84,6 +100,8 @@ export async function avanzarEstado(id, estadoAnterior, estadoNuevo) {
     estado_anterior: estadoAnterior,
     estado_nuevo: estadoNuevo,
   })
+
+  await registrarHistorial(id, `Estado: ${ESTADO_LABELS[estadoAnterior]} → ${ESTADO_LABELS[estadoNuevo]}`)
 }
 
 // Registrar pago de un encargo
@@ -94,12 +112,31 @@ export async function registrarPago({ encargo_id, fecha, importe, tipo, forma_pa
     .select()
     .single()
   if (error) throw error
+
+  const importeFormateado = parseFloat(importe).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })
+  await registrarHistorial(encargo_id, `Pago registrado: ${importeFormateado}`)
+
   return data
 }
 
 // Eliminar pago
-export async function eliminarPago(id) {
+export async function eliminarPago(id, encargo_id, importe) {
   const { error } = await supabase.from('pagos').delete().eq('id', id)
+  if (error) throw error
+
+  if (encargo_id) {
+    const importeFormateado = parseFloat(importe).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })
+    await registrarHistorial(encargo_id, `Pago eliminado: ${importeFormateado}`)
+  }
+}
+
+// Eliminar encargo y todo lo relacionado
+export async function eliminarEncargo(id) {
+  await supabase.from('historial_encargo').delete().eq('encargo_id', id)
+  await supabase.from('historial_estados').delete().eq('encargo_id', id)
+  await supabase.from('encargo_lineas').delete().eq('encargo_id', id)
+  await supabase.from('pagos').delete().eq('encargo_id', id)
+  const { error } = await supabase.from('encargos').delete().eq('id', id)
   if (error) throw error
 }
 
@@ -115,14 +152,53 @@ export async function buscarClientes(query) {
 }
 
 // Crear cliente rápido
-export async function crearClienteRapido({ nombre, apellidos, telefono }) {
+export async function crearClienteRapido({ nombre, apellidos, telefono, email }) {
   const { data, error } = await supabase
     .from('clientes')
-    .insert({ nombre, apellidos: apellidos || null, telefono: telefono || null })
+    .insert({ nombre, apellidos: apellidos || null, telefono: telefono || null, email: email || null })
     .select()
     .single()
   if (error) throw error
   return data
+}
+
+// Eliminar línea de encargo y recalcular total
+export async function eliminarLinea(lineaId, encargoId, descripcion) {
+  const { error } = await supabase.from('encargo_lineas').delete().eq('id', lineaId)
+  if (error) throw error
+  const { data: lineas } = await supabase.from('encargo_lineas').select('cantidad, precio_unitario').eq('encargo_id', encargoId)
+  const total = (lineas || []).reduce((s, l) => s + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1), 0)
+  await supabase.from('encargos').update({ precio_total: total }).eq('id', encargoId)
+  await registrarHistorial(encargoId, `Prenda eliminada: ${descripcion || 'sin descripción'}`)
+}
+
+// Agregar línea a encargo y recalcular total
+export async function agregarLinea(encargoId, linea) {
+  const { error } = await supabase.from('encargo_lineas').insert({
+    encargo_id: encargoId,
+    prenda_id: linea.prenda_id || null,
+    descripcion: linea.descripcion,
+    cantidad: parseInt(linea.cantidad) || 1,
+    precio_unitario: parseFloat(linea.precio_unitario) || 0,
+    medidas_ajuste: linea.medidas_ajuste ? { notas: linea.medidas_ajuste } : {},
+    notas: linea.notas || null,
+  })
+  if (error) throw error
+  const { data: lineas } = await supabase.from('encargo_lineas').select('cantidad, precio_unitario').eq('encargo_id', encargoId)
+  const total = (lineas || []).reduce((s, l) => s + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1), 0)
+  await supabase.from('encargos').update({ precio_total: total }).eq('id', encargoId)
+  await registrarHistorial(encargoId, `Prenda añadida: ${linea.descripcion}`)
+}
+
+// Actualizar fechas de un encargo (desde el cronograma)
+export async function updateFechasEncargo(id, fecha_encargo, fecha_entrega_estimada) {
+  const fmt = d => d.toISOString().split('T')[0]
+  const { error } = await supabase
+    .from('encargos')
+    .update({ fecha_encargo: fmt(fecha_encargo), fecha_entrega_estimada: fmt(fecha_entrega_estimada) })
+    .eq('id', id)
+  if (error) throw error
+  await registrarHistorial(id, `Fechas actualizadas: inicio ${fmt(fecha_encargo)}, entrega ${fmt(fecha_entrega_estimada)}`)
 }
 
 // Catálogo de prendas activas

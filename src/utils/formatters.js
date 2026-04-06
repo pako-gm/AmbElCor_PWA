@@ -27,11 +27,11 @@ export const ESTADO_LABELS = {
 }
 
 export const ESTADO_COLORS = {
-  presupuestado: 'bg-gray-100 text-gray-600',
-  confirmado: 'bg-primary-light text-primary-darker',
-  en_confeccion: 'bg-blue-50 text-blue-700',
-  listo: 'bg-gold-light text-amber-800',
-  entregado: 'bg-green-50 text-green-700',
+  presupuestado: 'bg-gray-400 text-white',
+  confirmado: 'bg-teal-500 text-white',
+  en_confeccion: 'bg-blue-500 text-white',
+  listo: 'bg-amber-500 text-white',
+  entregado: 'bg-green-600 text-white',
 }
 
 // Etiquetas de tipo de pago

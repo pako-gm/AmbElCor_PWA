@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatFecha, formatImporte, ESTADO_LABELS, ESTADO_COLORS } from '@/utils/formatters'
 
@@ -61,19 +62,16 @@ export default function SeguimientoDetalle() {
           <h2 className="text-sm font-semibold text-[--text-medium] mb-4">Estado del encargo</h2>
           <div className="flex items-center gap-1">
             {ESTADOS.map((estado, i) => (
-              <div key={estado} className="flex items-center flex-1">
-                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${i <= estadoActual ? 'bg-primary' : 'bg-[--border]'}`} />
+              <div key={estado} className="flex items-center gap-1 flex-1 min-w-0">
+                <span className={`flex-1 text-center text-[10px] font-medium px-1 py-1.5 rounded leading-tight ${
+                  i <= estadoActual ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'
+                }`}>
+                  {ESTADO_LABELS[estado]}
+                </span>
                 {i < ESTADOS.length - 1 && (
-                  <div className={`h-0.5 flex-1 ${i < estadoActual ? 'bg-primary' : 'bg-[--border]'}`} />
+                  <ChevronRight size={12} className="flex-shrink-0 text-gray-300" />
                 )}
               </div>
-            ))}
-          </div>
-          <div className="flex justify-between mt-1">
-            {ESTADOS.map((estado) => (
-              <span key={estado} className="text-[10px] text-[--text-light] text-center" style={{ width: '20%' }}>
-                {ESTADO_LABELS[estado]}
-              </span>
             ))}
           </div>
           {encargo.fecha_entrega_estimada && (

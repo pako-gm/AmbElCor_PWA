@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft, Share2, FileText, Copy, Check,
-  ChevronRight, Trash2, PlusCircle
+  ChevronRight, Trash2, PlusCircle, Pencil, Plus
 } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
-import { fetchEncargo, avanzarEstado, registrarPago, eliminarPago } from '@/hooks/useEncargos'
+import { fetchEncargo, avanzarEstado, registrarPago, eliminarPago, eliminarLinea, agregarLinea, fetchCatalogo, eliminarEncargo } from '@/hooks/useEncargos'
 import { supabase } from '@/lib/supabase'
 import { generarPresupuestoPDF, generarFacturaPDF } from '@/utils/pdfGenerator'
 import {
   formatFecha, formatImporte,
-  ESTADO_LABELS, ESTADO_COLORS,
+  ESTADO_LABELS,
   TIPO_PAGO_LABELS, FORMA_PAGO_LABELS
 } from '@/utils/formatters'
 
@@ -30,14 +30,63 @@ export default function EncargoDetalle() {
   const [modalCompartir, setModalCompartir] = useState(false)
   const [copiado, setCopiado] = useState(false)
 
+  // Modal PDF
+  const [modalPdf, setModalPdf] = useState(null) // 'presupuesto' | 'factura' | null
+
+  // Modal líneas
+  const [modalLineas, setModalLineas] = useState(false)
+  const [catalogo, setCatalogo] = useState([])
+  const [nuevaLinea, setNuevaLinea] = useState({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', medidas_ajuste: '', notas: '' })
+  const [guardandoLinea, setGuardandoLinea] = useState(false)
+
   // Formulario pago
   const [mostrarFormPago, setMostrarFormPago] = useState(false)
   const [pago, setPago] = useState({ fecha: new Date().toISOString().split('T')[0], importe: '', tipo: 'señal', forma_pago: 'efectivo', referencia: '', notas: '' })
   const [guardandoPago, setGuardandoPago] = useState(false)
+  const [errorPago, setErrorPago] = useState('')
 
   const cargar = () => {
     setLoading(true)
     fetchEncargo(id).then(setEncargo).catch(console.error).finally(() => setLoading(false))
+  }
+
+  const abrirModalLineas = () => {
+    fetchCatalogo().then(setCatalogo).catch(console.error)
+    setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', medidas_ajuste: '', notas: '' })
+    setModalLineas(true)
+  }
+
+  const handleEliminarLinea = async (lineaId, descripcion) => {
+    await eliminarLinea(lineaId, id, descripcion)
+    cargar()
+  }
+
+  const handleAgregarLinea = async () => {
+    if (!nuevaLinea.descripcion.trim()) return
+    setGuardandoLinea(true)
+    try {
+      await agregarLinea(id, nuevaLinea)
+      setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', medidas_ajuste: '', notas: '' })
+      cargar()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setGuardandoLinea(false)
+    }
+  }
+
+  const updateNuevaLinea = (campo, valor) => {
+    setNuevaLinea(prev => {
+      const updated = { ...prev, [campo]: valor }
+      if (campo === 'prenda_id' && valor) {
+        const prenda = catalogo.find(p => p.id === valor)
+        if (prenda) {
+          updated.descripcion = prenda.nombre
+          updated.precio_unitario = (prenda.precio_base * (1 - (prenda.descuento ?? 0) / 100)).toFixed(2)
+        }
+      }
+      return updated
+    })
   }
 
   useEffect(cargar, [id])
@@ -46,32 +95,30 @@ export default function EncargoDetalle() {
   if (!encargo) return <PageWrapper><div className="p-8 text-center text-[--text-light] text-sm">Encargo no encontrado.</div></PageWrapper>
 
   const estadoActual = ESTADOS.indexOf(encargo.estado)
-  const siguienteEstado = estadoActual < ESTADOS.length - 1 ? ESTADOS[estadoActual + 1] : null
   const nombreCliente = encargo.clientes
     ? `${encargo.clientes.nombre} ${encargo.clientes.apellidos ?? ''}`.trim()
     : 'Sin cliente'
 
-  const handleAvanzar = async () => {
-    if (!siguienteEstado) return
+  const handleCambiarEstado = async (nuevoEstado) => {
+    const nuevoIndex = ESTADOS.indexOf(nuevoEstado)
+    if (Math.abs(nuevoIndex - estadoActual) !== 1) return
     setAvanzando(true)
     try {
-      await avanzarEstado(id, encargo.estado, siguienteEstado)
-      // Auto-generar PDF al confirmar o al entregar
-      if (siguienteEstado === 'confirmado') {
-        const actualizado = await fetchEncargo(id)
-        generarPresupuestoPDF(actualizado)
-      }
-      if (siguienteEstado === 'entregado') {
-        const actualizado = await fetchEncargo(id)
-        const { data: fiscal } = await supabase.from('datos_fiscales').select('*').limit(1).single()
-        generarFacturaPDF(actualizado, fiscal)
-      }
+      await avanzarEstado(id, encargo.estado, nuevoEstado)
+      if (nuevoIndex > estadoActual && nuevoEstado === 'confirmado') setModalPdf('presupuesto')
+      if (nuevoIndex > estadoActual && nuevoEstado === 'entregado') setModalPdf('factura')
       cargar()
     } catch (e) {
       console.error(e)
     } finally {
       setAvanzando(false)
     }
+  }
+
+  const handleEliminarEncargo = async () => {
+    if (!confirm(`¿Eliminar el encargo ${encargo.numero}? Esta acción no se puede deshacer.`)) return
+    await eliminarEncargo(id)
+    navigate('/encargos')
   }
 
   const handleCopiarEnlace = () => {
@@ -83,6 +130,11 @@ export default function EncargoDetalle() {
 
   const handleRegistrarPago = async () => {
     if (!pago.importe || parseFloat(pago.importe) <= 0) return
+    if (pago.tipo !== 'devolucion' && parseFloat(pago.importe) > pendiente) {
+      setErrorPago(`El importe supera el pendiente (${formatImporte(pendiente)})`)
+      return
+    }
+    setErrorPago('')
     setGuardandoPago(true)
     try {
       await registrarPago({ ...pago, encargo_id: id })
@@ -98,7 +150,8 @@ export default function EncargoDetalle() {
 
   const handleEliminarPago = async (pagoId) => {
     if (!confirm('¿Eliminar este pago?')) return
-    await eliminarPago(pagoId)
+    const pago = encargo.pagos?.find(p => p.id === pagoId)
+    await eliminarPago(pagoId, id, pago?.importe)
     cargar()
   }
 
@@ -124,58 +177,46 @@ export default function EncargoDetalle() {
             <Share2 size={13} />
             Compartir
           </button>
+          <button
+            onClick={handleEliminarEncargo}
+            className="text-[--text-light] hover:text-red-500 transition-colors p-1"
+            title="Eliminar encargo"
+          >
+            <Trash2 size={18} />
+          </button>
         </div>
 
         {/* Estado + Timeline */}
         <div className="bg-white rounded-lg border border-[--border] p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${ESTADO_COLORS[encargo.estado]}`}>
-              {ESTADO_LABELS[encargo.estado]}
-            </span>
-            {encargo.fecha_entrega_estimada && (
+          {encargo.fecha_entrega_estimada && (
+            <div className="flex justify-end">
               <span className="text-xs text-[--text-light]">
-                Entrega: {formatFecha(encargo.fecha_entrega_estimada)}
+                Entrega prevista: {formatFecha(encargo.fecha_entrega_estimada)}
               </span>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Timeline */}
-          <div>
-            <div className="flex items-center">
-              {ESTADOS.map((estado, i) => (
-                <div key={estado} className="flex items-center flex-1">
-                  <div className={`w-3 h-3 rounded-full flex-shrink-0 border-2 transition-colors ${
-                    i < estadoActual ? 'bg-primary border-primary' :
-                    i === estadoActual ? 'bg-white border-primary' : 'bg-white border-[--border]'
-                  }`} />
+          <div className="flex items-center gap-1">
+            {ESTADOS.map((estado, i) => {
+              const esAdyacente = Math.abs(i - estadoActual) === 1
+              return (
+                <div key={estado} className="flex items-center gap-1 flex-1 min-w-0">
+                  <span
+                    onClick={() => !avanzando && esAdyacente && handleCambiarEstado(estado)}
+                    className={`flex-1 text-center text-[10px] font-medium px-1 py-1.5 rounded leading-tight transition-opacity ${
+                      i <= estadoActual ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'
+                    } ${esAdyacente && !avanzando ? 'cursor-pointer hover:opacity-75' : 'cursor-default'}`}
+                  >
+                    {ESTADO_LABELS[estado]}
+                  </span>
                   {i < ESTADOS.length - 1 && (
-                    <div className={`h-0.5 flex-1 ${i < estadoActual ? 'bg-primary' : 'bg-[--border]'}`} />
+                    <ChevronRight size={12} className="flex-shrink-0 text-gray-300" />
                   )}
                 </div>
-              ))}
-            </div>
-            <div className="flex mt-1.5">
-              {ESTADOS.map(estado => (
-                <span key={estado} className={`flex-1 text-[9px] text-center leading-tight ${
-                  estado === encargo.estado ? 'text-primary font-semibold' : 'text-[--text-light]'
-                }`}>
-                  {ESTADO_LABELS[estado]}
-                </span>
-              ))}
-            </div>
+              )
+            })}
           </div>
-
-          {/* Botón avanzar */}
-          {siguienteEstado && (
-            <button
-              onClick={handleAvanzar}
-              disabled={avanzando}
-              className="flex items-center gap-2 text-sm bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark disabled:opacity-50 transition-colors"
-            >
-              <ChevronRight size={15} />
-              {avanzando ? 'Avanzando…' : `Marcar como "${ESTADO_LABELS[siguienteEstado]}"`}
-            </button>
-          )}
         </div>
 
         {/* PDFs manuales */}
@@ -209,9 +250,18 @@ export default function EncargoDetalle() {
 
         {/* Prendas */}
         <div className="bg-white rounded-lg border border-[--border] p-4 space-y-2">
-          <h2 className="text-sm font-semibold text-[--text-medium] mb-3">
-            Prendas ({encargo.encargo_lineas?.length ?? 0})
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-[--text-medium]">
+              Prendas ({encargo.encargo_lineas?.length ?? 0})
+            </h2>
+            <button
+              onClick={abrirModalLineas}
+              className="flex items-center gap-1 text-xs text-primary hover:text-primary-dark"
+            >
+              <Pencil size={13} />
+              Editar
+            </button>
+          </div>
           {encargo.encargo_lineas?.map(l => (
             <div key={l.id} className="flex justify-between items-start py-2 border-b border-[--border] last:border-0">
               <div>
@@ -289,14 +339,20 @@ export default function EncargoDetalle() {
             <div className="border border-[--border] rounded-md p-3 space-y-2 bg-[--bg-alt]">
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="block text-xs text-[--text-light] mb-1">Importe (€) *</label>
+                  <label className="block text-xs text-[--text-light] mb-1">
+                    Importe (€) *
+                    {pago.tipo !== 'devolucion' && (
+                      <span className="ml-1 text-[--text-light]">— disponible: {formatImporte(pendiente)}</span>
+                    )}
+                  </label>
                   <input
                     type="number" step="0.01" min="0"
                     value={pago.importe}
-                    onChange={e => setPago(v => ({ ...v, importe: e.target.value }))}
-                    className="w-full border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    onChange={e => { setPago(v => ({ ...v, importe: e.target.value })); setErrorPago('') }}
+                    className={`w-full border rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${errorPago ? 'border-red-400' : 'border-[--border]'}`}
                     placeholder="0.00"
                   />
+                  {errorPago && <p className="text-xs text-red-500 mt-0.5">{errorPago}</p>}
                 </div>
                 <div className="flex-1">
                   <label className="block text-xs text-[--text-light] mb-1">Fecha</label>
@@ -345,7 +401,7 @@ export default function EncargoDetalle() {
                   {guardandoPago ? 'Guardando…' : 'Guardar pago'}
                 </button>
                 <button
-                  onClick={() => setMostrarFormPago(false)}
+                  onClick={() => { setMostrarFormPago(false); setErrorPago('') }}
                   className="text-xs text-[--text-light] hover:text-[--text-medium]"
                 >
                   Cancelar
@@ -355,18 +411,16 @@ export default function EncargoDetalle() {
           )}
         </div>
 
-        {/* Historial de estados */}
-        {encargo.historial_estados?.length > 0 && (
+        {/* Historial */}
+        {encargo.historial_encargo?.length > 0 && (
           <div className="bg-white rounded-lg border border-[--border] p-4 space-y-2">
             <h2 className="text-sm font-semibold text-[--text-medium]">Historial</h2>
-            {[...encargo.historial_estados]
+            {[...encargo.historial_encargo]
               .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
               .map(h => (
-                <div key={h.id} className="text-xs text-[--text-medium] flex justify-between">
-                  <span>
-                    {ESTADO_LABELS[h.estado_anterior] ?? '—'} → <span className="font-medium">{ESTADO_LABELS[h.estado_nuevo]}</span>
-                  </span>
-                  <span className="text-[--text-light]">{formatFecha(h.fecha)}</span>
+                <div key={h.id} className="text-xs text-[--text-medium] flex justify-between gap-4">
+                  <span>{h.descripcion}</span>
+                  <span className="text-[--text-light] flex-shrink-0">{formatFecha(h.fecha)}</span>
                 </div>
               ))}
           </div>
@@ -380,6 +434,159 @@ export default function EncargoDetalle() {
           </div>
         )}
       </div>
+
+      {/* Modal líneas */}
+      {modalLineas && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setModalLineas(false)}
+        >
+          <div
+            className="bg-white rounded-xl w-full max-w-lg max-h-[85vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-5 border-b border-[--border]">
+              <h3 className="font-display text-lg">Editar prendas</h3>
+              <button onClick={() => setModalLineas(false)} className="text-[--text-light] hover:text-[--text-dark]">✕</button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-5 space-y-2">
+              {/* Líneas existentes */}
+              {encargo.encargo_lineas?.map(l => (
+                <div key={l.id} className="flex items-center justify-between py-2 border-b border-[--border] last:border-0 gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-[--text-dark] truncate">
+                      {l.descripcion || l.prendas_catalogo?.nombre || '—'}
+                      {l.cantidad > 1 && <span className="text-[--text-light] ml-1">×{l.cantidad}</span>}
+                    </p>
+                    <p className="text-xs text-[--text-light]">{formatImporte((parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1))}</p>
+                  </div>
+                  <button
+                    onClick={() => handleEliminarLinea(l.id, l.descripcion || l.prendas_catalogo?.nombre)}
+                    className="text-[--text-light] hover:text-red-500 transition-colors flex-shrink-0"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+
+              {/* Formulario nueva línea */}
+              <div className="pt-3 space-y-2">
+                <p className="text-xs font-semibold text-[--text-medium]">Añadir prenda</p>
+
+                {catalogo.length > 0 && (
+                  <select
+                    value={nuevaLinea.prenda_id}
+                    onChange={e => updateNuevaLinea('prenda_id', e.target.value)}
+                    className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                  >
+                    <option value="">— Del catálogo (opcional) —</option>
+                    {catalogo.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre} ({formatImporte(p.precio_base * (1 - (p.descuento ?? 0) / 100))})
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                <input
+                  value={nuevaLinea.descripcion}
+                  onChange={e => updateNuevaLinea('descripcion', e.target.value)}
+                  placeholder="Descripción *"
+                  className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+
+                <div className="flex gap-2">
+                  <input
+                    type="number" min="1"
+                    value={nuevaLinea.cantidad}
+                    onChange={e => updateNuevaLinea('cantidad', e.target.value)}
+                    placeholder="Cant."
+                    className="w-20 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <input
+                    type="number" step="0.01" min="0"
+                    value={nuevaLinea.precio_unitario}
+                    onChange={e => updateNuevaLinea('precio_unitario', e.target.value)}
+                    placeholder="Precio (€)"
+                    className="flex-1 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <input
+                  value={nuevaLinea.medidas_ajuste}
+                  onChange={e => updateNuevaLinea('medidas_ajuste', e.target.value)}
+                  placeholder="Medidas de ajuste"
+                  className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+
+                <input
+                  value={nuevaLinea.notas}
+                  onChange={e => updateNuevaLinea('notas', e.target.value)}
+                  placeholder="Notas de esta prenda"
+                  className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+
+                <button
+                  onClick={handleAgregarLinea}
+                  disabled={guardandoLinea || !nuevaLinea.descripcion.trim()}
+                  className="w-full flex items-center justify-center gap-2 bg-primary text-white text-sm px-4 py-2 rounded-md hover:bg-primary-dark disabled:opacity-50 transition-colors"
+                >
+                  <Plus size={14} />
+                  {guardandoLinea ? 'Guardando…' : 'Añadir prenda'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal PDF */}
+      {modalPdf && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+                <FileText size={18} className="text-primary" />
+              </div>
+              <div>
+                <h3 className="font-display text-base text-[--text-dark]">
+                  {modalPdf === 'presupuesto' ? 'Descargar presupuesto' : 'Descargar factura'}
+                </h3>
+                <p className="text-xs text-[--text-light]">
+                  {modalPdf === 'presupuesto'
+                    ? 'El encargo ha sido confirmado.'
+                    : 'El encargo ha sido entregado.'}
+                  {' '}¿Quieres descargar el PDF ahora?
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setModalPdf(null)}
+                className="flex-1 text-sm border border-[--border] px-4 py-2 rounded-md text-[--text-medium] hover:bg-[--bg-alt] transition-colors"
+              >
+                Ahora no
+              </button>
+              <button
+                onClick={async () => {
+                  setModalPdf(null)
+                  const actualizado = await fetchEncargo(id)
+                  if (modalPdf === 'presupuesto') {
+                    generarPresupuestoPDF(actualizado)
+                  } else {
+                    const { data: fiscal } = await supabase.from('datos_fiscales').select('*').limit(1).maybeSingle()
+                    generarFacturaPDF(actualizado, fiscal)
+                  }
+                }}
+                className="flex-1 text-sm bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark transition-colors"
+              >
+                Descargar PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal compartir */}
       {modalCompartir && (

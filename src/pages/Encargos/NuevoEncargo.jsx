@@ -21,7 +21,8 @@ export default function NuevoEncargo() {
   const [sugerencias, setSugerencias] = useState([])
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null)
   const [mostrarFormCliente, setMostrarFormCliente] = useState(false)
-  const [nuevoCliente, setNuevoCliente] = useState({ nombre: '', apellidos: '', telefono: '' })
+  const [nuevoCliente, setNuevoCliente] = useState({ nombre: '', apellidos: '', telefono: '', email: '' })
+  const [erroresCliente, setErroresCliente] = useState({})
   const sugerenciasRef = useRef(null)
 
   // Catálogo
@@ -51,13 +52,25 @@ export default function NuevoEncargo() {
     setSugerencias([])
   }
 
+  const validarCliente = () => {
+    const errs = {}
+    if (!nuevoCliente.telefono || !/^\d{9}$/.test(nuevoCliente.telefono))
+      errs.telefono = 'El teléfono debe tener exactamente 9 dígitos'
+    if (nuevoCliente.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoCliente.email))
+      errs.email = 'Correo electrónico no válido'
+    setErroresCliente(errs)
+    return Object.keys(errs).length === 0
+  }
+
   const crearCliente = async () => {
     if (!nuevoCliente.nombre.trim()) return
+    if (!validarCliente()) return
     try {
       const c = await crearClienteRapido(nuevoCliente)
       seleccionarCliente(c)
       setMostrarFormCliente(false)
-      setNuevoCliente({ nombre: '', apellidos: '', telefono: '' })
+      setNuevoCliente({ nombre: '', apellidos: '', telefono: '', email: '' })
+      setErroresCliente({})
     } catch (e) {
       setError('Error al crear cliente: ' + e.message)
     }
@@ -178,12 +191,32 @@ export default function NuevoEncargo() {
                 onChange={e => setNuevoCliente(v => ({ ...v, apellidos: e.target.value }))}
                 className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
               />
-              <input
-                placeholder="Teléfono"
-                value={nuevoCliente.telefono}
-                onChange={e => setNuevoCliente(v => ({ ...v, telefono: e.target.value }))}
-                className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+              <div>
+                <input
+                  placeholder="Teléfono *"
+                  value={nuevoCliente.telefono}
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 9)
+                    setNuevoCliente(v => ({ ...v, telefono: val }))
+                    setErroresCliente(prev => ({ ...prev, telefono: undefined }))
+                  }}
+                  className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${erroresCliente.telefono ? 'border-red-400' : 'border-[--border]'}`}
+                />
+                {erroresCliente.telefono && <p className="text-xs text-red-500 mt-0.5">{erroresCliente.telefono}</p>}
+              </div>
+              <div>
+                <input
+                  type="email"
+                  placeholder="Correo electrónico"
+                  value={nuevoCliente.email}
+                  onChange={e => {
+                    setNuevoCliente(v => ({ ...v, email: e.target.value }))
+                    setErroresCliente(prev => ({ ...prev, email: undefined }))
+                  }}
+                  className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${erroresCliente.email ? 'border-red-400' : 'border-[--border]'}`}
+                />
+                {erroresCliente.email && <p className="text-xs text-red-500 mt-0.5">{erroresCliente.email}</p>}
+              </div>
               <button
                 type="button"
                 onClick={crearCliente}

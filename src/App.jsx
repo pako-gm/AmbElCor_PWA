@@ -12,6 +12,7 @@ import Dashboard from '@/pages/Dashboard'
 import EncargosLista from '@/pages/Encargos/EncargosLista'
 import NuevoEncargo from '@/pages/Encargos/NuevoEncargo'
 import EncargoDetalle from '@/pages/Encargos/EncargoDetalle'
+import Cronograma from '@/pages/Cronograma/Cronograma'
 
 // Seguimiento público
 import SeguimientoForm from '@/pages/Seguimiento/SeguimientoForm'
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="/proveedores/:id" element={<Protected><Placeholder title="Ficha Proveedor" /></Protected>} />
 
         <Route path="/inventario" element={<Protected><Placeholder title="Inventario" /></Protected>} />
+        <Route path="/cronograma" element={<Protected><Cronograma /></Protected>} />
 
         <Route path="/contabilidad/cobros" element={<Protected><Placeholder title="Cobros" /></Protected>} />
         <Route path="/contabilidad/pagos" element={<Protected><Placeholder title="Pagos a Proveedores" /></Protected>} />
