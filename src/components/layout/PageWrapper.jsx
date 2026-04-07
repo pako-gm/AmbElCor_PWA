@@ -1,8 +1,9 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import logoAmbelcor from '@/public/img/negro-logo-ambelcor.jpg'
-import { ClipboardList, Users, Truck, Package, CalendarDays, BarChart2, LogOut, CircleDollarSign, Receipt } from 'lucide-react'
+import { ClipboardList, Users, Truck, Package, CalendarDays, BarChart2, LogOut, CircleDollarSign, Receipt, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import BottomNav from './BottomNav'
+import { useState, useEffect } from 'react'
 
 const navItems = [
   { to: '/encargos', icon: ClipboardList, label: 'Encargos' },
@@ -22,6 +23,25 @@ const navItems = [
 export default function PageWrapper({ children }) {
   const { signOut } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const [openMenus, setOpenMenus] = useState(() => {
+    const initial = {}
+    navItems.forEach(({ to, children: sub }) => {
+      if (sub) initial[to] = true
+    })
+    return initial
+  })
+
+  useEffect(() => {
+    navItems.forEach(({ to, children: sub }) => {
+      if (sub && location.pathname.startsWith(to)) {
+        setOpenMenus(prev => ({ ...prev, [to]: true }))
+      }
+    })
+  }, [location.pathname])
+
+  const toggleMenu = (to) => setOpenMenus(prev => ({ ...prev, [to]: !prev[to] }))
 
   const handleSignOut = async () => {
     await signOut()
@@ -39,21 +59,47 @@ export default function PageWrapper({ children }) {
         <nav className="flex-1 py-3">
           {navItems.map(({ to, icon: Icon, label, end, children: sub }) => (
             <div key={to}>
-              <NavLink
-                to={to}
-                end={end ?? true}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${
-                    isActive
-                      ? 'bg-primary-light text-primary-darker font-medium'
-                      : 'text-[--text-medium] hover:bg-[--bg-gray]'
-                  }`
-                }
-              >
-                <Icon size={16} />
-                {label}
-              </NavLink>
-              {sub && sub.map(({ to: subTo, icon: SubIcon, label: subLabel }) => (
+              {sub ? (
+                <div className={`flex items-center text-sm transition-colors ${
+                  location.pathname.startsWith(to)
+                    ? 'bg-primary-light text-primary-darker font-medium'
+                    : 'text-[--text-medium] hover:bg-[--bg-gray]'
+                }`}>
+                  <NavLink
+                    to={to}
+                    end={false}
+                    className="flex items-center gap-3 flex-1 px-5 py-2.5"
+                  >
+                    <Icon size={16} />
+                    {label}
+                  </NavLink>
+                  <button
+                    onClick={() => toggleMenu(to)}
+                    className="px-3 py-2.5 hover:text-primary"
+                  >
+                    <ChevronDown
+                      size={14}
+                      className={`transition-transform duration-200 ${openMenus[to] ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                </div>
+              ) : (
+                <NavLink
+                  to={to}
+                  end={end ?? true}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${
+                      isActive
+                        ? 'bg-primary-light text-primary-darker font-medium'
+                        : 'text-[--text-medium] hover:bg-[--bg-gray]'
+                    }`
+                  }
+                >
+                  <Icon size={16} />
+                  {label}
+                </NavLink>
+              )}
+              {sub && openMenus[to] && sub.map(({ to: subTo, icon: SubIcon, label: subLabel }) => (
                 <NavLink
                   key={subTo}
                   to={subTo}
