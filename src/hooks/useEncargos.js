@@ -1,4 +1,7 @@
 import { supabase } from '@/lib/supabase'
+import MOCK from '@/mockData.json'
+
+const IS_MOCK = import.meta.env.VITE_USE_MOCKS === 'true'
 
 const ESTADO_LABELS = {
   presupuestado: 'Presupuestado',
@@ -13,6 +16,12 @@ const registrarHistorial = (encargo_id, descripcion) =>
 
 // Lista de encargos con datos del cliente
 export async function fetchEncargos({ estado } = {}) {
+  if (IS_MOCK) {
+    let data = MOCK.encargos
+    if (estado) data = data.filter(e => e.estado === estado)
+    return data
+  }
+
   let query = supabase
     .from('encargos')
     .select(`
@@ -31,6 +40,10 @@ export async function fetchEncargos({ estado } = {}) {
 
 // Detalle de un encargo completo
 export async function fetchEncargo(id) {
+  if (IS_MOCK) {
+    return MOCK.encargoDetalle[id] ?? MOCK.encargoDetalle['e1']
+  }
+
   const { data, error } = await supabase
     .from('encargos')
     .select(`
@@ -142,6 +155,14 @@ export async function eliminarEncargo(id) {
 
 // Buscar clientes
 export async function buscarClientes(query) {
+  if (IS_MOCK) {
+    const q = query.toLowerCase()
+    return MOCK.clientes
+      .filter(c => `${c.nombre} ${c.apellidos}`.toLowerCase().includes(q))
+      .slice(0, 8)
+      .map(c => ({ id: c.id, nombre: c.nombre, apellidos: c.apellidos, telefono: c.telefono }))
+  }
+
   const { data, error } = await supabase
     .from('clientes')
     .select('id, nombre, apellidos, telefono')
@@ -203,6 +224,8 @@ export async function updateFechasEncargo(id, fecha_encargo, fecha_entrega_estim
 
 // Catálogo de prendas activas
 export async function fetchCatalogo() {
+  if (IS_MOCK) return MOCK.catalogo
+
   const { data, error } = await supabase
     .from('prendas_catalogo')
     .select('id, nombre, precio_base, descuento')

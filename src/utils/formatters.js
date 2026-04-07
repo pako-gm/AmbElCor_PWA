@@ -47,5 +47,19 @@ export const FORMA_PAGO_LABELS = {
   transferencia: 'Transferencia',
   tarjeta: 'Tarjeta',
   bizum: 'Bizum',
+  domiciliacion: 'Domiciliación',
   stripe: 'Online',
+}
+
+export const CATEGORIA_GASTO_LABELS = {
+  material: 'Material y suministros confección',
+  cuota_autonomo: 'Cuota autónomo (SS)',
+  alquiler: 'Alquiler local',
+  suministros: 'Suministros (luz, agua, internet)',
+  servicios_profesionales: 'Servicios profesionales (gestoría, asesoría)',
+  transporte: 'Transporte y mensajería',
+  marketing: 'Marketing y publicidad',
+  impuestos: 'Impuestos y tasas',
+  seguros: 'Seguros',
+  otros: 'Otros gastos',
 }

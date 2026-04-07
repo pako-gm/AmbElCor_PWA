@@ -14,39 +14,51 @@ async function cargarLogo() {
   })
 }
 
-function addHeader(doc, titulo, numero, logoData) {
-  // Banda de color
-  doc.setFillColor(...PRIMARY)
-  doc.rect(0, 0, 210, 20, 'F')
-
-  // Logo a la izquierda
+// titulo: etiqueta del documento (ej. 'PRESUPUESTO')
+// rightLines: array de strings con info del documento (nº, fecha, etc.)
+function addHeader(doc, titulo, rightLines, logoData) {
+  // Logo sin fondo de color
   let textX = 14
   if (logoData) {
-    doc.addImage(logoData, 'JPEG', 14, 3, 14, 14)
+    doc.addImage(logoData, 'JPEG', 14, 4, 14, 14)
     textX = 30
   }
 
-  // Texto marca
-  doc.setTextColor(255, 255, 255)
-  doc.setFontSize(11)
+  // Texto marca en negro/gris
+  doc.setTextColor(30, 30, 30)
+  doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  doc.text('Amb el Cor', textX, 10)
-  doc.setFontSize(7)
+  doc.text('Amb el Cor', textX, 12)
+  doc.setFontSize(7.5)
   doc.setFont('helvetica', 'normal')
-  doc.text('Taller de Costura Artesanal', textX, 16)
+  doc.setTextColor(100, 100, 100)
+  doc.text('Taller de Costura Artesanal', textX, 18)
 
-  // Número grande a la derecha
-  doc.setFontSize(18)
+  // Derecha: etiqueta del documento + líneas de info
+  doc.setTextColor(120, 120, 120)
+  doc.setFontSize(7.5)
   doc.setFont('helvetica', 'bold')
-  doc.text(numero ?? '', 196, 14, { align: 'right' })
-  // Título pequeño justo antes del número
-  const numWidth = doc.getTextWidth(numero ?? '')
-  doc.setFontSize(9)
+  doc.text(titulo, 196, 8, { align: 'right' })
+
+  doc.setTextColor(30, 30, 30)
   doc.setFont('helvetica', 'normal')
-  doc.text(titulo, 196 - numWidth - 3, 14, { align: 'right' })
+  doc.setFontSize(9)
+  let ry = 14
+  rightLines.forEach(line => {
+    doc.text(line, 196, ry, { align: 'right' })
+    ry += 5
+  })
+
+  // Línea separadora gruesa teal
+  const lineY = Math.max(24, ry + 2)
+  doc.setDrawColor(...PRIMARY)
+  doc.setLineWidth(1.5)
+  doc.line(0, lineY, 210, lineY)
+  doc.setLineWidth(0.2)
+  doc.setDrawColor(0, 0, 0)
 
   doc.setTextColor(40, 40, 40)
-  return 30
+  return lineY + 7
 }
 
 function addInfo(doc, y, label, value) {
@@ -92,16 +104,15 @@ function addLineasTable(doc, lineas, y) {
 export async function generarPresupuestoPDF(encargo) {
   const logoData = await cargarLogo()
   const doc = new jsPDF()
-  let y = addHeader(doc, 'PRESUPUESTO', encargo.numero, logoData)
 
-  // Datos encargo
-  doc.setFontSize(9)
-  y = addInfo(doc, y, 'Nº Encargo:', encargo.numero)
-  y = addInfo(doc, y, 'Fecha Presupuesto:', formatFecha(encargo.fecha_encargo))
-  if (encargo.fecha_entrega_estimada) {
-    y = addInfo(doc, y, 'Entrega estimada:', formatFecha(encargo.fecha_entrega_estimada))
-  }
-  y += 4
+  const rightLines = [
+    `Nº: ${encargo.numero ?? '—'}`,
+    `Fecha: ${formatFecha(encargo.fecha_encargo)}`,
+    ...(encargo.fecha_entrega_estimada
+      ? [`Entrega est.: ${formatFecha(encargo.fecha_entrega_estimada)}`]
+      : []),
+  ]
+  let y = addHeader(doc, 'PRESUPUESTO', rightLines, logoData)
 
   // Datos cliente
   doc.setFont('helvetica', 'bold')
@@ -157,7 +168,12 @@ export async function generarPresupuestoPDF(encargo) {
 export async function generarFacturaPDF(encargo, datosFiscales) {
   const logoData = await cargarLogo()
   const doc = new jsPDF()
-  let y = addHeader(doc, 'FACTURA', encargo.numero, logoData)
+
+  const rightLines = [
+    `Factura nº: ${encargo.numero ?? '—'}`,
+    `Fecha: ${formatFecha(encargo.fecha_entrega_real ?? encargo.fecha_encargo)}`,
+  ]
+  let y = addHeader(doc, 'FACTURA', rightLines, logoData)
 
   // Datos emisor (Carmen)
   if (datosFiscales) {
@@ -169,20 +185,8 @@ export async function generarFacturaPDF(encargo, datosFiscales) {
     if (datosFiscales.direccion) { y += 5; doc.text(datosFiscales.direccion, 14, y) }
     if (datosFiscales.telefono) { y += 5; doc.text(datosFiscales.telefono, 14, y) }
     if (datosFiscales.email) { y += 5; doc.text(datosFiscales.email, 14, y) }
+    y += 8
   }
-
-  // Datos factura (derecha)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9)
-  doc.text(`Factura nº: ${encargo.numero}`, 210 - 14, 28, { align: 'right' })
-  doc.setFont('helvetica', 'normal')
-  doc.text(`Fecha: ${formatFecha(encargo.fecha_entrega_real ?? encargo.fecha_encargo)}`, 210 - 14, 34, { align: 'right' })
-  y += 10
-
-  // Separador
-  doc.setDrawColor(220, 220, 220)
-  doc.line(14, y, 196, y)
-  y += 8
 
   // Cliente
   doc.setFont('helvetica', 'bold')
@@ -258,7 +262,7 @@ export async function generarFacturaPDF(encargo, datosFiscales) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   doc.setTextColor(150, 150, 150)
-  doc.text('AmbElCor — Costura artesanal. Gracias por su confianza.', 14, 285)
+  doc.text('Todos los precios son con IVA incluido. AmbElCor — Taller de Costura artesanal. Gracias por su confianza.', 14, 285)
 
   const nombreFichero = `factura-${(encargo.numero ?? 'encargo').replace('/', '-')}.pdf`
   doc.save(nombreFichero)

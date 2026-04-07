@@ -23,6 +23,17 @@ import ProveedoresLista from '@/pages/Proveedores/ProveedoresLista'
 import NuevoProveedor from '@/pages/Proveedores/NuevoProveedor'
 import ProveedorDetalle from '@/pages/Proveedores/ProveedorDetalle'
 
+// Contabilidad
+import ContabilidadDashboard from '@/pages/Contabilidad/ContabilidadDashboard'
+import CobrosList from '@/pages/Contabilidad/CobrosList'
+import PagosList from '@/pages/Contabilidad/PagosList'
+import Reportes from '@/pages/Contabilidad/Reportes'
+
+// Inventario
+import MaterialesLista from '@/pages/Inventario/MaterialesLista'
+import NuevoMaterial from '@/pages/Inventario/NuevoMaterial'
+import MaterialDetalle from '@/pages/Inventario/MaterialDetalle'
+
 // Seguimiento público
 import SeguimientoForm from '@/pages/Seguimiento/SeguimientoForm'
 import SeguimientoDetalle from '@/pages/Seguimiento/SeguimientoDetalle'
@@ -64,12 +75,15 @@ export default function App() {
         <Route path="/proveedores/nuevo" element={<Protected><NuevoProveedor /></Protected>} />
         <Route path="/proveedores/:id" element={<Protected><ProveedorDetalle /></Protected>} />
 
-        <Route path="/inventario" element={<Protected><Placeholder title="Inventario" /></Protected>} />
+        <Route path="/inventario" element={<Protected><MaterialesLista /></Protected>} />
+        <Route path="/inventario/nuevo" element={<Protected><NuevoMaterial /></Protected>} />
+        <Route path="/inventario/:id" element={<Protected><MaterialDetalle /></Protected>} />
         <Route path="/cronograma" element={<Protected><Cronograma /></Protected>} />
 
-        <Route path="/contabilidad/cobros" element={<Protected><Placeholder title="Cobros" /></Protected>} />
-        <Route path="/contabilidad/pagos" element={<Protected><Placeholder title="Pagos a Proveedores" /></Protected>} />
-        <Route path="/contabilidad/reportes" element={<Protected><Placeholder title="Reportes Excel" /></Protected>} />
+        <Route path="/contabilidad" element={<Protected><ContabilidadDashboard /></Protected>} />
+        <Route path="/contabilidad/cobros" element={<Protected><CobrosList /></Protected>} />
+        <Route path="/contabilidad/pagos" element={<Protected><PagosList /></Protected>} />
+        <Route path="/contabilidad/reportes" element={<Protected><Reportes /></Protected>} />
 
         <Route path="/admin" element={<Protected><Placeholder title="Administración" /></Protected>} />
 

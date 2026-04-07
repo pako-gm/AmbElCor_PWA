@@ -1,15 +1,22 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import logoAmbelcor from '@/public/img/negro-logo-ambelcor.jpg'
-import { ClipboardList, Users, Truck, CalendarDays, BarChart2, LogOut } from 'lucide-react'
+import { ClipboardList, Users, Truck, Package, CalendarDays, BarChart2, LogOut, CircleDollarSign, Receipt } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import BottomNav from './BottomNav'
 
 const navItems = [
   { to: '/encargos', icon: ClipboardList, label: 'Encargos' },
+  { to: '/cronograma', icon: CalendarDays, label: 'Cronograma' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
   { to: '/proveedores', icon: Truck, label: 'Proveedores' },
-  { to: '/cronograma', icon: CalendarDays, label: 'Cronograma' },
-  { to: '/contabilidad/cobros', icon: BarChart2, label: 'Contabilidad' },
+  { to: '/inventario', icon: Package, label: 'Inventario' },
+  {
+    to: '/contabilidad', icon: BarChart2, label: 'Contabilidad', end: false,
+    children: [
+      { to: '/contabilidad/cobros', icon: CircleDollarSign, label: 'Cobros' },
+      { to: '/contabilidad/pagos', icon: Receipt, label: 'Pagos' },
+    ],
+  },
 ]
 
 export default function PageWrapper({ children }) {
@@ -30,21 +37,40 @@ export default function PageWrapper({ children }) {
           <img src={logoAmbelcor} alt="AmbElCor" className="h-10 w-auto object-contain" />
         </div>
         <nav className="flex-1 py-3">
-          {navItems.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${
-                  isActive
-                    ? 'bg-primary-light text-primary-darker font-medium'
-                    : 'text-[--text-medium] hover:bg-[--bg-gray]'
-                }`
-              }
-            >
-              <Icon size={16} />
-              {label}
-            </NavLink>
+          {navItems.map(({ to, icon: Icon, label, end, children: sub }) => (
+            <div key={to}>
+              <NavLink
+                to={to}
+                end={end ?? true}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${
+                    isActive
+                      ? 'bg-primary-light text-primary-darker font-medium'
+                      : 'text-[--text-medium] hover:bg-[--bg-gray]'
+                  }`
+                }
+              >
+                <Icon size={16} />
+                {label}
+              </NavLink>
+              {sub && sub.map(({ to: subTo, icon: SubIcon, label: subLabel }) => (
+                <NavLink
+                  key={subTo}
+                  to={subTo}
+                  end
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 pl-10 pr-5 py-2 text-sm transition-colors ${
+                      isActive
+                        ? 'bg-primary-light text-primary-darker font-medium'
+                        : 'text-[--text-light] hover:bg-[--bg-gray]'
+                    }`
+                  }
+                >
+                  <SubIcon size={14} />
+                  {subLabel}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
         <button

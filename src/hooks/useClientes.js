@@ -1,6 +1,16 @@
 import { supabase } from '@/lib/supabase'
+import MOCK from '@/mockData.json'
+
+const IS_MOCK = import.meta.env.VITE_USE_MOCKS === 'true'
 
 export async function fetchClientes(query = '') {
+  if (IS_MOCK) {
+    const q = query.trim().toLowerCase()
+    let data = MOCK.clientes
+    if (q) data = data.filter(c => `${c.nombre} ${c.apellidos}`.toLowerCase().includes(q))
+    return [...data].sort((a, b) => a.nombre.localeCompare(b.nombre))
+  }
+
   let q = supabase
     .from('clientes')
     .select('id, nombre, apellidos, telefono, email, notas, created_at')
@@ -16,6 +26,19 @@ export async function fetchClientes(query = '') {
 }
 
 export async function fetchCliente(id) {
+  if (IS_MOCK) {
+    const cliente = MOCK.clientes.find(c => c.id === id) ?? MOCK.clientes[0]
+    const encargos = MOCK.encargos
+      .filter(e => e.clientes?.id === cliente.id)
+      .map(e => ({
+        id: e.id, numero: e.numero, estado: e.estado,
+        precio_total: e.precio_total, fecha_encargo: e.fecha_encargo,
+        fecha_entrega_estimada: e.fecha_entrega_estimada,
+        encargo_lineas: e.encargo_lineas,
+      }))
+    return { ...cliente, medidas_base: null, encargos }
+  }
+
   const { data, error } = await supabase
     .from('clientes')
     .select(`
