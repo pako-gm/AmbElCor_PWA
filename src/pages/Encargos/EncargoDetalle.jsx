@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft, Share2, FileText, Copy, Check,
-  ChevronRight, Trash2, PlusCircle, Pencil, Plus
+  Trash2, PlusCircle, Pencil, Plus
 } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { fetchEncargo, avanzarEstado, registrarPago, eliminarPago, eliminarLinea, agregarLinea, fetchCatalogo, eliminarEncargo } from '@/hooks/useEncargos'
@@ -102,6 +102,17 @@ export default function EncargoDetalle() {
     ? `${encargo.clientes.nombre} ${encargo.clientes.apellidos ?? ''}`.trim()
     : 'Sin cliente'
 
+  const fechasPorEstado = {}
+  if (encargo.historial_encargo) {
+    const hCreado = encargo.historial_encargo.find(h => h.descripcion === 'Encargo creado')
+    if (hCreado) fechasPorEstado['presupuestado'] = hCreado.fecha
+    for (let i = 1; i < ESTADOS.length; i++) {
+      const label = ESTADO_LABELS[ESTADOS[i]]
+      const h = encargo.historial_encargo.find(h => h.descripcion?.includes(`→ ${label}`))
+      if (h) fechasPorEstado[ESTADOS[i]] = h.fecha
+    }
+  }
+
   const handleCambiarEstado = async (nuevoEstado) => {
     const nuevoIndex = ESTADOS.indexOf(nuevoEstado)
     if (Math.abs(nuevoIndex - estadoActual) !== 1) return
@@ -197,32 +208,52 @@ export default function EncargoDetalle() {
         </div>
 
         {/* Estado + Timeline */}
-        <div className="bg-white rounded-lg border border-[--border] p-4 space-y-4">
+        <div className="bg-white rounded-lg border border-[--border] p-4">
           {encargo.fecha_entrega_estimada && (
-            <div className="flex justify-end">
-              <span className="text-xs text-[--text-light]">
-                Entrega prevista: {formatFecha(encargo.fecha_entrega_estimada)}
-              </span>
-            </div>
+            <p className="text-xs text-[--text-light] mb-4">
+              Entrega prevista: {formatFecha(encargo.fecha_entrega_estimada)}
+            </p>
           )}
-
-          {/* Timeline */}
-          <div className="flex items-center gap-1">
+          <div>
             {ESTADOS.map((estado, i) => {
+              const completado = i < estadoActual
+              const esCurrent = i === estadoActual
               const esAdyacente = Math.abs(i - estadoActual) === 1
+              const esUltimo = i === ESTADOS.length - 1
+              const fecha = fechasPorEstado[estado]
               return (
-                <div key={estado} className="flex items-center gap-1 flex-1 min-w-0">
-                  <span
-                    onClick={() => !avanzando && esAdyacente && handleCambiarEstado(estado)}
-                    className={`flex-1 text-center text-[10px] font-medium px-1 py-1.5 rounded leading-tight transition-opacity ${
-                      i <= estadoActual ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'
-                    } ${esAdyacente && !avanzando ? 'cursor-pointer hover:bg-gray-400 hover:text-white' : 'cursor-default'}`}
-                  >
-                    {ESTADO_LABELS[estado]}
-                  </span>
-                  {i < ESTADOS.length - 1 && (
-                    <ChevronRight size={12} className="flex-shrink-0 text-gray-300" />
-                  )}
+                <div key={estado} className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <button
+                      onClick={() => !avanzando && esAdyacente && handleCambiarEstado(estado)}
+                      disabled={!esAdyacente || avanzando}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-opacity ${
+                        completado
+                          ? 'bg-teal-800 text-white'
+                          : esCurrent
+                          ? 'border-2 border-primary bg-white'
+                          : 'border-2 border-gray-200 bg-white'
+                      } ${esAdyacente && !avanzando ? 'cursor-pointer hover:opacity-75' : 'cursor-default'}`}
+                    >
+                      {completado && <Check size={14} />}
+                      {esCurrent && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                    </button>
+                    {!esUltimo && <div className="w-px bg-gray-200 flex-1 my-1 min-h-6" />}
+                  </div>
+                  <div className={`${esUltimo ? 'pb-0' : 'pb-4'}`}>
+                    <p className={`text-sm font-semibold leading-8 ${
+                      completado ? 'text-[--text-dark]'
+                      : esCurrent ? 'text-primary'
+                      : 'text-[--text-light]'
+                    }`}>
+                      {ESTADO_LABELS[estado]}
+                    </p>
+                    {fecha && (completado || esCurrent) && (
+                      <p className={`text-xs -mt-2 mb-1 ${esCurrent ? 'text-primary' : 'text-[--text-light]'}`}>
+                        {esCurrent ? `Estado actual · desde ${formatFecha(fecha)}` : formatFecha(fecha)}
+                      </p>
+                    )}
+                  </div>
                 </div>
               )
             })}
