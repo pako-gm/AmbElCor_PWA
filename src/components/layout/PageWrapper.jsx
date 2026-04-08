@@ -23,7 +23,7 @@ function CopyrightYear() {
   return year > 2026 ? `2026-${year}` : '2026'
 }
 
-export default function PageWrapper({ children }) {
+export default function PageWrapper({ children, title }) {
   const { signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -121,6 +121,11 @@ export default function PageWrapper({ children }) {
 
       {/* Contenido principal */}
       <main className="flex-1 pt-14">
+        {title && (
+          <div className="max-w-5xl mx-auto px-4 md:px-8 pt-6 pb-0 flex items-center justify-between">
+            <h1 className="font-display text-2xl text-[--text-dark]">{title}</h1>
+          </div>
+        )}
         {children}
       </main>
 

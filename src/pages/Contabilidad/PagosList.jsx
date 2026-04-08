@@ -137,10 +137,11 @@ export default function PagosList() {
   }
 
   return (
-    <PageWrapper title="Pagos a proveedores">
+    <PageWrapper>
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-6">
         {/* Cabecera filtros */}
         <div className="flex flex-wrap items-center gap-3 mb-6">
+          <h1 className="font-display text-2xl text-[--text-dark] mr-auto">Pagos a Proveedores</h1>
           <select
             value={año}
             onChange={e => setAño(Number(e.target.value))}
@@ -171,7 +172,7 @@ export default function PagosList() {
 
           <button
             onClick={() => setMostrarForm(v => !v)}
-            className="ml-auto flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md text-sm hover:bg-primary-dark transition-colors"
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md text-sm hover:bg-primary-dark transition-colors"
           >
             <Plus size={15} />
             Registrar gasto

@@ -63,15 +63,12 @@ export default function ContabilidadDashboard() {
   const periodoLabel = trimestre ? `T${trimestre} ${año}` : `Año ${año}`
 
   return (
-    <PageWrapper title="Contabilidad">
+    <PageWrapper>
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 space-y-6">
 
         {/* Cabecera + selector período */}
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-[--text-dark]">Contabilidad</h1>
-            <p className="text-xs text-[--text-light] mt-0.5">{periodoLabel}</p>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="font-display text-2xl text-[--text-dark]">Contabilidad</h1>
           <div className="flex items-center gap-2">
             <select
               value={año}

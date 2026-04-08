@@ -49,7 +49,7 @@ export default function MaterialesLista() {
   }, 0)
 
   return (
-    <PageWrapper>
+    <PageWrapper title="Inventario">
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-6">
         {/* KPIs */}
         <div className="grid grid-cols-3 gap-3 mb-6">
