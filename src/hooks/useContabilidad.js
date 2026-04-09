@@ -1,8 +1,5 @@
 import { useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import MOCK from '@/mockData.json'
-
-const IS_MOCK = import.meta.env.VITE_USE_MOCKS === 'true'
 
 const mesesTrimestre = {
   1: ['01', '02', '03'],
@@ -18,21 +15,6 @@ function rangoTrimestre(año, trimestre) {
   return { desde, hasta }
 }
 
-function filtrarPorPeriodo(arr, { año, trimestre } = {}) {
-  return arr.filter(r => {
-    const fecha = r.fecha
-    if (!fecha) return true
-    if (año && trimestre) {
-      const { desde, hasta } = rangoTrimestre(año, trimestre)
-      return fecha >= desde && fecha <= hasta
-    }
-    if (año) {
-      return fecha.startsWith(`${año}`)
-    }
-    return true
-  })
-}
-
 export function useContabilidad() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -40,10 +22,6 @@ export function useContabilidad() {
   // ── Cobros ────────────────────────────────────────────────────────────────
 
   const fetchCobros = useCallback(async ({ año, trimestre } = {}) => {
-    if (IS_MOCK) {
-      return filtrarPorPeriodo(MOCK.cobros, { año, trimestre })
-    }
-
     setLoading(true)
     setError(null)
     try {
@@ -78,10 +56,6 @@ export function useContabilidad() {
   // ── Pagos proveedor ───────────────────────────────────────────────────────
 
   const fetchPagosProveedor = useCallback(async ({ año, trimestre } = {}) => {
-    if (IS_MOCK) {
-      return filtrarPorPeriodo(MOCK.pagosProveedor, { año, trimestre })
-    }
-
     setLoading(true)
     setError(null)
     try {
@@ -133,10 +107,6 @@ export function useContabilidad() {
   // ── Proveedores ───────────────────────────────────────────────────────────
 
   const fetchProveedores = useCallback(async () => {
-    if (IS_MOCK) {
-      return MOCK.proveedores.map(p => ({ id: p.id, nombre: p.nombre }))
-    }
-
     const { data, error: err } = await supabase
       .from('proveedores')
       .select('id, nombre')
@@ -172,10 +142,6 @@ export function useContabilidad() {
   // ── Resumen anual para Reportes ───────────────────────────────────────────
 
   const fetchResumenAnual = useCallback(async (año) => {
-    if (IS_MOCK) {
-      return MOCK.resumenAnual
-    }
-
     const desde = `${año}-01-01`
     const hasta = `${año}-12-31`
 
@@ -192,7 +158,6 @@ export function useContabilidad() {
         .lte('fecha', hasta),
     ])
 
-    // Agrupar por mes (1-12)
     const meses = Array.from({ length: 12 }, (_, i) => ({
       mes: i + 1,
       cobros: 0,
@@ -200,7 +165,7 @@ export function useContabilidad() {
     }))
 
     ;(cobros ?? []).forEach(({ fecha, importe }) => {
-      const mes = new Date(fecha).getMonth() // 0-based
+      const mes = new Date(fecha).getMonth()
       meses[mes].cobros += parseFloat(importe) || 0
     })
     ;(pagos ?? []).forEach(({ fecha, importe }) => {

@@ -1,8 +1,5 @@
 import { useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import MOCK from '@/mockData.json'
-
-const IS_MOCK = import.meta.env.VITE_USE_MOCKS === 'true'
 
 export function useInventario() {
   const [loading, setLoading] = useState(false)
@@ -11,12 +8,6 @@ export function useInventario() {
   // ── Materiales ────────────────────────────────────────────────────────────
 
   const fetchMateriales = useCallback(async ({ soloActivos = true } = {}) => {
-    if (IS_MOCK) {
-      let data = MOCK.materiales
-      if (soloActivos) data = data.filter(m => m.activo)
-      return [...data].sort((a, b) => a.nombre.localeCompare(b.nombre))
-    }
-
     setLoading(true)
     setError(null)
     try {
@@ -37,11 +28,6 @@ export function useInventario() {
   }, [])
 
   const fetchMaterial = useCallback(async (id) => {
-    if (IS_MOCK) {
-      const material = MOCK.materiales.find(m => m.id === id) ?? MOCK.materiales[0]
-      return { material, movimientos: [] }
-    }
-
     setLoading(true)
     setError(null)
     try {
@@ -102,8 +88,6 @@ export function useInventario() {
   // ── Movimientos ───────────────────────────────────────────────────────────
 
   const fetchMovimientos = useCallback(async ({ materialId, desde, hasta, tipo } = {}) => {
-    if (IS_MOCK) return []
-
     setLoading(true)
     setError(null)
     try {
@@ -136,8 +120,6 @@ export function useInventario() {
     materialId, materialNombre, cantidad, precioUnitario,
     proveedorId, fecha, notas, crearGasto,
   }) => {
-    if (IS_MOCK) return { id: 'mock', tipo: 'entrada', cantidad, material_id: materialId }
-
     let pagoProveedorId = null
 
     if (crearGasto && proveedorId && precioUnitario && cantidad) {
@@ -181,8 +163,6 @@ export function useInventario() {
   const registrarSalida = useCallback(async ({
     materialId, cantidad, encargoId, motivo, fecha, notas,
   }) => {
-    if (IS_MOCK) return { id: 'mock', tipo: 'salida', cantidad, material_id: materialId }
-
     const { data, error: err } = await supabase
       .from('movimientos_inventario')
       .insert({
@@ -203,8 +183,6 @@ export function useInventario() {
   // ── Registrar ajuste ──────────────────────────────────────────────────────
 
   const registrarAjuste = useCallback(async ({ materialId, cantidad, motivo, fecha }) => {
-    if (IS_MOCK) return { id: 'mock', tipo: 'ajuste', cantidad, material_id: materialId }
-
     const { data, error: err } = await supabase
       .from('movimientos_inventario')
       .insert({
@@ -223,10 +201,6 @@ export function useInventario() {
   // ── Alertas stock bajo ────────────────────────────────────────────────────
 
   const fetchAlertasStockBajo = useCallback(async () => {
-    if (IS_MOCK) {
-      return MOCK.materiales.filter(m => m.activo && parseFloat(m.stock_actual) < parseFloat(m.stock_minimo))
-    }
-
     const { data, error: err } = await supabase
       .from('vista_stock_materiales')
       .select('*')
@@ -238,10 +212,6 @@ export function useInventario() {
   // ── Proveedores (para selects en formularios) ─────────────────────────────
 
   const fetchProveedores = useCallback(async () => {
-    if (IS_MOCK) {
-      return MOCK.proveedores.map(p => ({ id: p.id, nombre: p.nombre }))
-    }
-
     const { data, error: err } = await supabase
       .from('proveedores')
       .select('id, nombre')
@@ -253,12 +223,6 @@ export function useInventario() {
   // ── Encargos activos (para selector en salidas) ───────────────────────────
 
   const fetchEncargosActivos = useCallback(async () => {
-    if (IS_MOCK) {
-      return MOCK.encargos
-        .filter(e => e.estado !== 'entregado')
-        .map(e => ({ id: e.id, numero: e.numero, clientes: e.clientes }))
-    }
-
     const { data, error: err } = await supabase
       .from('encargos')
       .select('id, numero, clientes(nombre, apellidos)')
