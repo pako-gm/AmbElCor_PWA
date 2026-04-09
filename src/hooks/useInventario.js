@@ -136,6 +136,8 @@ export function useInventario() {
     materialId, materialNombre, cantidad, precioUnitario,
     proveedorId, fecha, notas, crearGasto,
   }) => {
+    if (IS_MOCK) return { id: 'mock', tipo: 'entrada', cantidad, material_id: materialId }
+
     let pagoProveedorId = null
 
     if (crearGasto && proveedorId && precioUnitario && cantidad) {
@@ -179,6 +181,8 @@ export function useInventario() {
   const registrarSalida = useCallback(async ({
     materialId, cantidad, encargoId, motivo, fecha, notas,
   }) => {
+    if (IS_MOCK) return { id: 'mock', tipo: 'salida', cantidad, material_id: materialId }
+
     const { data, error: err } = await supabase
       .from('movimientos_inventario')
       .insert({
@@ -199,6 +203,8 @@ export function useInventario() {
   // ── Registrar ajuste ──────────────────────────────────────────────────────
 
   const registrarAjuste = useCallback(async ({ materialId, cantidad, motivo, fecha }) => {
+    if (IS_MOCK) return { id: 'mock', tipo: 'ajuste', cantidad, material_id: materialId }
+
     const { data, error: err } = await supabase
       .from('movimientos_inventario')
       .insert({

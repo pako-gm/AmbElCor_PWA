@@ -42,6 +42,11 @@ export default function EncargoDetalle() {
   // Modal confirmación eliminar
   const [confirmDelete, setConfirmDelete] = useState(null) // { tipo: 'encargo' | 'pago', pagoId? }
 
+  // WhatsApp
+  const [notificarWA, setNotificarWA] = useState(true)
+  const [enviandoWA, setEnviandoWA] = useState(false)
+  const [resultadoWA, setResultadoWA] = useState(null) // 'ok' | 'error' | null
+
   // Formulario pago
   const [mostrarFormPago, setMostrarFormPago] = useState(false)
   const [pago, setPago] = useState({ fecha: new Date().toISOString().split('T')[0], importe: '', tipo: 'señal', forma_pago: 'efectivo', referencia: '', notas: '' })
@@ -121,6 +126,24 @@ export default function EncargoDetalle() {
       await avanzarEstado(id, encargo.estado, nuevoEstado)
       if (nuevoIndex > estadoActual && nuevoEstado === 'confirmado') setModalPdf('presupuesto')
       if (nuevoIndex > estadoActual && nuevoEstado === 'entregado') setModalPdf('factura')
+
+      // Notificación WhatsApp (solo al avanzar estado, no al retroceder)
+      if (nuevoIndex > estadoActual && notificarWA && encargo.clientes?.telefono) {
+        setEnviandoWA(true)
+        const { error: waError } = await supabase.functions.invoke('notify-whatsapp', {
+          body: {
+            cliente_telefono: encargo.clientes.telefono,
+            cliente_nombre: encargo.clientes.nombre,
+            encargo_ref: encargo.codigo_corto,
+            token_publico: encargo.token_publico,
+            nuevo_estado: nuevoEstado,
+          },
+        })
+        setEnviandoWA(false)
+        setResultadoWA(waError ? 'error' : 'ok')
+        setTimeout(() => setResultadoWA(null), 4000)
+      }
+
       cargar()
     } catch (e) {
       console.error(e)
@@ -259,6 +282,36 @@ export default function EncargoDetalle() {
             })}
           </div>
         </div>
+
+        {/* Notificación WhatsApp */}
+        {encargo.clientes?.telefono && estadoActual < ESTADOS.length - 1 && (
+          <div className="space-y-1">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={notificarWA}
+                onChange={e => setNotificarWA(e.target.checked)}
+                className="w-4 h-4 accent-[--primary] cursor-pointer"
+              />
+              <span className="text-xs text-[--text-medium]">
+                Notificar a {encargo.clientes.nombre} por WhatsApp al cambiar estado
+              </span>
+              {enviandoWA && (
+                <span className="text-xs text-[--text-light] animate-pulse">Enviando…</span>
+              )}
+            </label>
+            {resultadoWA === 'ok' && (
+              <p className="text-xs text-green-700 pl-6">
+                WhatsApp enviado a {encargo.clientes.nombre}
+              </p>
+            )}
+            {resultadoWA === 'error' && (
+              <p className="text-xs text-red-500 pl-6">
+                No se pudo enviar el WhatsApp
+              </p>
+            )}
+          </div>
+        )}
 
         {/* PDFs manuales */}
         {estadoActual >= 1 && (
