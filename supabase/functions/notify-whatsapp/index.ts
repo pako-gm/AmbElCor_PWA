@@ -18,7 +18,7 @@ _Mensaje automático, por favor no respondas a este número_
 📌 Estado Actual: ${estadoTexto}
 
 Consulta todos los detalles de tu encargo en:
-https://ambelcor.com/seguimiento/${token}
+https://ambelcorpwa.vercel.app/seguimiento/${token}
 
 _Taller de Indumentaria Valenciana · Paiporta_`
 }
