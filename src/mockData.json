@@ -92,6 +92,20 @@
       "codigo_corto": "AMB-1010",
       "clientes": { "id": "c2", "nombre": "Ana", "apellidos": "Torres Ruiz" },
       "encargo_lineas": [{ "id": "l16" }, { "id": "l17" }]
+    },
+    {
+      "id": "e11", "numero": "26/011", "estado": "confirmado",
+      "precio_total": 340, "fecha_encargo": "2026-04-09", "fecha_entrega_estimada": "2026-06-15",
+      "codigo_corto": "AMB-1011",
+      "clientes": { "id": "c9", "nombre": "Florecilla", "apellidos": "" },
+      "encargo_lineas": [{ "id": "l18" }, { "id": "l19" }]
+    },
+    {
+      "id": "e12", "numero": "26/012", "estado": "presupuestado",
+      "precio_total": 210, "fecha_encargo": "2026-04-09", "fecha_entrega_estimada": "2026-06-20",
+      "codigo_corto": "AMB-1012",
+      "clientes": { "id": "c10", "nombre": "Pakito", "apellidos": "" },
+      "encargo_lineas": [{ "id": "l20" }, { "id": "l21" }]
     }
   ],
 
@@ -130,6 +144,39 @@
         { "id": "h6", "fecha": "2026-02-21T09:00:00", "descripcion": "Estado: Presupuestado → Confirmado" },
         { "id": "h7", "fecha": "2026-03-18T11:00:00", "descripcion": "Estado: Confirmado → En confección" },
         { "id": "h8", "fecha": "2026-03-22T10:00:00", "descripcion": "Estado: En confección → Listo" }
+      ],
+      "pagos": []
+    },
+    "e11": {
+      "id": "e11", "numero": "26/011", "estado": "confirmado",
+      "precio_total": 340, "fecha_encargo": "2026-04-09", "fecha_entrega_estimada": "2026-06-15", "fecha_entrega_real": null,
+      "token_publico": "tok-mock-e11-0011", "codigo_corto": "AMB-1011",
+      "notas": "Traje de fallera completo. Talla 38.",
+      "clientes": { "id": "c9", "nombre": "Florecilla", "apellidos": "", "telefono": "639147047", "email": null },
+      "encargo_lineas": [
+        { "id": "l18", "descripcion": "Traje de fallera valenciana", "cantidad": 1, "precio_unitario": 280, "medidas_ajuste": { "notas": "Talla 38, falda larga, cierre trasero" }, "notas": null, "prendas_catalogo": null },
+        { "id": "l19", "descripcion": "Delantal bordado", "cantidad": 1, "precio_unitario": 60, "medidas_ajuste": {}, "notas": "Bordado flores en hilo dorado", "prendas_catalogo": null }
+      ],
+      "historial_encargo": [
+        { "id": "h9",  "fecha": "2026-04-09T10:00:00", "descripcion": "Encargo creado" },
+        { "id": "h10", "fecha": "2026-04-09T10:30:00", "descripcion": "Estado: Presupuestado → Confirmado" }
+      ],
+      "pagos": [
+        { "id": "pag2", "fecha": "2026-04-09", "importe": 100, "tipo": "señal", "forma_pago": "efectivo", "referencia": null, "notas": "Señal al confirmar" }
+      ]
+    },
+    "e12": {
+      "id": "e12", "numero": "26/012", "estado": "presupuestado",
+      "precio_total": 210, "fecha_encargo": "2026-04-09", "fecha_entrega_estimada": "2026-06-20", "fecha_entrega_real": null,
+      "token_publico": "tok-mock-e12-0012", "codigo_corto": "AMB-1012",
+      "notas": "Traje fallero masculino. Talla L.",
+      "clientes": { "id": "c10", "nombre": "Pakito", "apellidos": "", "telefono": "638243002", "email": null },
+      "encargo_lineas": [
+        { "id": "l20", "descripcion": "Pantalón y camisa de fallero", "cantidad": 1, "precio_unitario": 170, "medidas_ajuste": { "notas": "Talla L, pantalón con raya planchada" }, "notas": null, "prendas_catalogo": null },
+        { "id": "l21", "descripcion": "Fajín de seda", "cantidad": 1, "precio_unitario": 40, "medidas_ajuste": {}, "notas": "Color azul marino", "prendas_catalogo": null }
+      ],
+      "historial_encargo": [
+        { "id": "h11", "fecha": "2026-04-09T11:00:00", "descripcion": "Encargo creado" }
       ],
       "pagos": []
     }
