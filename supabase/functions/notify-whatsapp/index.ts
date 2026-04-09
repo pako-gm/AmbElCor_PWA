@@ -12,14 +12,15 @@ function formatearMensaje(nombre: string, ref: string, token: string, estado: st
   return `Hola ${nombre} 👋
 
 *Amb el Cor* — Actualización de tu encargo
+_Mensaje automático, por favor no respondas a este número_
 
 📋 Referencia: *${ref}*
-📌 Estado: ${estadoTexto}
+📌 Estado Actual: ${estadoTexto}
 
-Consulta todos los detalles en:
+Consulta todos los detalles de tu encargo en:
 https://ambelcor.com/seguimiento/${token}
 
-_Taller de trajes de fallera · Catarroja_`
+_Taller de Indumentaria Valenciana · Paiporta_`
 }
 
 serve(async (req) => {
