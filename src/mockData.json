@@ -9,7 +9,9 @@
     { "id": "c5", "nombre": "Sofía", "apellidos": "Fernández Castro", "telefono": "656 789 012", "email": "sofiafcast@gmail.com", "notas": null, "created_at": "2026-03-01T10:00:00" },
     { "id": "c6", "nombre": "Elena", "apellidos": "Díaz Moreno", "telefono": "667 890 123", "email": "ediaz.m@gmail.com", "notas": null, "created_at": "2026-03-05T16:00:00" },
     { "id": "c7", "nombre": "Pilar", "apellidos": "González Serrano", "telefono": "678 901 234", "email": "pilargons@yahoo.es", "notas": "Prefiere contacto por WhatsApp", "created_at": "2026-03-12T09:00:00" },
-    { "id": "c8", "nombre": "Carmen", "apellidos": "López Vidal", "telefono": "689 012 345", "email": "carmenlv@gmail.com", "notas": null, "created_at": "2026-03-25T11:30:00" }
+    { "id": "c8", "nombre": "Carmen", "apellidos": "López Vidal", "telefono": "689 012 345", "email": "carmenlv@gmail.com", "notas": null, "created_at": "2026-03-25T11:30:00" },
+    { "id": "c9", "nombre": "Florecilla", "apellidos": "", "telefono": "639147047", "email": null, "notas": "Cliente de prueba WhatsApp", "created_at": "2026-04-09T10:00:00" },
+    { "id": "c10", "nombre": "Pakito", "apellidos": "", "telefono": "638243002", "email": null, "notas": "Cliente de prueba WhatsApp", "created_at": "2026-04-09T10:00:00" }
   ],
 
   "proveedores": [
