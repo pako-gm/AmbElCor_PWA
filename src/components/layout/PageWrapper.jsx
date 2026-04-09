@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
-import logoAmbelcor from '@/public/img/logo-ambelcor-2.png'
+import logoAmbelcor from '@/public/img/ambelcor-oscuro.png'
 import {
   ClipboardList, Users, Truck, Package, CalendarDays,
   BarChart2, LogOut, CircleDollarSign, Receipt, Menu, X,

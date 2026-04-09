@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
 import { formatFecha, formatImporte, TIPO_PAGO_LABELS, FORMA_PAGO_LABELS } from './formatters'
-import logoUrl from '@/public/img/negro-logo-ambelcor.jpg'
+import logoUrl from '@/public/img/ambelcor-oscuro.png'
 
 const PRIMARY = [48, 186, 170] // #30BAAA
 
@@ -20,7 +20,7 @@ function addHeader(doc, titulo, rightLines, logoData) {
   // Logo sin fondo de color
   let textX = 14
   if (logoData) {
-    doc.addImage(logoData, 'JPEG', 14, 4, 14, 14)
+    doc.addImage(logoData, 'PNG', 14, 4, 14, 14)
     textX = 30
   }
 

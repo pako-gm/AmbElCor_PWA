@@ -1,5 +1,5 @@
 import { loginConGoogle } from '@/lib/supabase'
-import logoAmbelcor from '@/public/img/negro-logo-ambelcor.jpg'
+import logoAmbelcor from '@/public/img/ambelcor-oscuro.png'
 
 export default function Login() {
   return (
