@@ -9,18 +9,18 @@ const ESTADOS: Record<string, string> = {
 
 function formatearMensaje(nombre: string, ref: string, token: string, estado: string): string {
   const estadoTexto = ESTADOS[estado] ?? `Estado actualizado: ${estado}`
-  return `Hola ${nombre} 👋
+  return `*Actualización de tu encargo*
 
-*Amb el Cor* — Actualización de tu encargo
-_Mensaje automático, por favor no respondas a este número_
+Hola ${nombre} 👋
 
-📋 Referencia: *${ref}*
+🧾 Nº Pedido: *${ref}*
 📌 Estado Actual: ${estadoTexto}
 
 Consulta todos los detalles de tu encargo en:
 https://ambelcorpwa.vercel.app/seguimiento/${token}
 
-_Taller de Indumentaria Valenciana · Paiporta_`
+_Amb el Cor · Taller de Indumentaria Valenciana · Paiporta_
+_Este es un mensaje automático, por favor no respondas a este número_`
 }
 
 serve(async (req) => {

@@ -134,7 +134,7 @@ export default function EncargoDetalle() {
           body: {
             cliente_telefono: encargo.clientes.telefono,
             cliente_nombre: encargo.clientes.nombre,
-            encargo_ref: encargo.codigo_corto,
+            encargo_ref: encargo.numero,
             token_publico: encargo.token_publico,
             nuevo_estado: nuevoEstado,
           },
