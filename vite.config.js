@@ -15,9 +15,22 @@ export default defineConfig({
         name: 'AmbElCor CRM',
         short_name: 'AmbElCor',
         theme_color: '#30BAAA',
-        background_color: '#ffffff',
+        background_color: '#30BAAA',
         display: 'standalone',
-        icons: []
+        icons: [
+          {
+            src: '/icons/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any maskable'
+          },
+          {
+            src: '/icons/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
       }
     })
   ],
