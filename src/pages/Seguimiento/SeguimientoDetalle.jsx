@@ -19,7 +19,8 @@ export default function SeguimientoDetalle() {
           id, numero, estado, fecha_encargo, fecha_entrega_estimada,
           clientes (nombre, apellidos),
           encargo_lineas (descripcion, cantidad, precio_unitario, prendas_catalogo (nombre)),
-          historial_estados (estado_nuevo, fecha)
+          historial_estados (estado_nuevo, fecha),
+          pagos (fecha, importe, tipo)
         `)
         .eq('token_publico', token)
         .maybeSingle()
@@ -55,6 +56,10 @@ export default function SeguimientoDetalle() {
   const total = lineas.reduce((sum, l) =>
     sum + parseFloat(l.precio_unitario || 0) * (l.cantidad || 1), 0)
 
+  const pagos = encargo.pagos ?? []
+  const totalPagado = pagos.reduce((sum, p) => sum + parseFloat(p.importe || 0), 0)
+  const pendiente = total - totalPagado
+
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="max-w-lg mx-auto space-y-4">
@@ -69,7 +74,20 @@ export default function SeguimientoDetalle() {
 
         {/* Timeline vertical */}
         <div className="bg-white rounded-xl p-6 shadow-sm">
-          {encargo.fecha_entrega_estimada && (
+          {encargo.fecha_entrega_estimada && encargo.estado !== 'entregado' && (() => {
+            const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
+            const fin = new Date(encargo.fecha_entrega_estimada + 'T00:00:00')
+            const dias = Math.round((fin - hoy) / 86400000)
+            const color = dias < 0 ? 'text-red-800' : dias <= 3 ? 'text-red-500' : dias <= 7 ? 'text-amber-500' : 'text-teal-600'
+            return (
+              <p className={`text-xs mb-5 ${color}`}>
+                {dias < 0
+                  ? `Vencido · ${formatFecha(encargo.fecha_entrega_estimada)}`
+                  : `Entrega prevista: ${formatFecha(encargo.fecha_entrega_estimada)}`}
+              </p>
+            )
+          })()}
+          {encargo.fecha_entrega_estimada && encargo.estado === 'entregado' && (
             <p className="text-xs text-gray-400 mb-5">
               Entrega prevista: {formatFecha(encargo.fecha_entrega_estimada)}
             </p>
@@ -161,6 +179,36 @@ export default function SeguimientoDetalle() {
                   <span className="text-[#30BAAA]">{formatImporte(total)}</span>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Pagos */}
+        {total > 0 && (
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-sm font-semibold text-gray-500 mb-4">Pagos</h2>
+            <div className="space-y-3">
+              {pagos.length > 0
+                ? pagos.map((p, i) => (
+                    <div key={i} className="flex justify-between text-sm">
+                      <span className="text-gray-500">{formatFecha(p.fecha)}</span>
+                      <span className="text-gray-700">{formatImporte(p.importe)}</span>
+                    </div>
+                  ))
+                : <p className="text-sm text-gray-400">Sin pagos registrados</p>
+              }
+              <div className="border-t border-gray-100 pt-3 space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Pagado</span>
+                  <span className="text-gray-700">{formatImporte(totalPagado)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-semibold">
+                  <span className="text-gray-700">Pendiente</span>
+                  <span className={pendiente > 0 ? 'text-amber-600' : 'text-teal-600'}>
+                    {formatImporte(pendiente)}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         )}

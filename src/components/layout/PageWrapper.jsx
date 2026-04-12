@@ -53,7 +53,7 @@ export default function PageWrapper({ children, title }) {
         <div className="flex items-center gap-2 ml-3">
           <img src={logoAmbelcor} alt="AmbElCor" className="h-8 w-auto object-contain [mix-blend-mode:multiply]" />
           <span className="font-display text-base font-semibold text-primary leading-tight">
-            Amb el Cor <span className="text-xs font-normal text-[--text-light] tracking-wide">CRM</span>
+            Amb el Cor <span className="text-xs font-bold text-[--text-medium] tracking-wide">CRM</span>
           </span>
         </div>
       </header>
@@ -77,7 +77,7 @@ export default function PageWrapper({ children, title }) {
           <div className="flex items-center gap-2">
             <img src={logoAmbelcor} alt="AmbElCor" className="h-8 w-auto object-contain [mix-blend-mode:multiply]" />
             <span className="font-display text-base font-semibold text-primary leading-tight">
-              Amb el Cor <span className="text-xs font-normal text-[--text-light] tracking-wide">CRM</span>
+              Amb el Cor <span className="text-xs font-bold text-[--text-medium] tracking-wide">CRM</span>
             </span>
           </div>
           <button

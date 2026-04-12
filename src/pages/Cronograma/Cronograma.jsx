@@ -16,7 +16,7 @@ const DAY_LETTERS = ['D', 'L', 'M', 'X', 'J', 'V', 'S']
 
 const ESTADO_BAR_COLORS = {
   presupuestado: '#9ca3af',
-  confirmado: '#14b8a6',
+  confirmado: '#fcd34d',
   en_confeccion: '#3b82f6',
   listo: '#f59e0b',
   entregado: '#16a34a',
