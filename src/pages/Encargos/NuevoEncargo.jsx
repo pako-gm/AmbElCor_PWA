@@ -3,22 +3,24 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Trash2, ChevronLeft, UserPlus, X } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import {
-  crearEncargo, buscarClientes, crearClienteRapido, fetchCatalogo
+  crearEncargo, fetchTodosClientes, crearClienteRapido, fetchCatalogo
 } from '@/hooks/useEncargos'
 import { formatImporte } from '@/utils/formatters'
 
 function lineaVacia() {
-  return { _id: Date.now() + Math.random(), prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', medidas_ajuste: '', notas: '' }
+  return { _id: Date.now() + Math.random(), prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', notas: '' }
 }
 
 export default function NuevoEncargo() {
   const navigate = useNavigate()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [erroresForm, setErroresForm] = useState({ cliente: false, fechaEntrega: false, lineas: new Set() })
 
   // Cliente
   const [clienteQuery, setClienteQuery] = useState('')
-  const [sugerencias, setSugerencias] = useState([])
+  const [todosClientes, setTodosClientes] = useState([])
+  const [mostrarDropdown, setMostrarDropdown] = useState(false)
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null)
   const [mostrarFormCliente, setMostrarFormCliente] = useState(false)
   const [nuevoCliente, setNuevoCliente] = useState({ nombre: '', apellidos: '', telefono: '', email: '' })
@@ -37,19 +39,33 @@ export default function NuevoEncargo() {
     fetchCatalogo().then(setCatalogo).catch(console.error)
   }, [])
 
-  // Búsqueda de clientes con debounce
-  useEffect(() => {
-    if (!clienteQuery || clienteSeleccionado) { setSugerencias([]); return }
-    const t = setTimeout(() => {
-      buscarClientes(clienteQuery).then(setSugerencias).catch(() => setSugerencias([]))
-    }, 250)
-    return () => clearTimeout(t)
-  }, [clienteQuery, clienteSeleccionado])
+  const clientesFiltrados = mostrarDropdown && !clienteSeleccionado
+    ? todosClientes.filter(c => {
+        if (!clienteQuery) return true
+        const q = clienteQuery.toLowerCase()
+        return (
+          c.nombre?.toLowerCase().includes(q) ||
+          c.apellidos?.toLowerCase().includes(q)
+        )
+      })
+    : []
+
+  const handleFocoCliente = () => {
+    if (todosClientes.length === 0) {
+      fetchTodosClientes().then(setTodosClientes).catch(console.error)
+    }
+    setMostrarDropdown(true)
+  }
+
+  const handleBlurCliente = () => {
+    setTimeout(() => setMostrarDropdown(false), 150)
+  }
 
   const seleccionarCliente = (c) => {
     setClienteSeleccionado(c)
     setClienteQuery(`${c.nombre} ${c.apellidos ?? ''}`.trim())
-    setSugerencias([])
+    setMostrarDropdown(false)
+    setErroresForm(prev => ({ ...prev, cliente: false }))
   }
 
   const validarCliente = () => {
@@ -94,6 +110,13 @@ export default function NuevoEncargo() {
       }
       return updated
     }))
+    if (campo === 'prenda_id' && valor) {
+      setErroresForm(prev => {
+        const lineas = new Set(prev.lineas)
+        lineas.delete(id)
+        return { ...prev, lineas }
+      })
+    }
   }
 
   const total = lineas.reduce(
@@ -101,14 +124,23 @@ export default function NuevoEncargo() {
   )
 
   const handleGuardar = async () => {
-    if (!clienteSeleccionado) { setError('Selecciona un cliente.'); return }
-    if (lineas.some(l => !l.descripcion.trim())) { setError('Todas las líneas deben tener descripción.'); return }
+    const errs = {
+      cliente: !clienteSeleccionado,
+      fechaEntrega: !fechaEntrega || fechaEntrega < new Date().toISOString().slice(0, 10),
+      lineas: new Set(lineas.filter(l => !l.prenda_id).map(l => l._id))
+    }
+    if (errs.cliente || errs.fechaEntrega || errs.lineas.size > 0) {
+      setErroresForm(errs)
+      setError(errs.cliente ? 'Selecciona un cliente.' : errs.fechaEntrega ? 'La fecha de entrega debe ser igual o posterior a hoy.' : 'Selecciona una prenda del catálogo en todas las líneas.')
+      return
+    }
+    setErroresForm({ cliente: false, fechaEntrega: false, lineas: new Set() })
     setSaving(true)
     setError('')
     try {
       const encargo = await crearEncargo({
         cliente_id: clienteSeleccionado.id,
-        fecha_entrega_estimada: fechaEntrega || undefined,
+        fecha_entrega_estimada: fechaEntrega,
         notas,
         lineas,
       })
@@ -138,30 +170,33 @@ export default function NuevoEncargo() {
 
         {/* Cliente */}
         <section className="bg-white rounded-lg border border-[--border] p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-[--text-medium]">Cliente</h2>
+          <h2 className={`text-sm font-semibold ${erroresForm.cliente ? 'text-red-500' : 'text-[--text-medium]'}`}>Cliente</h2>
           <div className="relative" ref={sugerenciasRef}>
             <input
               type="text"
               placeholder="Buscar cliente por nombre…"
               value={clienteQuery}
               onChange={e => { setClienteQuery(e.target.value); setClienteSeleccionado(null) }}
-              className="w-full border border-[--border] rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              onFocus={handleFocoCliente}
+              onBlur={handleBlurCliente}
+              className={`w-full border rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${erroresForm.cliente ? 'border-red-400' : 'border-[--border]'}`}
             />
             {clienteQuery && (
               <button
                 type="button"
-                onClick={() => { setClienteQuery(''); setClienteSeleccionado(null); setSugerencias([]) }}
+                onClick={() => { setClienteQuery(''); setClienteSeleccionado(null); setMostrarDropdown(false) }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-[--text-light] hover:text-[--text-dark]"
               >
                 <X size={15} />
               </button>
             )}
-            {sugerencias.length > 0 && (
-              <ul className="absolute z-10 left-0 right-0 top-full mt-1 bg-white border border-[--border] rounded-md shadow-lg text-sm overflow-hidden">
-                {sugerencias.map(c => (
+            {clientesFiltrados.length > 0 && (
+              <ul className="absolute z-10 left-0 right-0 top-full mt-1 bg-white border border-[--border] rounded-md shadow-lg text-sm max-h-56 overflow-y-auto">
+                {clientesFiltrados.map(c => (
                   <li key={c.id}>
                     <button
                       type="button"
+                      onMouseDown={e => e.preventDefault()}
                       onClick={() => seleccionarCliente(c)}
                       className="w-full text-left px-3 py-2 hover:bg-primary-light"
                     >
@@ -173,18 +208,13 @@ export default function NuevoEncargo() {
               </ul>
             )}
           </div>
-          {clienteSeleccionado && (
-            <p className="text-xs text-primary">
-              ✓ {clienteSeleccionado.nombre} {clienteSeleccionado.apellidos ?? ''}
-            </p>
-          )}
           <button
             type="button"
             onClick={() => setMostrarFormCliente(v => !v)}
             className="flex items-center gap-1.5 text-xs text-[--text-medium] hover:text-primary"
           >
             <UserPlus size={13} />
-            Crear cliente nuevo
+            Crear nuevo cliente
           </button>
           {mostrarFormCliente && (
             <div className="border border-[--border] rounded-md p-3 space-y-2 bg-[--bg-alt]">
@@ -250,12 +280,13 @@ export default function NuevoEncargo() {
         <section className="bg-white rounded-lg border border-[--border] p-4 space-y-3">
           <h2 className="text-sm font-semibold text-[--text-medium]">Detalles</h2>
           <div>
-            <label className="block text-xs text-[--text-light] mb-1">Fecha de entrega estimada</label>
+            <label className={`block text-xs mb-1 ${erroresForm.fechaEntrega ? 'text-red-500' : 'text-[--text-light]'}`}>Fecha de entrega estimada *</label>
             <input
               type="date"
               value={fechaEntrega}
-              onChange={e => setFechaEntrega(e.target.value)}
-              className="border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              min={new Date().toISOString().slice(0, 10)}
+              onChange={e => { setFechaEntrega(e.target.value); if (e.target.value >= new Date().toISOString().slice(0, 10)) setErroresForm(prev => ({ ...prev, fechaEntrega: false })) }}
+              className={`border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${erroresForm.fechaEntrega ? 'border-red-400' : 'border-[--border]'}`}
             />
           </div>
           <div>
@@ -288,33 +319,29 @@ export default function NuevoEncargo() {
                 )}
               </div>
 
-              {/* Selector catálogo o texto libre */}
-              {catalogo.length > 0 && (
-                <div>
-                  <label className="block text-xs text-[--text-light] mb-1">Del catálogo (opcional)</label>
-                  <select
-                    value={l.prenda_id}
-                    onChange={e => updateLinea(l._id, 'prenda_id', e.target.value)}
-                    className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                  >
-                    <option value="">— Seleccionar prenda —</option>
-                    {catalogo.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.nombre} ({formatImporte(p.precio_base * (1 - (p.descuento ?? 0) / 100))})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
+              {/* Selector catálogo */}
               <div>
-                <label className="block text-xs text-[--text-light] mb-1">Descripción *</label>
-                <input
-                  value={l.descripcion}
-                  onChange={e => updateLinea(l._id, 'descripcion', e.target.value)}
-                  placeholder="Ej: Vestido de novia, falda plisada…"
-                  className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                <label className={`block text-xs mb-1 ${erroresForm.lineas.has(l._id) ? 'text-red-500' : 'text-[--text-light]'}`}>Prenda *</label>
+                <select
+                  value={l.prenda_id}
+                  onChange={e => updateLinea(l._id, 'prenda_id', e.target.value)}
+                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white ${erroresForm.lineas.has(l._id) ? 'border-red-400' : 'border-[--border]'}`}
+                >
+                  <option value="">— Seleccionar prenda —</option>
+                  {catalogo.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre} ({formatImporte(p.precio_base * (1 - (p.descuento ?? 0) / 100))})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => navigate('/catalogo/nueva')}
+                  className="flex items-center gap-1 text-xs text-[--text-light] hover:text-primary mt-1"
+                >
+                  <Plus size={11} />
+                  Nueva prenda en el catálogo
+                </button>
               </div>
 
               <div className="flex gap-3">
@@ -345,16 +372,6 @@ export default function NuevoEncargo() {
                     = {formatImporte((parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1))}
                   </p>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs text-[--text-light] mb-1">Medidas de ajuste</label>
-                <input
-                  value={l.medidas_ajuste}
-                  onChange={e => updateLinea(l._id, 'medidas_ajuste', e.target.value)}
-                  placeholder="Ej: Pecho 90cm, Cintura 68cm, Cadera 96cm"
-                  className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
               </div>
 
               <div>

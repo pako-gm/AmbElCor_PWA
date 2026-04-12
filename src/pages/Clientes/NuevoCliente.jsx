@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { crearCliente } from '@/hooks/useClientes'
 
@@ -9,10 +9,6 @@ export default function NuevoCliente() {
   const [form, setForm] = useState({
     nombre: '', apellidos: '', telefono: '', email: '', notas: '',
   })
-  const [medidas, setMedidas] = useState({
-    pecho: '', cintura: '', cadera: '', talla: '', largo_espalda: '', notas: '',
-  })
-  const [mostrarMedidas, setMostrarMedidas] = useState(false)
   const [errores, setErrores] = useState({})
   const [guardando, setGuardando] = useState(false)
 
@@ -34,10 +30,7 @@ export default function NuevoCliente() {
     if (!validar()) return
     setGuardando(true)
     try {
-      const medidas_base = Object.values(medidas).some(v => v.trim())
-        ? medidas
-        : null
-      const cliente = await crearCliente({ ...form, medidas_base })
+      const cliente = await crearCliente({ ...form })
       navigate(`/clientes/${cliente.id}`)
     } catch (e) {
       console.error(e)
@@ -120,63 +113,6 @@ export default function NuevoCliente() {
               className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none"
             />
           </div>
-        </section>
-
-        {/* Medidas base */}
-        <section className="bg-white rounded-lg border border-[--border] overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setMostrarMedidas(v => !v)}
-            className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-[--text-medium] hover:bg-[--bg-alt] transition-colors"
-          >
-            Medidas base
-            {mostrarMedidas ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-
-          {mostrarMedidas && (
-            <div className="px-4 pb-4 space-y-3 border-t border-[--border]">
-              <p className="text-xs text-[--text-light] pt-3">Medidas en centímetros</p>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { key: 'pecho', label: 'Pecho' },
-                  { key: 'cintura', label: 'Cintura' },
-                  { key: 'cadera', label: 'Cadera' },
-                  { key: 'largo_espalda', label: 'Largo espalda' },
-                ].map(({ key, label }) => (
-                  <div key={key} className="space-y-1">
-                    <label className="text-xs text-[--text-light]">{label} (cm)</label>
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={medidas[key]}
-                      onChange={e => setMedidas(v => ({ ...v, [key]: e.target.value }))}
-                      className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                ))}
-                <div className="space-y-1">
-                  <label className="text-xs text-[--text-light]">Talla</label>
-                  <input
-                    type="text"
-                    placeholder="38, M, L…"
-                    value={medidas.talla}
-                    onChange={e => setMedidas(v => ({ ...v, talla: e.target.value }))}
-                    className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-[--text-light]">Notas de medidas</label>
-                <textarea
-                  placeholder="Observaciones sobre las medidas…"
-                  value={medidas.notas}
-                  onChange={e => setMedidas(v => ({ ...v, notas: e.target.value }))}
-                  rows={2}
-                  className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-                />
-              </div>
-            </div>
-          )}
         </section>
 
         {/* Botones */}

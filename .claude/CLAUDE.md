@@ -1,8 +1,9 @@
 # AmbElCor CRM — Guía del proyecto para Claude
 
-## Contexto
+## Descripción del proyecto
 
-CRM de usuario único (Carmen) para taller de costura artesanal **AmbElCor** en Valencia.
+CRM web para el taller de indumentaria fallera **Amb el Cor** (Carmen Moya, Catarroja).
+Gestión de clientas, encargos, presupuestos y seguimiento de pedidos.
 Acceso CRM exclusivo de Carmen. Clientes acceden a sus encargos vía token/código corto sin registro.
 
 ## Stack
@@ -17,6 +18,14 @@ Acceso CRM exclusivo de Carmen. Clientes acceden a sus encargos vía token/códi
 | Excel | SheetJS (xlsx) |
 | PWA | vite-plugin-pwa |
 | Pagos (futuro) | Stripe (instalado, inactivo — `VITE_STRIPE_ENABLED=false`) |
+| Deployment | Vercel |
+
+## Arquitectura clave
+
+- Modelo de encargo multi-línea: un encargo tiene varias líneas de trabajo
+- Seguimiento público de pedidos vía token + código corto (sin login)
+- Lógica de negocio principalmente en el navegador; Edge Function `notify-whatsapp` para notificaciones
+- Un solo usuario autenticado (Carmen); no hay sistema de roles
 
 ## Supabase
 
@@ -32,6 +41,19 @@ Acceso CRM exclusivo de Carmen. Clientes acceden a sus encargos vía token/códi
 - **Fuentes:** Playfair Display (titulares) + Open Sans (cuerpo)
 - Mobile-first: bottom-tab nav en móvil, sidebar en desktop
 - CRM funcional y conciso (no tan visual como la landing)
+- Consultar `.claude/paleta.md` para colores detallados si existe
+
+## Convenciones de código
+
+- UI siempre en español
+- Tablas y columnas Supabase en snake_case
+- Componentes React en PascalCase, hooks con prefijo `use`
+- No añadir dependencias nuevas sin evaluar si ya existe algo en el stack
+- Hooks Supabase en `src/hooks/` (useEncargos.js, useAuth.jsx, useClientes.js, useProveedores.js, useInventario.js, useContabilidad.js)
+- Formateo de fechas, importes y números de encargo en `src/utils/formatters.js`
+- Exportación Excel en `src/utils/exportExcel.js`
+- PDFs en `src/utils/pdfGenerator.js`
+- Componentes shadcn/ui en `src/components/ui/` — instalar con `npx shadcn@latest add <component>`
 
 ## Estructura de carpetas relevante
 
@@ -39,10 +61,13 @@ Acceso CRM exclusivo de Carmen. Clientes acceden a sus encargos vía token/códi
 src/
   components/ui/        ← shadcn/ui (no modificar manualmente)
   components/layout/    ← PageWrapper, BottomNav, ProtectedRoute
-  pages/                ← una carpeta por módulo (Encargos/, Seguimiento/, etc.)
-  hooks/                ← useAuth.jsx, useEncargos.js (lógica Supabase)
+  pages/                ← una carpeta por módulo (Encargos/, Clientes/, etc.)
+  hooks/                ← useAuth.jsx, useEncargos.js, useClientes.js…
   utils/                ← formatters.js, exportExcel.js, pdfGenerator.js
   lib/                  ← supabase.js, stripe.js
+supabase/
+  functions/
+    notify-whatsapp/    ← Edge Function para notificaciones WhatsApp
 ```
 
 ## Estado de desarrollo (abril 2026)
@@ -51,7 +76,7 @@ src/
 - SQL schema: 10 tablas + trigger `codigo_corto` (AMB-XXXX) + autonumeración YY/NNN + RLS
 - Auth completo: Google OAuth → 2FA TOTP → ProtectedRoute
 - Layout: PageWrapper + sidebar desktop + BottomNav móvil
-- **Módulo Encargos (Fase 2 completa):**
+- **Módulo Encargos:**
   - `EncargosLista`: filtros por estado, búsqueda, tarjetas clickables
   - `NuevoEncargo`: selector cliente, líneas dinámicas, catálogo, total auto
   - `EncargoDetalle`: timeline estados, avanzar estado, PDFs, pagos inline, compartir
@@ -59,14 +84,16 @@ src/
 - Seguimiento público: `/seguimiento` (código corto) + `/seguimiento/:token`
 - Dashboard con métricas
 - Exportación Excel (`exportExcel.js`) con filtro trimestral
+- **Módulo Clientes:** lista, nuevo, detalle (`/clientes`, `/clientes/:id`)
+- **Módulo Proveedores:** lista, nuevo, detalle (`/proveedores`, `/proveedores/:id`)
+- **Módulo Inventario:** lista de materiales, nuevo, detalle
+- **Módulo Contabilidad:** dashboard, cobros, pagos, reportes
+- **Módulo Cronograma:** vista de planificación de encargos
+- Edge Function `notify-whatsapp` para notificaciones al cliente
 
 ### Pendiente
 - Configurar Google OAuth en Google Cloud Console + Supabase Dashboard (producción)
-- Clientes CRUD (`/clientes`, `/clientes/:id`)
-- Proveedores CRUD
-- Inventario
-- Fase 3: Módulo contable completo (`/contabilidad/cobros`, `/contabilidad/pagos`, `/contabilidad/reportes`)
-- Fase 4: Stripe
+- Fase 4: Stripe (pagos en línea)
 
 ## Flujo de estados de un encargo
 
@@ -87,14 +114,6 @@ Campos clave en `encargos`:
 - `token_publico` — UUID para enlace cliente
 - `codigo_corto` — `AMB-XXXX` para comunicar por teléfono
 
-## Convenciones de código
-
-- Hooks Supabase en `src/hooks/` (useEncargos.js, useAuth.jsx)
-- Formateo de fechas, importes y números de encargo en `src/utils/formatters.js`
-- Exportación Excel en `src/utils/exportExcel.js`
-- PDFs en `src/utils/pdfGenerator.js`
-- Componentes shadcn/ui en `src/components/ui/` — instalar con `npx shadcn@latest add <component>`
-
 ## Variables de entorno
 
 ```env
@@ -111,3 +130,8 @@ npm run dev       # desarrollo local
 npm run build     # build producción
 npm run preview   # preview del build
 ```
+
+## Lecciones aprendidas
+
+Los errores de programación corregidos durante el desarrollo se registran en `.claude/LECCIONES.md`.
+**Claude Code debe consultar ese archivo al inicio de cada tarea nueva y actualizarlo antes de continuar tras cometer un error.**

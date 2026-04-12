@@ -20,7 +20,7 @@ export async function fetchEncargos({ estado } = {}) {
       clientes (id, nombre, apellidos),
       encargo_lineas (id)
     `)
-    .order('created_at', { ascending: false })
+    .order('numero', { ascending: false })
 
   if (estado) query = query.eq('estado', estado)
 
@@ -115,6 +115,18 @@ export async function registrarPago({ encargo_id, fecha, importe, tipo, forma_pa
   return data
 }
 
+// Actualizar pago
+export async function actualizarPago(id, cambios) {
+  const { error } = await supabase.from('pagos').update({
+    fecha: cambios.fecha,
+    importe: parseFloat(cambios.importe),
+    tipo: cambios.tipo,
+    forma_pago: cambios.forma_pago,
+    referencia: cambios.referencia || null,
+  }).eq('id', id)
+  if (error) throw error
+}
+
 // Eliminar pago
 export async function eliminarPago(id, encargo_id, importe) {
   const { error } = await supabase.from('pagos').delete().eq('id', id)
@@ -147,6 +159,15 @@ export async function buscarClientes(query) {
   return data
 }
 
+export async function fetchTodosClientes() {
+  const { data, error } = await supabase
+    .from('clientes')
+    .select('id, nombre, apellidos, telefono')
+    .order('nombre', { ascending: true })
+  if (error) throw error
+  return data
+}
+
 // Crear cliente rápido
 export async function crearClienteRapido({ nombre, apellidos, telefono, email }) {
   const { data, error } = await supabase
@@ -166,6 +187,20 @@ export async function eliminarLinea(lineaId, encargoId, descripcion) {
   const total = (lineas || []).reduce((s, l) => s + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1), 0)
   await supabase.from('encargos').update({ precio_total: total }).eq('id', encargoId)
   await registrarHistorial(encargoId, `Prenda eliminada: ${descripcion || 'sin descripción'}`)
+}
+
+// Actualizar línea de encargo y recalcular total
+export async function actualizarLinea(lineaId, encargoId, cambios) {
+  const { error } = await supabase.from('encargo_lineas').update({
+    cantidad: parseInt(cambios.cantidad) || 1,
+    precio_unitario: parseFloat(cambios.precio_unitario) || 0,
+    medidas_ajuste: cambios.medidas_ajuste ? { notas: cambios.medidas_ajuste } : {},
+    notas: cambios.notas || null,
+  }).eq('id', lineaId)
+  if (error) throw error
+  const { data: lineas } = await supabase.from('encargo_lineas').select('cantidad, precio_unitario').eq('encargo_id', encargoId)
+  const total = (lineas || []).reduce((s, l) => s + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1), 0)
+  await supabase.from('encargos').update({ precio_total: total }).eq('id', encargoId)
 }
 
 // Agregar línea a encargo y recalcular total

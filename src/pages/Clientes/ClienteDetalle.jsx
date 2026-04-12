@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, Pencil, Trash2, ChevronDown, ChevronUp, Check, X } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
-import { fetchCliente, actualizarCliente, eliminarCliente } from '@/hooks/useClientes'
+import { fetchCliente, actualizarCliente, eliminarCliente, fetchMedidasCliente } from '@/hooks/useClientes'
 import { formatFecha, formatImporte, ESTADO_LABELS, ESTADO_COLORS } from '@/utils/formatters'
 
 export default function ClienteDetalle() {
@@ -17,12 +17,8 @@ export default function ClienteDetalle() {
   const [erroresEdit, setErroresEdit] = useState({})
   const [guardandoEdit, setGuardandoEdit] = useState(false)
 
-  // Edición medidas
-  const [editandoMedidas, setEditandoMedidas] = useState(false)
-  const [formMedidas, setFormMedidas] = useState({})
-  const [guardandoMedidas, setGuardandoMedidas] = useState(false)
-
-  // Sección medidas visible
+  // Medidas (solo lectura — edición en página propia)
+  const [medidas, setMedidas] = useState(null)
   const [mostrarMedidas, setMostrarMedidas] = useState(false)
 
   // Confirmación eliminar
@@ -31,11 +27,14 @@ export default function ClienteDetalle() {
 
   const cargar = () => {
     setLoading(true)
-    fetchCliente(id).then(c => {
-      setCliente(c)
-      setFormEdit({ nombre: c.nombre, apellidos: c.apellidos ?? '', telefono: c.telefono ?? '', email: c.email ?? '', notas: c.notas ?? '' })
-      setFormMedidas(c.medidas_base ?? { pecho: '', cintura: '', cadera: '', talla: '', largo_espalda: '', notas: '' })
-    }).catch(console.error).finally(() => setLoading(false))
+    Promise.all([fetchCliente(id), fetchMedidasCliente(id)])
+      .then(([c, m]) => {
+        setCliente(c)
+        setFormEdit({ nombre: c.nombre, apellidos: c.apellidos ?? '', telefono: c.telefono ?? '', email: c.email ?? '', notas: c.notas ?? '' })
+        setMedidas(m)
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
   }
 
   useEffect(() => { cargar() }, [id])
@@ -66,16 +65,6 @@ export default function ClienteDetalle() {
     finally { setGuardandoEdit(false) }
   }
 
-  const handleGuardarMedidas = async () => {
-    setGuardandoMedidas(true)
-    try {
-      await actualizarCliente(id, { medidas_base: formMedidas })
-      setEditandoMedidas(false)
-      cargar()
-    } catch (e) { console.error(e) }
-    finally { setGuardandoMedidas(false) }
-  }
-
   const handleEliminar = async () => {
     try {
       await eliminarCliente(id)
@@ -91,8 +80,8 @@ export default function ClienteDetalle() {
   const nombreCompleto = `${cliente.nombre} ${cliente.apellidos ?? ''}`.trim()
   const encargos = (cliente.encargos ?? []).sort((a, b) => new Date(b.fecha_encargo) - new Date(a.fecha_encargo))
   const totalFacturado = encargos.reduce((s, e) => s + (parseFloat(e.precio_total) || 0), 0)
-  const medidas = cliente.medidas_base ?? {}
-  const tieneMedidas = Object.values(medidas).some(v => v)
+  const tieneMedidas = medidas != null && Object.entries(medidas)
+    .some(([k, v]) => !['id','cliente_id','created_at','updated_at','notas','fecha_toma'].includes(k) && v != null)
 
   return (
     <PageWrapper>
@@ -209,98 +198,55 @@ export default function ClienteDetalle() {
           )}
         </section>
 
-        {/* Medidas base */}
+        {/* Medidas */}
         <section className="bg-white rounded-lg border border-[--border] overflow-hidden">
           <button
             type="button"
             onClick={() => setMostrarMedidas(v => !v)}
             className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-[--text-medium] hover:bg-[--bg-alt] transition-colors"
           >
-            <span>Medidas base {tieneMedidas && <span className="text-xs font-normal text-primary ml-1">registradas</span>}</span>
+            <span>
+              Medidas{' '}
+              {tieneMedidas && (
+                <span className="text-xs font-normal text-primary ml-1">
+                  {medidas.fecha_toma ? `tomadas el ${formatFecha(medidas.fecha_toma)}` : 'registradas'}
+                </span>
+              )}
+            </span>
             {mostrarMedidas ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
 
           {mostrarMedidas && (
-            <div className="px-4 pb-4 space-y-3 border-t border-[--border]">
-              {editandoMedidas ? (
-                <>
-                  <p className="text-xs text-[--text-light] pt-3">Medidas en centímetros</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { key: 'pecho', label: 'Pecho' },
-                      { key: 'cintura', label: 'Cintura' },
-                      { key: 'cadera', label: 'Cadera' },
-                      { key: 'largo_espalda', label: 'Largo espalda' },
-                    ].map(({ key, label }) => (
-                      <div key={key} className="space-y-1">
-                        <label className="text-xs text-[--text-light]">{label} (cm)</label>
-                        <input
-                          type="number"
-                          placeholder="0"
-                          value={formMedidas[key] ?? ''}
-                          onChange={e => setFormMedidas(v => ({ ...v, [key]: e.target.value }))}
-                          className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                    ))}
-                    <div className="space-y-1">
-                      <label className="text-xs text-[--text-light]">Talla</label>
-                      <input
-                        type="text"
-                        placeholder="38, M, L…"
-                        value={formMedidas.talla ?? ''}
-                        onChange={e => setFormMedidas(v => ({ ...v, talla: e.target.value }))}
-                        className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-[--text-light]">Notas de medidas</label>
-                    <textarea
-                      value={formMedidas.notas ?? ''}
-                      onChange={e => setFormMedidas(v => ({ ...v, notas: e.target.value }))}
-                      rows={2}
-                      className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleGuardarMedidas}
-                      disabled={guardandoMedidas}
-                      className="flex items-center gap-1.5 bg-primary text-white text-xs px-3 py-1.5 rounded hover:bg-primary-dark disabled:opacity-50 transition-colors"
-                    >
-                      <Check size={13} /> {guardandoMedidas ? 'Guardando…' : 'Guardar'}
-                    </button>
-                    <button
-                      onClick={() => { setEditandoMedidas(false); setFormMedidas(cliente.medidas_base ?? {}) }}
-                      className="flex items-center gap-1.5 bg-gray-100 text-gray-500 text-xs px-3 py-1.5 rounded hover:bg-gray-200 transition-colors"
-                    >
-                      <X size={13} /> Cancelar
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="pt-3 space-y-2">
-                  {tieneMedidas ? (
-                    <div className="grid grid-cols-2 gap-y-2 text-sm">
-                      {medidas.pecho && <p><span className="text-xs text-[--text-light]">Pecho:</span> {medidas.pecho} cm</p>}
-                      {medidas.cintura && <p><span className="text-xs text-[--text-light]">Cintura:</span> {medidas.cintura} cm</p>}
-                      {medidas.cadera && <p><span className="text-xs text-[--text-light]">Cadera:</span> {medidas.cadera} cm</p>}
-                      {medidas.largo_espalda && <p><span className="text-xs text-[--text-light]">Largo espalda:</span> {medidas.largo_espalda} cm</p>}
-                      {medidas.talla && <p><span className="text-xs text-[--text-light]">Talla:</span> {medidas.talla}</p>}
-                      {medidas.notas && <p className="col-span-2 text-xs text-[--text-light]">{medidas.notas}</p>}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-[--text-light]">Sin medidas registradas.</p>
+            <div className="px-4 pb-4 pt-3 space-y-2 border-t border-[--border]">
+              {tieneMedidas ? (
+                <div className="grid grid-cols-2 gap-y-1.5 text-sm">
+                  {[
+                    ['contorno_pecho', 'Pecho'], ['contorno_cintura', 'Cintura'],
+                    ['contorno_cadera', 'Cadera'], ['talle_espalda', 'Talle espalda'],
+                    ['talle_delantero', 'Talle delantero'], ['altura_total', 'Altura'],
+                    ['ancho_espalda', 'Ancho espalda'], ['largo_manga', 'Largo manga'],
+                  ].map(([key, label]) => medidas[key] != null && (
+                    <p key={key}>
+                      <span className="text-xs text-[--text-light]">{label}:</span>{' '}
+                      {medidas[key]} cm
+                    </p>
+                  ))}
+                  {medidas.num_calzado != null && (
+                    <p><span className="text-xs text-[--text-light]">Calzado:</span> {medidas.num_calzado}</p>
                   )}
-                  <button
-                    onClick={() => { setEditandoMedidas(true); setFormMedidas(medidas) }}
-                    className="text-xs text-primary hover:underline"
-                  >
-                    {tieneMedidas ? 'Editar medidas' : 'Añadir medidas'}
-                  </button>
+                  {medidas.notas && (
+                    <p className="col-span-2 text-xs text-[--text-light] mt-1">{medidas.notas}</p>
+                  )}
                 </div>
+              ) : (
+                <p className="text-xs text-[--text-light]">Sin medidas registradas.</p>
               )}
+              <button
+                onClick={() => navigate(`/clientes/${id}/medidas`)}
+                className="text-xs text-primary hover:underline mt-1"
+              >
+                {tieneMedidas ? 'Editar medidas' : 'Añadir medidas'}
+              </button>
             </div>
           )}
         </section>

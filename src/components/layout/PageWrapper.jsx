@@ -2,7 +2,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import logoAmbelcor from '@/public/img/ambelcor-oscuro.png'
 import {
   ClipboardList, Users, Truck, Package, CalendarDays,
-  BarChart2, LogOut, CircleDollarSign, Receipt, Menu, X,
+  BarChart2, LogOut, CircleDollarSign, Receipt, Menu, X, Tag,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useState, useEffect } from 'react'
@@ -13,6 +13,7 @@ const navItems = [
   { to: '/clientes', icon: Users, label: 'Clientes' },
   { to: '/proveedores', icon: Truck, label: 'Proveedores' },
   { to: '/inventario', icon: Package, label: 'Inventario' },
+  { to: '/catalogo', icon: Tag, label: 'Catálogo' },
   { to: '/contabilidad', icon: BarChart2, label: 'Contabilidad', end: true },
   { to: '/contabilidad/cobros', icon: CircleDollarSign, label: 'Cobros' },
   { to: '/contabilidad/pagos', icon: Receipt, label: 'Pagos' },
@@ -50,7 +51,7 @@ export default function PageWrapper({ children, title }) {
           <Menu size={24} />
         </button>
         <div className="flex items-center gap-2 ml-3">
-          <img src={logoAmbelcor} alt="AmbElCor" className="h-8 w-auto object-contain" />
+          <img src={logoAmbelcor} alt="AmbElCor" className="h-8 w-auto object-contain [mix-blend-mode:multiply]" />
           <span className="font-display text-base font-semibold text-primary leading-tight">
             Amb el Cor <span className="text-xs font-normal text-[--text-light] tracking-wide">CRM</span>
           </span>
@@ -74,7 +75,7 @@ export default function PageWrapper({ children, title }) {
         {/* Cabecera del drawer */}
         <div className="h-14 px-4 border-b border-[--border] flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
-            <img src={logoAmbelcor} alt="AmbElCor" className="h-8 w-auto object-contain" />
+            <img src={logoAmbelcor} alt="AmbElCor" className="h-8 w-auto object-contain [mix-blend-mode:multiply]" />
             <span className="font-display text-base font-semibold text-primary leading-tight">
               Amb el Cor <span className="text-xs font-normal text-[--text-light] tracking-wide">CRM</span>
             </span>

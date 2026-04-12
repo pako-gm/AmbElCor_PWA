@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft, Share2, FileText, Copy, Check,
-  Trash2, PlusCircle, Pencil, Plus
+  Trash2, PlusCircle, Pencil, Plus, MessageCircle, AlertCircle
 } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
-import { fetchEncargo, avanzarEstado, registrarPago, eliminarPago, eliminarLinea, agregarLinea, fetchCatalogo, eliminarEncargo } from '@/hooks/useEncargos'
+import { fetchEncargo, avanzarEstado, registrarPago, actualizarPago, eliminarPago, eliminarLinea, agregarLinea, actualizarLinea, fetchCatalogo, eliminarEncargo } from '@/hooks/useEncargos'
 import { supabase } from '@/lib/supabase'
 import { generarPresupuestoPDF, generarFacturaPDF } from '@/utils/pdfGenerator'
 import {
@@ -35,17 +35,47 @@ export default function EncargoDetalle() {
 
   // Modal líneas
   const [modalLineas, setModalLineas] = useState(false)
+  const [mostrarFormLinea, setMostrarFormLinea] = useState(false)
   const [catalogo, setCatalogo] = useState([])
-  const [nuevaLinea, setNuevaLinea] = useState({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', medidas_ajuste: '', notas: '' })
+  const [nuevaLinea, setNuevaLinea] = useState({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', notas: '' })
   const [guardandoLinea, setGuardandoLinea] = useState(false)
+  const [lineaEditando, setLineaEditando] = useState(null) // id de la línea en edición
+  const [datosEdicion, setDatosEdicion] = useState({})
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false)
+  const [pagoEditando, setPagoEditando] = useState(null) // id del pago en edición
+  const [datosPagoEdicion, setDatosPagoEdicion] = useState({})
+  const [guardandoPagoEdicion, setGuardandoPagoEdicion] = useState(false)
 
   // Modal confirmación eliminar
   const [confirmDelete, setConfirmDelete] = useState(null) // { tipo: 'encargo' | 'pago', pagoId? }
 
+  // Modal señal pendiente
+  const [modalSenal, setModalSenal] = useState(false)
+
+  // Timeline hover
+  const [hoveredEstado, setHoveredEstado] = useState(null)
+
   // WhatsApp
-  const [notificarWA, setNotificarWA] = useState(true)
+  const [notificarWA, setNotificarWA] = useState(false)
   const [enviandoWA, setEnviandoWA] = useState(false)
   const [resultadoWA, setResultadoWA] = useState(null) // 'ok' | 'error' | null
+
+  const handleNotificarWAManual = async () => {
+    if (!encargo.clientes?.telefono) return
+    setEnviandoWA(true)
+    const { error: waError } = await supabase.functions.invoke('notify-whatsapp', {
+      body: {
+        cliente_telefono: encargo.clientes.telefono,
+        cliente_nombre: encargo.clientes.nombre,
+        encargo_ref: encargo.numero,
+        token_publico: encargo.token_publico,
+        nuevo_estado: encargo.estado,
+      },
+    })
+    setEnviandoWA(false)
+    setResultadoWA(waError ? 'error' : 'ok')
+    setTimeout(() => setResultadoWA(null), 4000)
+  }
 
   // Formulario pago
   const [mostrarFormPago, setMostrarFormPago] = useState(false)
@@ -60,7 +90,7 @@ export default function EncargoDetalle() {
 
   const abrirModalLineas = () => {
     fetchCatalogo().then(setCatalogo).catch(console.error)
-    setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', medidas_ajuste: '', notas: '' })
+    setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', notas: '' })
     setModalLineas(true)
   }
 
@@ -70,11 +100,12 @@ export default function EncargoDetalle() {
   }
 
   const handleAgregarLinea = async () => {
-    if (!nuevaLinea.descripcion.trim()) return
+    if (!nuevaLinea.prenda_id) return
     setGuardandoLinea(true)
     try {
       await agregarLinea(id, nuevaLinea)
-      setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', medidas_ajuste: '', notas: '' })
+      setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', notas: '' })
+      setMostrarFormLinea(false)
       cargar()
     } catch (e) {
       console.error(e)
@@ -121,6 +152,16 @@ export default function EncargoDetalle() {
   const handleCambiarEstado = async (nuevoEstado) => {
     const nuevoIndex = ESTADOS.indexOf(nuevoEstado)
     if (Math.abs(nuevoIndex - estadoActual) !== 1) return
+
+    // Bloquear avance a en_confeccion si no hay señal del 50%
+    if (nuevoIndex > estadoActual && nuevoEstado === 'en_confeccion') {
+      const cobrado = (encargo.pagos ?? []).filter(p => p.tipo !== 'devolucion').reduce((s, p) => s + parseFloat(p.importe), 0)
+      if (cobrado < (encargo.precio_total ?? 0) * 0.5) {
+        setModalSenal(true)
+        return
+      }
+    }
+
     setAvanzando(true)
     try {
       await avanzarEstado(id, encargo.estado, nuevoEstado)
@@ -176,7 +217,7 @@ export default function EncargoDetalle() {
   }
 
   const handleRegistrarPago = async () => {
-    if (!pago.importe || parseFloat(pago.importe) <= 0) return
+    if (!pago.importe || parseFloat(pago.importe) <= 0) { setErrorPago('Indica un importe mayor que 0.'); return }
     if (pago.tipo !== 'devolucion' && parseFloat(pago.importe) > pendiente) {
       setErrorPago(`El importe supera el pendiente (${formatImporte(pendiente)})`)
       return
@@ -199,8 +240,10 @@ export default function EncargoDetalle() {
     setConfirmDelete({ tipo: 'pago', pagoId })
   }
 
-  const totalPagado = (encargo.pagos ?? []).reduce((s, p) => s + parseFloat(p.importe), 0)
-  const pendiente = (encargo.precio_total ?? 0) - totalPagado
+  const totalCobrado = (encargo.pagos ?? []).filter(p => p.tipo !== 'devolucion').reduce((s, p) => s + parseFloat(p.importe), 0)
+  const totalDevuelto = (encargo.pagos ?? []).filter(p => p.tipo === 'devolucion').reduce((s, p) => s + parseFloat(p.importe), 0)
+  const totalPagado = totalCobrado - totalDevuelto  // neto mostrado en "Cobrado"
+  const pendiente = Math.max(0, (encargo.precio_total ?? 0) - totalCobrado)  // el cliente debe lo que no haya pagado
 
   return (
     <PageWrapper>
@@ -214,6 +257,29 @@ export default function EncargoDetalle() {
             <p className="text-xs text-[--text-light]">{encargo.numero}</p>
             <h1 className="font-display text-xl text-[--text-dark]">{nombreCliente}</h1>
           </div>
+          {encargo.clientes?.telefono && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setNotificarWA(v => !v)}
+                title={notificarWA ? 'Notificación automática activada' : 'Notificación automática desactivada'}
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${
+                  notificarWA ? 'bg-primary' : 'bg-gray-200'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  notificarWA ? 'translate-x-4' : 'translate-x-0.5'
+                }`} />
+              </button>
+              <button
+                onClick={handleNotificarWAManual}
+                disabled={!notificarWA || enviandoWA}
+                className="flex items-center gap-1.5 text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <MessageCircle size={13} />
+                {enviandoWA ? 'Enviando…' : 'Notificar WhatsApp'}
+              </button>
+            </div>
+          )}
           <button
             onClick={() => setModalCompartir(true)}
             className="flex items-center gap-1.5 text-xs border border-[--border] px-3 py-1.5 rounded-md text-[--text-medium] hover:border-primary hover:text-primary transition-colors"
@@ -232,11 +298,6 @@ export default function EncargoDetalle() {
 
         {/* Estado + Timeline */}
         <div className="bg-white rounded-lg border border-[--border] p-4">
-          {encargo.fecha_entrega_estimada && (
-            <p className="text-xs text-[--text-light] mb-4">
-              Entrega prevista: {formatFecha(encargo.fecha_entrega_estimada)}
-            </p>
-          )}
           <div>
             {ESTADOS.map((estado, i) => {
               const completado = i < estadoActual
@@ -250,16 +311,20 @@ export default function EncargoDetalle() {
                     <button
                       onClick={() => !avanzando && esAdyacente && handleCambiarEstado(estado)}
                       disabled={!esAdyacente || avanzando}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-opacity ${
-                        completado
+                      onMouseEnter={() => esAdyacente && !avanzando && setHoveredEstado(estado)}
+                      onMouseLeave={() => setHoveredEstado(null)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                        hoveredEstado === estado
+                          ? 'border-2 border-primary bg-white'
+                          : completado
                           ? 'bg-teal-800 text-white'
                           : esCurrent
                           ? 'border-2 border-primary bg-white'
                           : 'border-2 border-gray-200 bg-white'
-                      } ${esAdyacente && !avanzando ? 'cursor-pointer hover:opacity-75' : 'cursor-default'}`}
+                      } ${esAdyacente && !avanzando ? 'cursor-pointer' : 'cursor-default'}`}
                     >
-                      {completado && <Check size={14} />}
-                      {esCurrent && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                      {completado && hoveredEstado !== estado && <Check size={14} />}
+                      {(esCurrent || hoveredEstado === estado) && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
                     </button>
                     {!esUltimo && <div className="w-px bg-gray-200 flex-1 my-1 min-h-6" />}
                   </div>
@@ -276,6 +341,19 @@ export default function EncargoDetalle() {
                         {esCurrent ? `Estado actual · desde ${formatFecha(fecha)}` : formatFecha(fecha)}
                       </p>
                     )}
+                    {estado === 'entregado' && encargo.estado !== 'entregado' && encargo.fecha_entrega_estimada && (() => {
+                      const hoy = new Date(); hoy.setHours(0,0,0,0)
+                      const fin = new Date(encargo.fecha_entrega_estimada + 'T00:00:00')
+                      const dias = Math.round((fin - hoy) / 86400000)
+                      const color = dias < 0 ? 'text-red-800' : dias <= 3 ? 'text-red-500' : dias <= 7 ? 'text-amber-500' : 'text-teal-600'
+                      return (
+                        <p className={`text-xs -mt-2 mb-1 ${color}`}>
+                          {dias < 0
+                            ? `Vencido · ${formatFecha(encargo.fecha_entrega_estimada)}`
+                            : `Entrega prevista: ${formatFecha(encargo.fecha_entrega_estimada)}`}
+                        </p>
+                      )
+                    })()}
                   </div>
                 </div>
               )
@@ -283,34 +361,12 @@ export default function EncargoDetalle() {
           </div>
         </div>
 
-        {/* Notificación WhatsApp */}
-        {encargo.clientes?.telefono && estadoActual < ESTADOS.length - 1 && (
-          <div className="space-y-1">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={notificarWA}
-                onChange={e => setNotificarWA(e.target.checked)}
-                className="w-4 h-4 accent-[--primary] cursor-pointer"
-              />
-              <span className="text-xs text-[--text-medium]">
-                Notificar a {encargo.clientes.nombre} por WhatsApp al cambiar estado
-              </span>
-              {enviandoWA && (
-                <span className="text-xs text-[--text-light] animate-pulse">Enviando…</span>
-              )}
-            </label>
-            {resultadoWA === 'ok' && (
-              <p className="text-xs text-green-700 pl-6">
-                WhatsApp enviado a {encargo.clientes.nombre}
-              </p>
-            )}
-            {resultadoWA === 'error' && (
-              <p className="text-xs text-red-500 pl-6">
-                No se pudo enviar el WhatsApp
-              </p>
-            )}
-          </div>
+        {/* Feedback envío WhatsApp */}
+        {resultadoWA === 'ok' && (
+          <p className="text-xs text-green-700">WhatsApp enviado a {encargo.clientes?.nombre}</p>
+        )}
+        {resultadoWA === 'error' && (
+          <p className="text-xs text-red-500">No se pudo enviar el WhatsApp</p>
         )}
 
         {/* PDFs manuales */}
@@ -363,9 +419,6 @@ export default function EncargoDetalle() {
                   {l.descripcion || l.prendas_catalogo?.nombre || '—'}
                   {l.cantidad > 1 && <span className="text-[--text-light] ml-1">×{l.cantidad}</span>}
                 </p>
-                {l.medidas_ajuste?.notas && (
-                  <p className="text-xs text-[--text-light] mt-0.5">{l.medidas_ajuste.notas}</p>
-                )}
                 {l.notas && <p className="text-xs text-[--text-light] italic">{l.notas}</p>}
               </div>
               <span className="text-sm font-medium text-[--text-dark] ml-4 flex-shrink-0">
@@ -408,7 +461,73 @@ export default function EncargoDetalle() {
 
           {/* Lista de pagos */}
           {encargo.pagos?.map(p => (
-            <div key={p.id} className="flex items-center justify-between py-1.5 border-b border-[--border] last:border-0">
+            <div key={p.id} className="border-b border-[--border] last:border-0">
+              {pagoEditando === p.id ? (
+                <div className="py-2 space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="number" step="0.01" min="0"
+                      value={datosPagoEdicion.importe}
+                      onChange={e => setDatosPagoEdicion(v => ({ ...v, importe: e.target.value }))}
+                      placeholder="Importe (€)"
+                      className="flex-1 border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <input
+                      type="date"
+                      value={datosPagoEdicion.fecha}
+                      onChange={e => setDatosPagoEdicion(v => ({ ...v, fecha: e.target.value }))}
+                      className="flex-1 border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={datosPagoEdicion.tipo}
+                      onChange={e => setDatosPagoEdicion(v => ({ ...v, tipo: e.target.value }))}
+                      className="flex-1 border border-[--border] rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {TIPOS_PAGO.map(t => <option key={t} value={t}>{TIPO_PAGO_LABELS[t]}</option>)}
+                    </select>
+                    <select
+                      value={datosPagoEdicion.forma_pago}
+                      onChange={e => setDatosPagoEdicion(v => ({ ...v, forma_pago: e.target.value }))}
+                      className="flex-1 border border-[--border] rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {FORMAS_PAGO.map(f => <option key={f} value={f}>{FORMA_PAGO_LABELS[f]}</option>)}
+                    </select>
+                  </div>
+                  <input
+                    value={datosPagoEdicion.referencia}
+                    onChange={e => setDatosPagoEdicion(v => ({ ...v, referencia: e.target.value }))}
+                    placeholder="Referencia (opcional)"
+                    className="w-full border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        if (!datosPagoEdicion.importe || parseFloat(datosPagoEdicion.importe) <= 0) return
+                        setGuardandoPagoEdicion(true)
+                        try {
+                          await actualizarPago(p.id, datosPagoEdicion)
+                          await cargar()
+                          setPagoEditando(null)
+                        } catch (e) { console.error(e) }
+                        finally { setGuardandoPagoEdicion(false) }
+                      }}
+                      disabled={guardandoPagoEdicion}
+                      className="flex-1 bg-primary text-white text-xs px-3 py-1.5 rounded hover:bg-primary-dark disabled:opacity-50 transition-colors"
+                    >
+                      {guardandoPagoEdicion ? 'Guardando…' : 'Guardar'}
+                    </button>
+                    <button
+                      onClick={() => setPagoEditando(null)}
+                      className="flex-1 border border-[--border] text-xs px-3 py-1.5 rounded text-[--text-medium] hover:bg-[--bg-alt] transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+              <div className="flex items-center justify-between py-1.5 gap-3">
               <div>
                 <p className="text-sm text-[--text-dark]">
                   {TIPO_PAGO_LABELS[p.tipo] ?? p.tipo} · {FORMA_PAGO_LABELS[p.forma_pago] ?? p.forma_pago}
@@ -416,11 +535,21 @@ export default function EncargoDetalle() {
                 <p className="text-xs text-[--text-light]">{formatFecha(p.fecha)}{p.referencia && ` · ${p.referencia}`}</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-[--text-dark]">{formatImporte(p.importe)}</span>
+                <span className={`text-sm font-medium ${p.tipo === 'devolucion' ? 'text-red-500' : 'text-[--text-dark]'}`}>
+                  {p.tipo === 'devolucion' ? `-${formatImporte(p.importe)}` : formatImporte(p.importe)}
+                </span>
+                <button
+                  onClick={() => { setPagoEditando(p.id); setDatosPagoEdicion({ importe: p.importe, fecha: p.fecha, tipo: p.tipo, forma_pago: p.forma_pago, referencia: p.referencia || '' }) }}
+                  className="text-[--text-light] hover:text-primary transition-colors"
+                >
+                  <Pencil size={13} />
+                </button>
                 <button onClick={() => handleEliminarPago(p.id)} className="text-[--text-light] hover:text-red-500">
                   <Trash2 size={13} />
                 </button>
               </div>
+              </div>
+              )}
             </div>
           ))}
 
@@ -433,10 +562,10 @@ export default function EncargoDetalle() {
             <div className="border border-[--border] rounded-md p-3 space-y-2 bg-[--bg-alt]">
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="block text-xs text-[--text-light] mb-1">
+                  <label className={`block text-xs mb-1 ${errorPago ? 'text-red-500' : 'text-[--text-light]'}`}>
                     Importe (€) *
                     {pago.tipo !== 'devolucion' && (
-                      <span className="ml-1 text-[--text-light]">— disponible: {formatImporte(pendiente)}</span>
+                      <span className="ml-1">— disponible: {formatImporte(pendiente)}</span>
                     )}
                   </label>
                   <input
@@ -506,7 +635,7 @@ export default function EncargoDetalle() {
         </div>
 
         {/* Historial */}
-        {encargo.historial_encargo?.length > 0 && (
+        {false && encargo.historial_encargo?.length > 0 && (
           <div className="bg-white rounded-lg border border-[--border] p-4 space-y-2">
             <h2 className="text-sm font-semibold text-[--text-medium]">Historial</h2>
             {[...encargo.historial_encargo]
@@ -547,88 +676,151 @@ export default function EncargoDetalle() {
             <div className="overflow-y-auto flex-1 p-5 space-y-2">
               {/* Líneas existentes */}
               {encargo.encargo_lineas?.map(l => (
-                <div key={l.id} className="flex items-center justify-between py-2 border-b border-[--border] last:border-0 gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[--text-dark] truncate">
-                      {l.descripcion || l.prendas_catalogo?.nombre || '—'}
-                      {l.cantidad > 1 && <span className="text-[--text-light] ml-1">×{l.cantidad}</span>}
-                    </p>
-                    <p className="text-xs text-[--text-light]">{formatImporte((parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1))}</p>
-                  </div>
-                  <button
-                    onClick={() => handleEliminarLinea(l.id, l.descripcion || l.prendas_catalogo?.nombre)}
-                    className="text-[--text-light] hover:text-red-500 transition-colors flex-shrink-0"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                <div key={l.id} className="border-b border-[--border] last:border-0">
+                  {lineaEditando === l.id ? (
+                    <div className="py-3 space-y-2">
+                      <p className="text-xs font-semibold text-[--text-medium] truncate">{l.descripcion || l.prendas_catalogo?.nombre || '—'}</p>
+                      <div className="flex gap-2">
+                        <input
+                          type="number" min="1"
+                          value={datosEdicion.cantidad}
+                          onChange={e => setDatosEdicion(v => ({ ...v, cantidad: e.target.value }))}
+                          placeholder="Cant."
+                          className="w-20 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                        <input
+                          type="number" step="0.01" min="0"
+                          value={datosEdicion.precio_unitario}
+                          onChange={e => setDatosEdicion(v => ({ ...v, precio_unitario: e.target.value }))}
+                          placeholder="Precio (€)"
+                          className="flex-1 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+                      <input
+                        value={datosEdicion.notas}
+                        onChange={e => setDatosEdicion(v => ({ ...v, notas: e.target.value }))}
+                        placeholder="Notas de esta prenda"
+                        className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={async () => {
+                            setGuardandoEdicion(true)
+                            try {
+                              await actualizarLinea(l.id, encargo.id, datosEdicion)
+                              const updated = await fetchEncargo(encargo.id)
+                              setEncargo(updated)
+                              setLineaEditando(null)
+                            } catch (e) { console.error(e) }
+                            finally { setGuardandoEdicion(false) }
+                          }}
+                          disabled={guardandoEdicion}
+                          className="flex-1 bg-primary text-white text-xs px-3 py-1.5 rounded-md hover:bg-primary-dark disabled:opacity-50 transition-colors"
+                        >
+                          {guardandoEdicion ? 'Guardando…' : 'Guardar'}
+                        </button>
+                        <button
+                          onClick={() => setLineaEditando(null)}
+                          className="flex-1 border border-[--border] text-xs px-3 py-1.5 rounded-md text-[--text-medium] hover:bg-[--bg-alt] transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between py-2 gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-[--text-dark] truncate">
+                          {l.descripcion || l.prendas_catalogo?.nombre || '—'}
+                          {l.cantidad > 1 && <span className="text-[--text-light] ml-1">×{l.cantidad}</span>}
+                        </p>
+                        <p className="text-xs text-[--text-light]">{formatImporte((parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1))}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setLineaEditando(l.id)
+                          setDatosEdicion({
+                            cantidad: l.cantidad,
+                            precio_unitario: l.precio_unitario,
+                            notas: l.notas || '',
+                          })
+                        }}
+                        className="text-[--text-light] hover:text-primary transition-colors flex-shrink-0"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleEliminarLinea(l.id, l.descripcion || l.prendas_catalogo?.nombre)}
+                        className="text-[--text-light] hover:text-red-500 transition-colors flex-shrink-0"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
 
               {/* Formulario nueva línea */}
-              <div className="pt-3 space-y-2">
-                <p className="text-xs font-semibold text-[--text-medium]">Añadir prenda</p>
-
-                {catalogo.length > 0 && (
-                  <select
-                    value={nuevaLinea.prenda_id}
-                    onChange={e => updateNuevaLinea('prenda_id', e.target.value)}
-                    className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              <div className="pt-3">
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setMostrarFormLinea(v => !v)}
+                    className="flex items-center gap-1 text-xs text-primary hover:opacity-75 transition-opacity"
                   >
-                    <option value="">— Del catálogo (opcional) —</option>
-                    {catalogo.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.nombre} ({formatImporte(p.precio_base * (1 - (p.descuento ?? 0) / 100))})
-                      </option>
-                    ))}
-                  </select>
-                )}
-
-                <input
-                  value={nuevaLinea.descripcion}
-                  onChange={e => updateNuevaLinea('descripcion', e.target.value)}
-                  placeholder="Descripción *"
-                  className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-
-                <div className="flex gap-2">
-                  <input
-                    type="number" min="1"
-                    value={nuevaLinea.cantidad}
-                    onChange={e => updateNuevaLinea('cantidad', e.target.value)}
-                    placeholder="Cant."
-                    className="w-20 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                  <input
-                    type="number" step="0.01" min="0"
-                    value={nuevaLinea.precio_unitario}
-                    onChange={e => updateNuevaLinea('precio_unitario', e.target.value)}
-                    placeholder="Precio (€)"
-                    className="flex-1 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+                    <Plus size={13} />
+                    Añadir prenda
+                  </button>
                 </div>
 
-                <input
-                  value={nuevaLinea.medidas_ajuste}
-                  onChange={e => updateNuevaLinea('medidas_ajuste', e.target.value)}
-                  placeholder="Medidas de ajuste"
-                  className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                {mostrarFormLinea && (
+                  <div className="mt-3 space-y-2">
+                    <select
+                      value={nuevaLinea.prenda_id}
+                      onChange={e => updateNuevaLinea('prenda_id', e.target.value)}
+                      className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                    >
+                      <option value="">— Seleccionar prenda —</option>
+                      {catalogo.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.nombre} ({formatImporte(p.precio_base * (1 - (p.descuento ?? 0) / 100))})
+                        </option>
+                      ))}
+                    </select>
 
-                <input
-                  value={nuevaLinea.notas}
-                  onChange={e => updateNuevaLinea('notas', e.target.value)}
-                  placeholder="Notas de esta prenda"
-                  className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                    <div className="flex gap-2">
+                      <input
+                        type="number" min="1"
+                        value={nuevaLinea.cantidad}
+                        onChange={e => updateNuevaLinea('cantidad', e.target.value)}
+                        placeholder="Cant."
+                        className="w-20 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <input
+                        type="number" step="0.01" min="0"
+                        value={nuevaLinea.precio_unitario}
+                        onChange={e => updateNuevaLinea('precio_unitario', e.target.value)}
+                        placeholder="Precio (€)"
+                        className="flex-1 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
 
-                <button
-                  onClick={handleAgregarLinea}
-                  disabled={guardandoLinea || !nuevaLinea.descripcion.trim()}
-                  className="w-full flex items-center justify-center gap-2 bg-primary text-white text-sm px-4 py-2 rounded-md hover:bg-primary-dark disabled:opacity-50 transition-colors"
-                >
-                  <Plus size={14} />
-                  {guardandoLinea ? 'Guardando…' : 'Añadir prenda'}
-                </button>
+                    <input
+                      value={nuevaLinea.notas}
+                      onChange={e => updateNuevaLinea('notas', e.target.value)}
+                      placeholder="Notas de esta prenda"
+                      className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+
+                    <button
+                      onClick={handleAgregarLinea}
+                      disabled={guardandoLinea || !nuevaLinea.prenda_id}
+                      className="w-full flex items-center justify-center gap-2 bg-primary text-white text-sm px-4 py-2 rounded-md hover:bg-primary-dark disabled:opacity-50 transition-colors"
+                    >
+                      <Plus size={14} />
+                      {guardandoLinea ? 'Guardando…' : 'Añadir prenda'}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -738,13 +930,6 @@ export default function EncargoDetalle() {
             <h3 className="font-display text-lg">Compartir seguimiento</h3>
 
             <div className="space-y-1">
-              <p className="text-xs text-[--text-light]">Código corto (para comunicar por teléfono)</p>
-              <p className="text-3xl font-bold tracking-widest text-primary text-center py-2">
-                {encargo.codigo_corto}
-              </p>
-            </div>
-
-            <div className="space-y-1">
               <p className="text-xs text-[--text-light]">Enlace directo (para enviar por WhatsApp)</p>
               <button
                 onClick={handleCopiarEnlace}
@@ -764,6 +949,40 @@ export default function EncargoDetalle() {
           </div>
         </div>
       )}
+      {/* Modal señal pendiente */}
+      {modalSenal && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setModalSenal(false)}
+        >
+          <div
+            className="bg-white rounded-xl w-full max-w-sm p-6 space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                <AlertCircle size={18} className="text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-display text-base text-[--text-dark]">Pago no registrado</h3>
+                <p className="text-xs text-[--text-light] mt-0.5">
+                  Para confirmar el encargo es necesario que se haya pagado una señal equivalente al 50 % del total del encargo.
+                </p>
+                <p className="text-xs text-[--text-dark] font-semibold mt-1">
+                  Cantidad a pagar: {formatImporte((encargo.precio_total ?? 0) * 0.5)}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setModalSenal(false)}
+              className="w-full text-sm bg-[--primary] text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
     </PageWrapper>
   )
 }

@@ -17,6 +17,7 @@ import Cronograma from '@/pages/Cronograma/Cronograma'
 import ClientesLista from '@/pages/Clientes/ClientesLista'
 import NuevoCliente from '@/pages/Clientes/NuevoCliente'
 import ClienteDetalle from '@/pages/Clientes/ClienteDetalle'
+import MedidasCliente from '@/pages/Clientes/MedidasCliente'
 
 // Proveedores
 import ProveedoresLista from '@/pages/Proveedores/ProveedoresLista'
@@ -33,6 +34,10 @@ import Reportes from '@/pages/Contabilidad/Reportes'
 import MaterialesLista from '@/pages/Inventario/MaterialesLista'
 import NuevoMaterial from '@/pages/Inventario/NuevoMaterial'
 import MaterialDetalle from '@/pages/Inventario/MaterialDetalle'
+
+// Catálogo
+import CatalogoLista from '@/pages/Catalogo/CatalogoLista'
+import CatalogoForm from '@/pages/Catalogo/CatalogoForm'
 
 // Seguimiento público
 import SeguimientoForm from '@/pages/Seguimiento/SeguimientoForm'
@@ -70,6 +75,7 @@ export default function App() {
         <Route path="/clientes" element={<Protected><ClientesLista /></Protected>} />
         <Route path="/clientes/nuevo" element={<Protected><NuevoCliente /></Protected>} />
         <Route path="/clientes/:id" element={<Protected><ClienteDetalle /></Protected>} />
+        <Route path="/clientes/:id/medidas" element={<Protected><MedidasCliente /></Protected>} />
 
         <Route path="/proveedores" element={<Protected><ProveedoresLista /></Protected>} />
         <Route path="/proveedores/nuevo" element={<Protected><NuevoProveedor /></Protected>} />
@@ -79,6 +85,10 @@ export default function App() {
         <Route path="/inventario/nuevo" element={<Protected><NuevoMaterial /></Protected>} />
         <Route path="/inventario/:id" element={<Protected><MaterialDetalle /></Protected>} />
         <Route path="/cronograma" element={<Protected><Cronograma /></Protected>} />
+
+        <Route path="/catalogo" element={<Protected><CatalogoLista /></Protected>} />
+        <Route path="/catalogo/nueva" element={<Protected><CatalogoForm /></Protected>} />
+        <Route path="/catalogo/:id" element={<Protected><CatalogoForm /></Protected>} />
 
         <Route path="/contabilidad" element={<Protected><ContabilidadDashboard /></Protected>} />
         <Route path="/contabilidad/cobros" element={<Protected><CobrosList /></Protected>} />

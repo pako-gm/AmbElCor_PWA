@@ -56,6 +56,26 @@ export async function actualizarCliente(id, campos) {
   if (error) throw error
 }
 
+export async function fetchMedidasCliente(clienteId) {
+  const { data, error } = await supabase
+    .from('medidas_cliente')
+    .select('*')
+    .eq('cliente_id', clienteId)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+export async function guardarMedidasCliente(clienteId, datos) {
+  const { error } = await supabase
+    .from('medidas_cliente')
+    .upsert(
+      { ...datos, cliente_id: clienteId, updated_at: new Date().toISOString() },
+      { onConflict: 'cliente_id' }
+    )
+  if (error) throw error
+}
+
 export async function eliminarCliente(id) {
   const { data: encargos } = await supabase
     .from('encargos')

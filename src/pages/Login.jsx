@@ -6,7 +6,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-primary-ultra">
       <div className="bg-white rounded-lg shadow-sm p-10 w-full max-w-sm text-center space-y-6">
         <div className="flex items-center justify-center gap-3">
-          <img src={logoAmbelcor} alt="AmbElCor" className="h-20 object-contain" />
+          <img src={logoAmbelcor} alt="AmbElCor" className="h-20 object-contain [mix-blend-mode:multiply]" />
           <span className="font-bold text-2xl text-[--text-dark]">Amb el Cor</span>
         </div>
         <p className="text-sm text-[--text-medium]">CRM Taller Costura</p>
