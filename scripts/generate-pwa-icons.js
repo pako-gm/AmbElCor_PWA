@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, '..')
 
 const LOGO = path.join(root, 'src/public/img/ambelcor-claro.png')
 const OUT = path.join(root, 'public/icons')
-const BG = '#30BAAA' // primary teal
+const BG = '#ffffff' // fondo blanco
 
 const sizes = [
   { name: 'icon-192.png', size: 192 },
