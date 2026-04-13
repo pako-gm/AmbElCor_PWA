@@ -13,6 +13,7 @@ const navItems = [
   { to: '/clientes', icon: Users, label: 'Clientes' },
   { to: '/proveedores', icon: Truck, label: 'Proveedores' },
   { to: '/inventario', icon: Package, label: 'Inventario' },
+  { to: '/inventario-pr', icon: Package, label: 'Inventario_Pr' },
   { to: '/catalogo', icon: Tag, label: 'Catálogo' },
   { to: '/contabilidad', icon: BarChart2, label: 'Contabilidad', end: true },
   { to: '/contabilidad/cobros', icon: CircleDollarSign, label: 'Cobros' },

@@ -286,7 +286,7 @@ export default function MaterialDetalle() {
               </div>
               <div>
                 <label className="text-xs text-[--text-light] block mb-0.5">Precio unitario (€)</label>
-                <input type="number" min="0" step="0.01" value={formEntrada.precio_unitario}
+                <input type="number" min="0" step="0.50" value={formEntrada.precio_unitario}
                   onChange={e => setFormEntrada(f => ({ ...f, precio_unitario: e.target.value }))}
                   className="w-full border border-[--border] rounded-md px-2 py-1.5 text-sm" />
               </div>
@@ -468,7 +468,7 @@ export default function MaterialDetalle() {
               </div>
               <div>
                 <label className="text-xs text-[--text-light] block mb-0.5">Precio referencia (€)</label>
-                <input type="number" min="0" step="0.01" value={formEditar.precio_referencia}
+                <input type="number" min="0" step="0.50" value={formEditar.precio_referencia}
                   onChange={e => setFormEditar(f => ({ ...f, precio_referencia: e.target.value }))}
                   className="w-full border border-[--border] rounded-md px-2 py-1.5 text-sm" />
               </div>

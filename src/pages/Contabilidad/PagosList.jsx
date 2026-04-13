@@ -270,7 +270,7 @@ export default function PagosList() {
                     <div>
                       <label className="block text-xs text-[--text-light] mb-1">Base imponible (€)</label>
                       <input
-                        type="number" min="0" step="0.01"
+                        type="number" min="0" step="0.50"
                         value={form.base_imponible}
                         onChange={e => handleBaseIvaChange('base_imponible', e.target.value)}
                         className="w-full border border-[--border] rounded-md px-3 py-2 text-sm"
@@ -299,7 +299,7 @@ export default function PagosList() {
                   <div>
                     <label className="block text-xs text-[--text-light] mb-1">Importe (€) *</label>
                     <input
-                      type="number" min="0" step="0.01"
+                      type="number" min="0" step="0.50"
                       value={form.importe}
                       onChange={e => setForm(f => ({ ...f, importe: e.target.value }))}
                       className="w-full border border-[--border] rounded-md px-3 py-2 text-sm"

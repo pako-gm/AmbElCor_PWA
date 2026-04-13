@@ -113,7 +113,7 @@ export default function CatalogoForm() {
               <input
                 type="number"
                 min="0"
-                step="0.01"
+                step="0.50"
                 placeholder="0,00"
                 value={form.precio_base}
                 onChange={e => set('precio_base', e.target.value)}

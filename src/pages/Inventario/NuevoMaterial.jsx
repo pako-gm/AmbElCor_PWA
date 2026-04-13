@@ -162,7 +162,7 @@ export default function NuevoMaterial() {
               <input
                 type="number"
                 min="0"
-                step="0.01"
+                step="0.50"
                 value={form.precio_referencia}
                 onChange={e => setForm(f => ({ ...f, precio_referencia: e.target.value }))}
                 placeholder="Precio por unidad/metro…"

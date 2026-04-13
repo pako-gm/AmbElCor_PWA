@@ -359,7 +359,7 @@ export default function NuevoEncargo() {
                   <label className="block text-xs text-[--text-light] mb-1">Precio unitario (€)</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="0.50"
                     min="0"
                     value={l.precio_unitario}
                     onChange={e => updateLinea(l._id, 'precio_unitario', e.target.value)}

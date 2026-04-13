@@ -34,6 +34,7 @@ import Reportes from '@/pages/Contabilidad/Reportes'
 import MaterialesLista from '@/pages/Inventario/MaterialesLista'
 import NuevoMaterial from '@/pages/Inventario/NuevoMaterial'
 import MaterialDetalle from '@/pages/Inventario/MaterialDetalle'
+import InventarioPr from '@/pages/Inventario/ambelcor-inventario-v2'
 
 // Catálogo
 import CatalogoLista from '@/pages/Catalogo/CatalogoLista'
@@ -84,6 +85,7 @@ export default function App() {
         <Route path="/inventario" element={<Protected><MaterialesLista /></Protected>} />
         <Route path="/inventario/nuevo" element={<Protected><NuevoMaterial /></Protected>} />
         <Route path="/inventario/:id" element={<Protected><MaterialDetalle /></Protected>} />
+        <Route path="/inventario-pr" element={<Protected><InventarioPr /></Protected>} />
         <Route path="/cronograma" element={<Protected><Cronograma /></Protected>} />
 
         <Route path="/catalogo" element={<Protected><CatalogoLista /></Protected>} />

@@ -466,7 +466,7 @@ export default function EncargoDetalle() {
                 <div className="py-2 space-y-2">
                   <div className="flex gap-2">
                     <input
-                      type="number" step="0.01" min="0"
+                      type="number" step="0.50" min="0"
                       value={datosPagoEdicion.importe}
                       onChange={e => setDatosPagoEdicion(v => ({ ...v, importe: e.target.value }))}
                       placeholder="Importe (€)"
@@ -569,7 +569,7 @@ export default function EncargoDetalle() {
                     )}
                   </label>
                   <input
-                    type="number" step="0.01" min="0"
+                    type="number" step="0.50" min="0"
                     value={pago.importe}
                     onChange={e => { setPago(v => ({ ...v, importe: e.target.value })); setErrorPago('') }}
                     className={`w-full border rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${errorPago ? 'border-red-400' : 'border-[--border]'}`}
@@ -689,7 +689,7 @@ export default function EncargoDetalle() {
                           className="w-20 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                         <input
-                          type="number" step="0.01" min="0"
+                          type="number" step="0.50" min="0"
                           value={datosEdicion.precio_unitario}
                           onChange={e => setDatosEdicion(v => ({ ...v, precio_unitario: e.target.value }))}
                           placeholder="Precio (€)"
@@ -796,7 +796,7 @@ export default function EncargoDetalle() {
                         className="w-20 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                       <input
-                        type="number" step="0.01" min="0"
+                        type="number" step="0.50" min="0"
                         value={nuevaLinea.precio_unitario}
                         onChange={e => updateNuevaLinea('precio_unitario', e.target.value)}
                         placeholder="Precio (€)"
