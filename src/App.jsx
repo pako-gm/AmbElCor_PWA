@@ -26,6 +26,7 @@ import ProveedorDetalle from '@/pages/Proveedores/ProveedorDetalle'
 
 // Contabilidad
 import ContabilidadDashboard from '@/pages/Contabilidad/ContabilidadDashboard'
+import ContabilidadPr from '@/pages/Contabilidad/Contabilidad_pr'
 import CobrosList from '@/pages/Contabilidad/CobrosList'
 import PagosList from '@/pages/Contabilidad/PagosList'
 import Reportes from '@/pages/Contabilidad/Reportes'
@@ -35,6 +36,7 @@ import MaterialesLista from '@/pages/Inventario/MaterialesLista'
 import NuevoMaterial from '@/pages/Inventario/NuevoMaterial'
 import MaterialDetalle from '@/pages/Inventario/MaterialDetalle'
 import InventarioPr from '@/pages/Inventario/ambelcor-inventario-v2'
+import InventarioPr2 from '@/pages/Inventario/ambelcor-taller-b-con-a'
 
 // Catálogo
 import CatalogoLista from '@/pages/Catalogo/CatalogoLista'
@@ -86,6 +88,7 @@ export default function App() {
         <Route path="/inventario/nuevo" element={<Protected><NuevoMaterial /></Protected>} />
         <Route path="/inventario/:id" element={<Protected><MaterialDetalle /></Protected>} />
         <Route path="/inventario-pr" element={<Protected><InventarioPr /></Protected>} />
+        <Route path="/inventario-pr2" element={<Protected><InventarioPr2 /></Protected>} />
         <Route path="/cronograma" element={<Protected><Cronograma /></Protected>} />
 
         <Route path="/catalogo" element={<Protected><CatalogoLista /></Protected>} />
@@ -96,6 +99,7 @@ export default function App() {
         <Route path="/contabilidad/cobros" element={<Protected><CobrosList /></Protected>} />
         <Route path="/contabilidad/pagos" element={<Protected><PagosList /></Protected>} />
         <Route path="/contabilidad/reportes" element={<Protected><Reportes /></Protected>} />
+        <Route path="/contabilidad-pr" element={<Protected><ContabilidadPr /></Protected>} />
 
         <Route path="/admin" element={<Protected><Placeholder title="Administración" /></Protected>} />
 

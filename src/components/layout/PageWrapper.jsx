@@ -2,7 +2,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import logoAmbelcor from '@/public/img/ambelcor-oscuro.png'
 import {
   ClipboardList, Users, Truck, Package, CalendarDays,
-  BarChart2, LogOut, CircleDollarSign, Receipt, Menu, X, Tag,
+  BarChart2, LogOut, CircleDollarSign, Receipt, Menu, X, Tag, Globe,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useState, useEffect } from 'react'
@@ -14,10 +14,12 @@ const navItems = [
   { to: '/proveedores', icon: Truck, label: 'Proveedores' },
   { to: '/inventario', icon: Package, label: 'Inventario' },
   { to: '/inventario-pr', icon: Package, label: 'Inventario_Pr' },
+  { to: '/inventario-pr2', icon: Package, label: 'Inventario_Pr2' },
   { to: '/catalogo', icon: Tag, label: 'Catálogo' },
   { to: '/contabilidad', icon: BarChart2, label: 'Contabilidad', end: true },
   { to: '/contabilidad/cobros', icon: CircleDollarSign, label: 'Cobros' },
   { to: '/contabilidad/pagos', icon: Receipt, label: 'Pagos' },
+  { to: '/contabilidad-pr', icon: BarChart2, label: 'Contabilidad_Pr' },
 ]
 
 function CopyrightYear() {
@@ -109,6 +111,15 @@ export default function PageWrapper({ children, title }) {
               {label}
             </NavLink>
           ))}
+          <a
+            href="/ambelcor-emergent.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-5 py-3 text-sm text-[--text-medium] hover:bg-[--bg-gray] transition-colors"
+          >
+            <Globe size={16} />
+            Web Pública
+          </a>
         </nav>
 
         {/* Cerrar sesión */}
