@@ -88,7 +88,6 @@ supabase/
 - **Módulo Proveedores:** lista, nuevo, detalle (`/proveedores`, `/proveedores/:id`)
 - **Módulo Inventario:** lista de materiales, nuevo, detalle
 - **Módulo Contabilidad:** dashboard, cobros, pagos, reportes
-- **Módulo Cronograma:** vista de planificación de encargos
 - Edge Function `notify-whatsapp` para notificaciones al cliente
 
 ### Pendiente

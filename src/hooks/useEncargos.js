@@ -221,7 +221,7 @@ export async function agregarLinea(encargoId, linea) {
   await registrarHistorial(encargoId, `Prenda añadida: ${linea.descripcion}`)
 }
 
-// Actualizar fechas de un encargo (desde el cronograma)
+// Actualizar fechas de un encargo
 export async function updateFechasEncargo(id, fecha_encargo, fecha_entrega_estimada) {
   const fmt = d => d.toISOString().split('T')[0]
   const { error } = await supabase

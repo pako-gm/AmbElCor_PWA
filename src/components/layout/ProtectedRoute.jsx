@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children }) {
     )
   }
 
-  // TODO: re-enable auth checks when done testing
+  // TODO: re-enable auth checks when Google OAuth is configured
   // if (!user) return <Navigate to="/login" replace />
   // if (!mfaVerified) return <Navigate to="/verify-2fa" replace />
 

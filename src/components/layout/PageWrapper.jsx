@@ -1,16 +1,16 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import logoAmbelcor from '@/public/img/ambelcor-oscuro.png'
 import {
-  ClipboardList, Users, Truck, Package, CalendarDays,
-  BarChart2, LogOut, CircleDollarSign, Receipt, Menu, X, Tag, Globe,
+  ClipboardList, Users, Truck, Package,
+  BarChart2, LogOut, CircleDollarSign, Receipt, Menu, X, Tag, Globe, CalendarDays,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useState, useEffect } from 'react'
 
 const navItems = [
   { to: '/encargos', icon: ClipboardList, label: 'Encargos' },
-  { to: '/cronograma', icon: CalendarDays, label: 'Cronograma' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
+  { to: '/citas', icon: CalendarDays, label: 'Citas' },
   { to: '/proveedores', icon: Truck, label: 'Proveedores' },
   { to: '/inventario', icon: Package, label: 'Inventario' },
   { to: '/inventario-pr', icon: Package, label: 'Inventario_Pr' },

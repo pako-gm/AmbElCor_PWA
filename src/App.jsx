@@ -11,7 +11,6 @@ import Verify2FA from '@/pages/Verify2FA'
 import EncargosLista from '@/pages/Encargos/EncargosLista'
 import NuevoEncargo from '@/pages/Encargos/NuevoEncargo'
 import EncargoDetalle from '@/pages/Encargos/EncargoDetalle'
-import Cronograma from '@/pages/Cronograma/Cronograma'
 
 // Clientes
 import ClientesLista from '@/pages/Clientes/ClientesLista'
@@ -45,6 +44,9 @@ import CatalogoForm from '@/pages/Catalogo/CatalogoForm'
 // Seguimiento público
 import SeguimientoForm from '@/pages/Seguimiento/SeguimientoForm'
 import SeguimientoDetalle from '@/pages/Seguimiento/SeguimientoDetalle'
+
+// Citas
+import CitasCalendario from '@/pages/Citas/CitasCalendario'
 
 const Placeholder = ({ title }) => (
   <PageWrapper>
@@ -89,7 +91,6 @@ export default function App() {
         <Route path="/inventario/:id" element={<Protected><MaterialDetalle /></Protected>} />
         <Route path="/inventario-pr" element={<Protected><InventarioPr /></Protected>} />
         <Route path="/inventario-pr2" element={<Protected><InventarioPr2 /></Protected>} />
-        <Route path="/cronograma" element={<Protected><Cronograma /></Protected>} />
 
         <Route path="/catalogo" element={<Protected><CatalogoLista /></Protected>} />
         <Route path="/catalogo/nueva" element={<Protected><CatalogoForm /></Protected>} />
@@ -100,6 +101,8 @@ export default function App() {
         <Route path="/contabilidad/pagos" element={<Protected><PagosList /></Protected>} />
         <Route path="/contabilidad/reportes" element={<Protected><Reportes /></Protected>} />
         <Route path="/contabilidad-pr" element={<Protected><ContabilidadPr /></Protected>} />
+
+        <Route path="/citas" element={<Protected><CitasCalendario /></Protected>} />
 
         <Route path="/admin" element={<Protected><Placeholder title="Administración" /></Protected>} />
 
