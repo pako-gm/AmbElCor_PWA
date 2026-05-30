@@ -448,7 +448,7 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
   )
 }
 
-function TarjetaCita({ cita, columnIndex, columnCount, onOpen, onDragStart }) {
+function TarjetaCita({ cita, columnIndex, columnCount, onOpen, onDragStart, onDragEnd }) {
   const minInicio = minutosDesdeInicio(new Date(cita.inicio))
   const duracion = (new Date(cita.fin) - new Date(cita.inicio)) / 60000
   const top = minInicio * PX_POR_MIN
@@ -458,10 +458,16 @@ function TarjetaCita({ cita, columnIndex, columnCount, onOpen, onDragStart }) {
 
   const tipo = TIPOS_CITA[cita.tipo]
 
+  const handleDragStart = e => {
+    onDragStart(cita)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
   return (
     <div
       draggable
-      onDragStart={e => onDragStart(e, cita)}
+      onDragStart={handleDragStart}
+      onDragEnd={onDragEnd}
       onClick={() => onOpen(cita)}
       style={{
         top: `${top}px`,
@@ -473,7 +479,10 @@ function TarjetaCita({ cita, columnIndex, columnCount, onOpen, onDragStart }) {
       }}
       className="absolute cursor-move border-l-4 rounded-r-lg p-2 text-xs font-medium text-[--text-dark] hover:shadow-lg transition-shadow select-none"
     >
-      <div className="text-lg mb-0.5">{tipo?.emoji}</div>
+      <div className="flex items-center gap-1 mb-0.5">
+        <span className="text-lg">{tipo?.emoji}</span>
+        <span className="text-[10px] font-semibold line-clamp-1">{tipo?.label}</span>
+      </div>
       <div className="font-semibold line-clamp-1">{cita.cliente_nombre}</div>
       <div className="text-[10px] text-[--text-light] mt-0.5">
         {formatearHora(new Date(cita.inicio))} - {formatearHora(new Date(cita.fin))}
@@ -491,7 +500,9 @@ export default function CitasCalendario() {
   const [sheetModo, setSheetModo] = useState(null)
   const [nowLineTop, setNowLineTop] = useState(0)
   const [sheetLoading, setSheetLoading] = useState(false)
+  const [citaArrastrada, setCitaArrastrada] = useState(null)
   const timelineRef = useRef(null)
+  const timelineContainerRef = useRef(null)
 
   const semanaFin = new Date(semanaInicio)
   semanaFin.setDate(semanaFin.getDate() + 7)
@@ -524,6 +535,15 @@ export default function CitasCalendario() {
     const intervalo = setInterval(updateNowLine, 60000)
     return () => clearInterval(intervalo)
   }, [])
+
+  useEffect(() => {
+    const ahora = new Date()
+    const minutos = minutosDesdeInicio(ahora)
+    if (minutos >= 0 && minutos <= MINUTOS_POR_DIA && timelineContainerRef.current) {
+      const scrollTop = minutos * PX_POR_MIN - 100
+      timelineContainerRef.current.scrollTop = Math.max(0, scrollTop)
+    }
+  }, [diaSeleccionado])
 
   const cargarCitas = async () => {
     try {
@@ -579,6 +599,51 @@ export default function CitasCalendario() {
     } catch (err) {
       console.error('Error eliminando cita:', err)
     } finally {
+      setSheetLoading(false)
+    }
+  }
+
+  const handleDragOverTimeline = e => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDropTimeline = async e => {
+    e.preventDefault()
+    if (!citaArrastrada || citaArrastrada.inicio === undefined) return
+
+    const timelineDiv = e.currentTarget
+    const rect = timelineDiv.getBoundingClientRect()
+    const yRelativa = e.clientY - rect.top
+    const minutos = Math.round(yRelativa / PX_POR_MIN)
+    const nuevaHoraInicio = Math.max(0, Math.min(minutos, MINUTOS_POR_DIA - 30))
+
+    const horaInicio = HORA_INICIO + Math.floor(nuevaHoraInicio / 60)
+    const minutoInicio = nuevaHoraInicio % 60
+    const duracionMin = (new Date(citaArrastrada.fin) - new Date(citaArrastrada.inicio)) / 60000
+
+    const nuevoInicio = new Date(diaSeleccionado)
+    nuevoInicio.setHours(horaInicio, minutoInicio, 0, 0)
+
+    const nuevoFin = new Date(nuevoInicio)
+    nuevoFin.setMinutes(nuevoFin.getMinutes() + duracionMin)
+
+    try {
+      setSheetLoading(true)
+      await actualizarCita(citaArrastrada.id, {
+        cliente_id: citaArrastrada.cliente_id,
+        cliente_nombre: citaArrastrada.cliente_nombre,
+        tipo: citaArrastrada.tipo,
+        inicio: nuevoInicio.toISOString(),
+        fin: nuevoFin.toISOString(),
+        notas: citaArrastrada.notas,
+      })
+      await cargarCitas()
+    } catch (err) {
+      console.error('Error al actualizar cita:', err)
+      alert('Error al mover la cita')
+    } finally {
+      setCitaArrastrada(null)
       setSheetLoading(false)
     }
   }
@@ -691,67 +756,89 @@ export default function CitasCalendario() {
         </div>
 
         {/* Timeline */}
-        <div ref={timelineRef} className="relative bg-white rounded-lg border border-[--border] overflow-hidden">
-          {/* Línea "ahora" */}
-          {nowLineTop > 0 && nowLineTop < MINUTOS_POR_DIA * PX_POR_MIN && (
-            <div
-              style={{ top: `${nowLineTop}px` }}
-              className="absolute left-0 right-0 z-10 flex items-center gap-2 pointer-events-none"
-            >
-              <div className="w-3 h-3 bg-red-600 rounded-full ml-2 flex-shrink-0"></div>
-              <div className="flex-1 h-0.5 bg-red-600"></div>
-              <span className="text-xs font-semibold text-red-600 pr-2 flex-shrink-0">Ahora</span>
-            </div>
-          )}
-
-          {/* Horas */}
-          <div className="relative" style={{ minHeight: `${MINUTOS_POR_DIA * PX_POR_MIN}px` }}>
-            {Array.from({ length: HORA_FIN - HORA_INICIO }).map((_, idx) => {
-              const hora = HORA_INICIO + idx
-              const nextHora = hora + 1
-
+        <div
+          ref={timelineContainerRef}
+          className="relative bg-white rounded-lg border border-[--border] overflow-y-auto flex max-h-[600px]"
+          onDragOver={handleDragOverTimeline}
+          onDrop={handleDropTimeline}
+        >
+          {/* Sidebar con horas */}
+          <div className="w-12 flex-shrink-0 bg-gray-50 border-r border-[--border] pt-0">
+            {Array.from({ length: (HORA_FIN - HORA_INICIO) * 2 }).map((_, idx) => {
+              const h = HORA_INICIO + Math.floor(idx / 2)
+              const m = (idx % 2) * 30
               return (
-                <div key={`hour-${idx}`}>
-                  {/* Línea de hora completa */}
-                  <div className="relative border-t border-gray-200 h-0">
-                    <span className="absolute text-xs text-[--text-light] font-semibold -left-8 -top-2 w-7 text-right">
-                      {hora.toString().padStart(2, '0')}:00
-                    </span>
-                  </div>
-
-                  {/* Líneas de media hora */}
-                  {[0, 1, 2, 3].map((quarter) => {
-                    const minutos = quarter * 15
-                    return (
-                      <div
-                        key={`quarter-${idx}-${quarter}`}
-                        className="border-t border-gray-100"
-                        style={{ height: `${15 * PX_POR_MIN}px` }}
-                      ></div>
-                    )
-                  })}
+                <div
+                  key={`hora-label-${idx}`}
+                  className="text-xs text-[--text-light] font-semibold px-1 text-right h-full"
+                  style={{ height: `${30 * PX_POR_MIN}px`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: '4px' }}
+                >
+                  {h.toString().padStart(2, '0')}:{m.toString().padStart(2, '0')}
                 </div>
               )
             })}
+          </div>
 
-            {/* Tarjetas de citas */}
-            {grupos.map((grupo, groupIdx) => (
-              <div key={`grupo-${groupIdx}`} className="absolute inset-0 w-full">
-                {grupo.citas.map((cita, citaIdx) => (
-                  <TarjetaCita
-                    key={cita.id}
-                    cita={cita}
-                    columnIndex={citaIdx}
-                    columnCount={grupo.columnas}
-                    onOpen={c => {
-                      setSheetCita(c)
-                      setSheetModo('view')
-                    }}
-                    onDragStart={() => {}}
-                  />
-                ))}
+          {/* Contenedor del timeline */}
+          <div className="flex-1 relative">
+            {/* Línea "ahora" */}
+            {nowLineTop > 0 && nowLineTop < MINUTOS_POR_DIA * PX_POR_MIN && (
+              <div
+                style={{ top: `${nowLineTop}px` }}
+                className="absolute left-0 right-0 z-10 flex items-center gap-2 pointer-events-none"
+              >
+                <div className="w-3 h-3 bg-red-600 rounded-full ml-2 flex-shrink-0"></div>
+                <div className="flex-1 h-0.5 bg-red-600"></div>
+                <span className="text-xs font-semibold text-red-600 pr-2 flex-shrink-0">Ahora</span>
               </div>
-            ))}
+            )}
+
+            {/* Horas */}
+            <div className="relative" style={{ minHeight: `${MINUTOS_POR_DIA * PX_POR_MIN}px` }}>
+              {Array.from({ length: HORA_FIN - HORA_INICIO }).map((_, idx) => {
+                const hora = HORA_INICIO + idx
+                const nextHora = hora + 1
+
+                return (
+                  <div key={`hour-${idx}`}>
+                    {/* Línea de hora completa */}
+                    <div className="relative border-t border-gray-200 h-0"></div>
+
+                    {/* Líneas de media hora */}
+                    {[0, 1, 2, 3].map((quarter) => {
+                      const minutos = quarter * 15
+                      return (
+                        <div
+                          key={`quarter-${idx}-${quarter}`}
+                          className="border-t border-gray-100"
+                          style={{ height: `${15 * PX_POR_MIN}px` }}
+                        ></div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+
+              {/* Tarjetas de citas */}
+              {grupos.map((grupo, groupIdx) => (
+                <div key={`grupo-${groupIdx}`} className="absolute inset-0 w-full">
+                  {grupo.citas.map((cita, citaIdx) => (
+                    <TarjetaCita
+                      key={cita.id}
+                      cita={cita}
+                      columnIndex={citaIdx}
+                      columnCount={grupo.columnas}
+                      onOpen={c => {
+                        setSheetCita(c)
+                        setSheetModo('view')
+                      }}
+                      onDragStart={setCitaArrastrada}
+                      onDragEnd={() => setCitaArrastrada(null)}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
