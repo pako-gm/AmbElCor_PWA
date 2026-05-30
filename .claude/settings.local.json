@@ -4,7 +4,8 @@
       "mcp__supabase__apply_migration",
       "Bash(npm run:*)",
       "mcp__supabase__execute_sql",
-      "Read(//c/Users/Usuario/Documents/GitHub/AmbElCor_PWA/**)"
+      "Read(//c/Users/Usuario/Documents/GitHub/AmbElCor_PWA/**)",
+      "Bash(timeout 30 curl -s http://localhost:5173/encargos)"
     ]
   },
   "enableAllProjectMcpServers": true,

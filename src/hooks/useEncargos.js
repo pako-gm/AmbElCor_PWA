@@ -16,7 +16,7 @@ export async function fetchEncargos({ estado } = {}) {
   let query = supabase
     .from('encargos')
     .select(`
-      id, numero, estado, precio_total, fecha_encargo, fecha_entrega_estimada, codigo_corto,
+      id, numero, estado, precio_total, fecha_encargo, fecha_entrega_estimada, fecha_entrega_real, codigo_corto,
       clientes (id, nombre, apellidos),
       encargo_lineas (id)
     `)
