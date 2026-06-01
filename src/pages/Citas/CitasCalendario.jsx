@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
+import FullCalendar from '@fullcalendar/react'
+import timeGridPlugin from '@fullcalendar/timegrid'
+import interactionPlugin from '@fullcalendar/interaction'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { fetchCitas, crearCita, actualizarCita, eliminarCita } from '@/hooks/useCitas'
 import { fetchClientes } from '@/hooks/useClientes'
-import { ChevronLeft, ChevronRight, X, Trash2, Edit2, Plus } from 'lucide-react'
+import { X, Trash2, Edit2, Plus } from 'lucide-react'
 
 const TIPOS_CITA = {
   prueba: { label: 'Prueba de traje', color: '#C8102E', emoji: '👗' },
@@ -12,66 +15,11 @@ const TIPOS_CITA = {
   pago: { label: 'Pago / seña', color: '#1A6FA8', emoji: '💳' },
 }
 
-const PX_POR_MIN = 2.2
 const HORA_INICIO = 8
 const HORA_FIN = 20
-const MINUTOS_POR_DIA = (HORA_FIN - HORA_INICIO) * 60
-
-const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sab', 'Dom']
-const DIAS_NOMBRES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-
-function obtenerLunesDelaSemana(date) {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - (day === 0 ? 6 : day - 1)
-  return new Date(d.setDate(diff))
-}
-
-function formatearFechaLarga(date) {
-  return date.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-}
 
 function formatearHora(date) {
   return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-}
-
-function minutosDesdeInicio(date) {
-  return (date.getHours() - HORA_INICIO) * 60 + date.getMinutes()
-}
-
-function detectarSolapamientos(citas) {
-  const grupos = []
-  const procesadas = new Set()
-
-  citas.forEach((cita, idx) => {
-    if (procesadas.has(idx)) return
-
-    const grupo = [cita]
-    procesadas.add(idx)
-
-    citas.slice(idx + 1).forEach((otra, i) => {
-      const realIdx = idx + 1 + i
-      if (procesadas.has(realIdx)) return
-
-      const se_solapan =
-        new Date(cita.inicio) < new Date(otra.fin) &&
-        new Date(cita.fin) > new Date(otra.inicio)
-
-      if (se_solapan) {
-        grupo.push(otra)
-        procesadas.add(realIdx)
-      }
-    })
-
-    if (grupo.length > 0) {
-      grupos.push(grupo)
-    }
-  })
-
-  return grupos.map(grupo => ({
-    citas: grupo,
-    columnas: grupo.length,
-  }))
 }
 
 function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading }) {
@@ -153,9 +101,7 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
     const horas = []
     for (let h = horaMinima; h < HORA_FIN; h++) {
       horas.push(`${h.toString().padStart(2, '0')}:00`)
-      horas.push(`${h.toString().padStart(2, '0')}:15`)
       horas.push(`${h.toString().padStart(2, '0')}:30`)
-      horas.push(`${h.toString().padStart(2, '0')}:45`)
     }
     horas.push('20:00')
     return horas
@@ -228,24 +174,27 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
               </div>
               <div>
                 <p className="text-xs text-[--text-light] mb-1">Fecha</p>
-                <p className="font-semibold text-[--text-dark] text-sm">
+                <p className="font-semibold text-[--text-dark]">
                   {form.inicio.toLocaleDateString('es-ES')}
                 </p>
               </div>
             </div>
 
             {form.notas && (
-              <div className="py-4 bg-teal-50 px-4 rounded-lg border-l-4 border-primary">
+              <div>
                 <p className="text-xs text-[--text-light] mb-2">Notas</p>
                 <p className="text-sm text-[--text-dark]">{form.notas}</p>
               </div>
             )}
 
-            <p className="text-sm text-[--text-dark] font-medium">{form.cliente_nombre}</p>
+            <div>
+              <p className="text-xs text-[--text-light] mb-1">Cliente</p>
+              <p className="font-semibold text-[--text-dark]">{form.cliente_nombre}</p>
+            </div>
 
             <div className="flex gap-2 pt-4">
               <button
-                onClick={() => onEdit()}
+                onClick={onEdit}
                 className="flex-1 flex items-center justify-center gap-2 bg-primary text-white py-2 rounded-lg hover:bg-primary-darker transition"
               >
                 <Edit2 size={16} />
@@ -253,9 +202,10 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
               </button>
               <button
                 onClick={() => setConfirmDelete(true)}
-                className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition"
+                className="flex-1 flex items-center justify-center gap-2 border border-red-300 text-red-700 py-2 rounded-lg hover:bg-red-50 transition"
               >
                 <Trash2 size={16} />
+                Eliminar
               </button>
             </div>
           </div>
@@ -263,6 +213,58 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
 
         {(modo === 'edit' || modo === 'new') && (
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[--text-dark] mb-2">
+                  Hora inicio
+                </label>
+                <select
+                  value={`${form.inicio.getHours().toString().padStart(2, '0')}:${form.inicio
+                    .getMinutes()
+                    .toString()
+                    .padStart(2, '0')}`}
+                  onChange={e => {
+                    const [h, m] = e.target.value.split(':')
+                    const newDate = new Date(form.inicio)
+                    newDate.setHours(parseInt(h), parseInt(m), 0)
+                    updateForm('inicio', newDate)
+                  }}
+                  className="w-full px-3 py-2 border border-[--border] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                >
+                  {horasDisponibles.map(hora => (
+                    <option key={`inicio-${hora}`} value={hora}>
+                      {hora}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[--text-dark] mb-2">
+                  Hora fin
+                </label>
+                <select
+                  value={`${form.fin.getHours().toString().padStart(2, '0')}:${form.fin
+                    .getMinutes()
+                    .toString()
+                    .padStart(2, '0')}`}
+                  onChange={e => {
+                    const [h, m] = e.target.value.split(':')
+                    const newDate = new Date(form.fin)
+                    newDate.setHours(parseInt(h), parseInt(m), 0)
+                    updateForm('fin', newDate)
+                  }}
+                  className="w-full px-3 py-2 border border-[--border] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                >
+                  {horasFinDisponibles.map(hora => (
+                    <option key={`fin-${hora}`} value={hora}>
+                      {hora}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div className="relative" ref={dropdownRef}>
               <label className="block text-sm font-medium text-[--text-dark] mb-2">
                 Nombre del cliente
@@ -326,6 +328,7 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
                 {Object.entries(TIPOS_CITA).map(([key, { label, emoji }]) => (
                   <button
                     key={key}
+                    type="button"
                     onClick={() => updateForm('tipo', key)}
                     className={`p-3 rounded-lg border-2 text-center transition ${
                       form.tipo === key
@@ -337,58 +340,6 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
                     <div className="text-xs mt-1">{label}</div>
                   </button>
                 ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[--text-dark] mb-2">
-                  Hora inicio
-                </label>
-                <select
-                  value={`${form.inicio.getHours().toString().padStart(2, '0')}:${form.inicio
-                    .getMinutes()
-                    .toString()
-                    .padStart(2, '0')}`}
-                  onChange={e => {
-                    const [h, m] = e.target.value.split(':')
-                    const newDate = new Date(form.inicio)
-                    newDate.setHours(parseInt(h), parseInt(m), 0)
-                    updateForm('inicio', newDate)
-                  }}
-                  className="w-full px-3 py-2 border border-[--border] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                >
-                  {horasDisponibles.map(hora => (
-                    <option key={`inicio-${hora}`} value={hora}>
-                      {hora}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[--text-dark] mb-2">
-                  Hora fin
-                </label>
-                <select
-                  value={`${form.fin.getHours().toString().padStart(2, '0')}:${form.fin
-                    .getMinutes()
-                    .toString()
-                    .padStart(2, '0')}`}
-                  onChange={e => {
-                    const [h, m] = e.target.value.split(':')
-                    const newDate = new Date(form.fin)
-                    newDate.setHours(parseInt(h), parseInt(m), 0)
-                    updateForm('fin', newDate)
-                  }}
-                  className="w-full px-3 py-2 border border-[--border] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                >
-                  {horasFinDisponibles.map(hora => (
-                    <option key={`fin-${hora}`} value={hora}>
-                      {hora}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
 
@@ -448,250 +399,163 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
   )
 }
 
-function TarjetaCita({ cita, columnIndex, columnCount, onOpen, onDragStart, onDragEnd }) {
-  const minInicio = minutosDesdeInicio(new Date(cita.inicio))
-  const duracion = (new Date(cita.fin) - new Date(cita.inicio)) / 60000
-  const top = minInicio * PX_POR_MIN
-  const height = duracion * PX_POR_MIN
-  const width = 100 / columnCount
-  const left = (columnIndex / columnCount) * 100
-
-  const tipo = TIPOS_CITA[cita.tipo]
-
-  const handleDragStart = e => {
-    onDragStart(cita)
-    e.dataTransfer.effectAllowed = 'move'
-  }
-
-  return (
-    <div
-      draggable
-      onDragStart={handleDragStart}
-      onDragEnd={onDragEnd}
-      onClick={() => onOpen(cita)}
-      style={{
-        top: `${top}px`,
-        height: `${height}px`,
-        width: `${width}%`,
-        left: `${left}%`,
-        backgroundColor: tipo?.color + '15',
-        borderLeftColor: tipo?.color,
-      }}
-      className="absolute cursor-move border-l-4 rounded-r-lg p-2 text-xs font-medium text-[--text-dark] hover:shadow-lg transition-shadow select-none"
-    >
-      <div className="flex items-center gap-1 mb-0.5">
-        <span className="text-lg">{tipo?.emoji}</span>
-        <span className="text-[10px] font-semibold line-clamp-1">{tipo?.label}</span>
-      </div>
-      <div className="font-semibold line-clamp-1">{cita.cliente_nombre}</div>
-      <div className="text-[10px] text-[--text-light] mt-0.5">
-        {formatearHora(new Date(cita.inicio))} - {formatearHora(new Date(cita.fin))}
-      </div>
-    </div>
-  )
-}
-
 export default function CitasCalendario() {
-  const [semanaInicio, setSemanaInicio] = useState(() => obtenerLunesDelaSemana(new Date()))
-  const [diaSeleccionado, setDiaSeleccionado] = useState(new Date())
   const [citas, setCitas] = useState([])
   const [loading, setLoading] = useState(false)
   const [sheetCita, setSheetCita] = useState(null)
   const [sheetModo, setSheetModo] = useState(null)
-  const [nowLineTop, setNowLineTop] = useState(0)
   const [sheetLoading, setSheetLoading] = useState(false)
-  const [citaArrastrada, setCitaArrastrada] = useState(null)
-  const timelineRef = useRef(null)
-  const timelineContainerRef = useRef(null)
-
-  const semanaFin = new Date(semanaInicio)
-  semanaFin.setDate(semanaFin.getDate() + 7)
-
-  const citasDelDiaSeleccionado = citas.filter(c => {
-    const citaDate = new Date(c.inicio)
-    return (
-      citaDate.getFullYear() === diaSeleccionado.getFullYear() &&
-      citaDate.getMonth() === diaSeleccionado.getMonth() &&
-      citaDate.getDate() === diaSeleccionado.getDate()
-    )
-  })
-
-  const grupos = detectarSolapamientos(citasDelDiaSeleccionado)
+  const calendarRef = useRef(null)
 
   useEffect(() => {
     cargarCitas()
-  }, [semanaInicio])
-
-  useEffect(() => {
-    const updateNowLine = () => {
-      const ahora = new Date()
-      const minutos = minutosDesdeInicio(ahora)
-      if (minutos >= 0 && minutos <= MINUTOS_POR_DIA) {
-        setNowLineTop(minutos * PX_POR_MIN)
-      }
-    }
-
-    updateNowLine()
-    const intervalo = setInterval(updateNowLine, 60000)
-    return () => clearInterval(intervalo)
   }, [])
-
-  useEffect(() => {
-    const ahora = new Date()
-    const minutos = minutosDesdeInicio(ahora)
-    if (minutos >= 0 && minutos <= MINUTOS_POR_DIA && timelineContainerRef.current) {
-      const scrollTop = minutos * PX_POR_MIN - 100
-      timelineContainerRef.current.scrollTop = Math.max(0, scrollTop)
-    }
-  }, [diaSeleccionado])
 
   const cargarCitas = async () => {
     try {
-      setLoading(true)
+      const ahora = new Date()
+      const inicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 30)
+      const fin = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 60)
       const data = await fetchCitas({
-        inicio: semanaInicio.toISOString(),
-        fin: semanaFin.toISOString(),
+        inicio: inicio.toISOString(),
+        fin: fin.toISOString()
       })
       setCitas(data || [])
     } catch (err) {
       console.error('Error cargando citas:', err)
-    } finally {
-      setLoading(false)
     }
   }
 
-  const handleGuardarCita = async form => {
+  const handleGuardarCita = async (formData) => {
+    setSheetLoading(true)
     try {
-      setSheetLoading(true)
-      const citaData = {
-        cliente_id: form.cliente_id,
-        cliente_nombre: form.cliente_nombre,
-        tipo: form.tipo,
-        inicio: form.inicio.toISOString(),
-        fin: form.fin.toISOString(),
-        notas: form.notas,
-      }
-      console.log('Guardando cita:', citaData)
       if (sheetModo === 'new') {
-        await crearCita(citaData)
-      } else if (sheetModo === 'edit') {
-        await actualizarCita(sheetCita.id, citaData)
+        await crearCita(formData)
+      } else {
+        await actualizarCita(sheetCita.id, formData)
       }
-      console.log('Cita guardada, cargando citas...')
       await cargarCitas()
       setSheetCita(null)
       setSheetModo(null)
     } catch (err) {
-      console.error('Error guardando cita:', err.message, err)
-      alert(`Error al guardar: ${err.message}`)
+      console.error('Error guardando cita:', err)
+      alert('Error al guardar la cita')
     } finally {
       setSheetLoading(false)
     }
   }
 
   const handleEliminarCita = async () => {
+    setSheetLoading(true)
     try {
-      setSheetLoading(true)
       await eliminarCita(sheetCita.id)
       await cargarCitas()
       setSheetCita(null)
       setSheetModo(null)
     } catch (err) {
       console.error('Error eliminando cita:', err)
+      alert('Error al eliminar la cita')
     } finally {
       setSheetLoading(false)
     }
   }
 
-  const handleDragOverTimeline = e => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-  }
-
-  const handleDropTimeline = async e => {
-    e.preventDefault()
-    if (!citaArrastrada || citaArrastrada.inicio === undefined) return
-
-    const timelineDiv = e.currentTarget
-    const rect = timelineDiv.getBoundingClientRect()
-    const yRelativa = e.clientY - rect.top
-    const minutos = Math.round(yRelativa / PX_POR_MIN)
-    const nuevaHoraInicio = Math.max(0, Math.min(minutos, MINUTOS_POR_DIA - 30))
-
-    const horaInicio = HORA_INICIO + Math.floor(nuevaHoraInicio / 60)
-    const minutoInicio = nuevaHoraInicio % 60
-    const duracionMin = (new Date(citaArrastrada.fin) - new Date(citaArrastrada.inicio)) / 60000
-
-    const nuevoInicio = new Date(diaSeleccionado)
-    nuevoInicio.setHours(horaInicio, minutoInicio, 0, 0)
-
-    const nuevoFin = new Date(nuevoInicio)
-    nuevoFin.setMinutes(nuevoFin.getMinutes() + duracionMin)
-
-    try {
-      setSheetLoading(true)
-      await actualizarCita(citaArrastrada.id, {
-        cliente_id: citaArrastrada.cliente_id,
-        cliente_nombre: citaArrastrada.cliente_nombre,
-        tipo: citaArrastrada.tipo,
-        inicio: nuevoInicio.toISOString(),
-        fin: nuevoFin.toISOString(),
-        notas: citaArrastrada.notas,
+  const calendarOptions = {
+    plugins: [timeGridPlugin, interactionPlugin],
+    initialView: 'timeGridWeek',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'timeGridWeek,timeGridDay',
+    },
+    buttonText: {
+      today: 'Hoy',
+      week: 'Semana',
+      day: 'Día',
+    },
+    slotMinTime: `${String(HORA_INICIO).padStart(2, '0')}:00:00`,
+    slotMaxTime: `${String(HORA_FIN).padStart(2, '0')}:00:00`,
+    weekends: true,
+    slotDuration: '00:30:00',
+    slotLabelInterval: '00:30:00',
+    slotLabelFormat: {
+      hour: '2-digit',
+      minute: '2-digit',
+      meridiem: false,
+    },
+    businessHours: {
+      daysOfWeek: [1, 2, 3, 4, 5, 6],
+      startTime: '08:00',
+      endTime: '20:00',
+    },
+    editable: true,
+    eventStartEditable: true,
+    eventDurationEditable: false,
+    selectable: true,
+    selectConstraint: 'businessHours',
+    eventConstraint: 'businessHours',
+    eventDisplay: 'block',
+    height: 'auto',
+    contentHeight: 'auto',
+    eventContent: (arg) => {
+      const cita = citas.find(c => c.id === arg.event.id)
+      if (!cita) return null
+      const horaInicio = arg.event.start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+      const horaFin = arg.event.end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+      return {
+        html: `<div class="text-xs font-semibold">${horaInicio} - ${horaFin}</div><div class="text-sm font-semibold">${TIPOS_CITA[cita.tipo]?.emoji} ${TIPOS_CITA[cita.tipo]?.label}</div><div class="text-xs">${cita.cliente_nombre}</div>`
+      }
+    },
+    eventClick: info => {
+      const citaData = citas.find(c => c.id === info.event.id)
+      if (citaData) {
+        setSheetCita(citaData)
+        setSheetModo('view')
+      }
+    },
+    select: (info) => {
+      setSheetCita({
+        inicio: info.start,
+        fin: info.end,
       })
-      await cargarCitas()
-    } catch (err) {
-      console.error('Error al actualizar cita:', err)
-      alert('Error al mover la cita')
-    } finally {
-      setCitaArrastrada(null)
-      setSheetLoading(false)
-    }
+      setSheetModo('new')
+    },
+    eventDrop: async (info) => {
+      try {
+        await actualizarCita(info.event.id, {
+          inicio: info.event.start.toISOString(),
+          fin: info.event.end.toISOString(),
+        })
+        await cargarCitas()
+      } catch (err) {
+        console.error('Error al mover cita:', err)
+        alert('Error al actualizar la cita')
+        info.revert()
+      }
+    },
+    events: citas.map(cita => ({
+      id: cita.id,
+      title: `${TIPOS_CITA[cita.tipo]?.emoji} ${TIPOS_CITA[cita.tipo]?.label}
+${cita.cliente_nombre}`,
+      start: cita.inicio,
+      end: cita.fin,
+      backgroundColor: TIPOS_CITA[cita.tipo]?.color,
+      borderColor: TIPOS_CITA[cita.tipo]?.color,
+      textColor: '#fff',
+      extendedProps: {
+        tipo: cita.tipo,
+        citaData: cita,
+      },
+    })),
+    locale: 'es',
+    now: new Date(),
   }
-
-  const diasSemana = []
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(semanaInicio)
-    d.setDate(d.getDate() + i)
-    diasSemana.push(d)
-  }
-
-  const hoy = new Date()
-  hoy.setHours(0, 0, 0, 0)
 
   return (
     <PageWrapper>
-      <div className="max-w-4xl mx-auto px-4 py-6 pb-20">
-        {/* Header: navegación de semana */}
+      <div className="max-w-6xl mx-auto px-4 py-6 pb-20">
         <div className="flex items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSemanaInicio(new Date(semanaInicio.getTime() - 7 * 24 * 60 * 60 * 1000))}
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
-              aria-label="Semana anterior"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={() => setSemanaInicio(obtenerLunesDelaSemana(new Date()))}
-              className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary-light transition"
-            >
-              Hoy
-            </button>
-            <button
-              onClick={() => setSemanaInicio(new Date(semanaInicio.getTime() + 7 * 24 * 60 * 60 * 1000))}
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
-              aria-label="Próxima semana"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-[--text-light]">
-              {semanaInicio.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
-            </p>
-          </div>
-
+          <h1 className="text-2xl font-semibold text-[--text-dark]">Calendario de Citas</h1>
           <button
             onClick={() => {
               setSheetCita(null)
@@ -700,182 +564,34 @@ export default function CitasCalendario() {
             className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-darker transition"
           >
             <Plus size={16} />
-            <span className="text-sm font-medium">Cita</span>
+            <span className="text-sm font-medium">Nueva cita</span>
           </button>
         </div>
 
-        {/* Grid de días */}
-        <div className="grid grid-cols-7 gap-2 mb-6">
-          {diasSemana.map((dia, idx) => {
-            const citasDelDia = citas.filter(c => {
-              const citaDate = new Date(c.inicio)
-              return (
-                citaDate.getFullYear() === dia.getFullYear() &&
-                citaDate.getMonth() === dia.getMonth() &&
-                citaDate.getDate() === dia.getDate()
-              )
-            })
-            const isSelected = diaSeleccionado.toDateString() === dia.toDateString()
-            const isToday = hoy.toDateString() === dia.toDateString()
-
-            return (
-              <button
-                key={idx}
-                onClick={() => setDiaSeleccionado(dia)}
-                className={`p-3 rounded-lg border-2 text-center transition ${
-                  isSelected
-                    ? 'border-primary bg-primary-light'
-                    : isToday
-                    ? 'border-primary'
-                    : 'border-[--border] hover:border-primary'
-                }`}
-              >
-                <div className="text-xs font-semibold text-[--text-dark]">{DIAS_SEMANA[idx]}</div>
-                <div className="text-lg font-semibold text-primary mt-1">{dia.getDate()}</div>
-                {citasDelDia.length > 0 && (
-                  <div className="mt-2 w-2 h-2 bg-primary rounded-full mx-auto"></div>
-                )}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Barra de fecha seleccionada */}
-        <div className="mb-6 p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-lg border border-primary/20 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-[--text-light]">Día seleccionado</p>
-            <p className="font-semibold text-[--text-dark] capitalize">
-              {formatearFechaLarga(diaSeleccionado)}
-            </p>
-          </div>
-          {citasDelDiaSeleccionado.length > 0 && (
-            <div className="flex items-center justify-center w-8 h-8 bg-primary text-white rounded-full font-semibold text-sm">
-              {citasDelDiaSeleccionado.length}
-            </div>
-          )}
-        </div>
-
-        {/* Timeline */}
-        <div
-          ref={timelineContainerRef}
-          className="relative bg-white rounded-lg border border-[--border] overflow-y-auto flex max-h-[600px]"
-          onDragOver={handleDragOverTimeline}
-          onDrop={handleDropTimeline}
-        >
-          {/* Sidebar con horas */}
-          <div className="w-12 flex-shrink-0 bg-gray-50 border-r border-[--border] pt-0">
-            {Array.from({ length: (HORA_FIN - HORA_INICIO) * 2 }).map((_, idx) => {
-              const h = HORA_INICIO + Math.floor(idx / 2)
-              const m = (idx % 2) * 30
-              return (
-                <div
-                  key={`hora-label-${idx}`}
-                  className="text-xs text-[--text-light] font-semibold px-1 text-right h-full"
-                  style={{ height: `${30 * PX_POR_MIN}px`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: '4px' }}
-                >
-                  {h.toString().padStart(2, '0')}:{m.toString().padStart(2, '0')}
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Contenedor del timeline */}
-          <div className="flex-1 relative">
-            {/* Línea "ahora" */}
-            {nowLineTop > 0 && nowLineTop < MINUTOS_POR_DIA * PX_POR_MIN && (
-              <div
-                style={{ top: `${nowLineTop}px` }}
-                className="absolute left-0 right-0 z-10 flex items-center gap-2 pointer-events-none"
-              >
-                <div className="w-3 h-3 bg-red-600 rounded-full ml-2 flex-shrink-0"></div>
-                <div className="flex-1 h-0.5 bg-red-600"></div>
-                <span className="text-xs font-semibold text-red-600 pr-2 flex-shrink-0">Ahora</span>
-              </div>
-            )}
-
-            {/* Horas */}
-            <div className="relative" style={{ minHeight: `${MINUTOS_POR_DIA * PX_POR_MIN}px` }}>
-              {Array.from({ length: HORA_FIN - HORA_INICIO }).map((_, idx) => {
-                const hora = HORA_INICIO + idx
-                const nextHora = hora + 1
-
-                return (
-                  <div key={`hour-${idx}`}>
-                    {/* Línea de hora completa */}
-                    <div className="relative border-t border-gray-200 h-0"></div>
-
-                    {/* Líneas de media hora */}
-                    {[0, 1, 2, 3].map((quarter) => {
-                      const minutos = quarter * 15
-                      return (
-                        <div
-                          key={`quarter-${idx}-${quarter}`}
-                          className="border-t border-gray-100"
-                          style={{ height: `${15 * PX_POR_MIN}px` }}
-                        ></div>
-                      )
-                    })}
-                  </div>
-                )
-              })}
-
-              {/* Tarjetas de citas */}
-              {grupos.map((grupo, groupIdx) => (
-                <div key={`grupo-${groupIdx}`} className="absolute inset-0 w-full">
-                  {grupo.citas.map((cita, citaIdx) => (
-                    <TarjetaCita
-                      key={cita.id}
-                      cita={cita}
-                      columnIndex={citaIdx}
-                      columnCount={grupo.columnas}
-                      onOpen={c => {
-                        setSheetCita(c)
-                        setSheetModo('view')
-                      }}
-                      onDragStart={setCitaArrastrada}
-                      onDragEnd={() => setCitaArrastrada(null)}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {loading && (
-          <div className="mt-4 text-center text-sm text-[--text-light]">
-            Cargando citas...
+        {loading ? (
+          <div className="text-center py-12 text-[--text-light]">Cargando citas...</div>
+        ) : (
+          <div className="bg-white rounded-lg border border-[--border] p-6">
+            <FullCalendar
+              ref={calendarRef}
+              {...calendarOptions}
+            />
           </div>
         )}
 
-        {!loading && citasDelDiaSeleccionado.length === 0 && (
-          <div className="mt-6 text-center py-12 bg-gray-50 rounded-lg border border-[--border]">
-            <p className="text-[--text-light] mb-2">No hay citas para este día</p>
-            <button
-              onClick={() => {
-                setSheetCita(null)
-                setSheetModo('new')
-              }}
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              Crear una cita
-            </button>
-          </div>
-        )}
+        <BottomSheet
+          cita={sheetCita}
+          modo={sheetModo}
+          onClose={() => {
+            setSheetCita(null)
+            setSheetModo(null)
+          }}
+          onSave={handleGuardarCita}
+          onEdit={() => setSheetModo('edit')}
+          onDelete={handleEliminarCita}
+          loading={sheetLoading}
+        />
       </div>
-
-      <BottomSheet
-        cita={sheetCita}
-        modo={sheetModo}
-        onClose={() => {
-          setSheetCita(null)
-          setSheetModo(null)
-        }}
-        onSave={handleGuardarCita}
-        onEdit={() => setSheetModo('edit')}
-        onDelete={handleEliminarCita}
-        loading={sheetLoading}
-      />
     </PageWrapper>
   )
 }
