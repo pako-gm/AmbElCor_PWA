@@ -39,6 +39,18 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
   const dropdownRef = useRef(null)
 
   useEffect(() => {
+    setForm({
+      cliente_id: cita?.cliente_id || null,
+      cliente_nombre: cita?.cliente_nombre || '',
+      tipo: cita?.tipo || 'prueba',
+      inicio: cita?.inicio ? new Date(cita.inicio) : new Date(),
+      fin: cita?.fin ? new Date(cita.fin) : new Date(new Date().getTime() + 30 * 60000),
+      notas: cita?.notas || '',
+    })
+    setFiltroClientes('')
+  }, [cita])
+
+  useEffect(() => {
     const cargarClientes = async () => {
       try {
         const data = await fetchClientes()
