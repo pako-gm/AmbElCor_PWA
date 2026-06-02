@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
 
-const LOGO = path.join(root, 'src/public/img/ambelcor-claro.png')
+const LOGO = path.join(root, 'src/public/img/ambelcor-oscuro.png')
 const OUT = path.join(root, 'public/icons')
 const BG = '#ffffff' // fondo blanco
 
