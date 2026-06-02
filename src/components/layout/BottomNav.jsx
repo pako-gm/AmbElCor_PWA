@@ -2,9 +2,9 @@ import { NavLink } from 'react-router-dom'
 import { ClipboardList, Users, Truck, BarChart2, CalendarDays } from 'lucide-react'
 
 const tabs = [
+  { to: '/citas', icon: CalendarDays, label: 'Citas' },
   { to: '/encargos', icon: ClipboardList, label: 'Encargos' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
-  { to: '/citas', icon: CalendarDays, label: 'Citas' },
   { to: '/proveedores', icon: Truck, label: 'Proveedores' },
   { to: '/contabilidad', icon: BarChart2, label: 'Cuentas', end: false },
 ]
