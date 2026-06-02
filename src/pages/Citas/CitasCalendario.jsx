@@ -8,11 +8,11 @@ import { fetchClientes } from '@/hooks/useClientes'
 import { X, Trash2, Edit2, Plus } from 'lucide-react'
 
 const TIPOS_CITA = {
-  prueba: { label: 'Prueba de traje', color: '#C8102E', emoji: '👗' },
-  entrega: { label: 'Entrega', color: '#C9A84C', emoji: '🎁' },
-  ajuste: { label: 'Ajuste / retoque', color: '#7C5C8E', emoji: '✂️' },
-  consulta: { label: 'Consulta inicial', color: '#2A7A5E', emoji: '💬' },
-  pago: { label: 'Pago / seña', color: '#1A6FA8', emoji: '💳' },
+  prueba: { label: 'Prueba de traje', color: '#C8102E', bgColor: '#C8102E1A', emoji: '👗' },
+  entrega: { label: 'Entrega', color: '#C9A84C', bgColor: '#C9A84C1A', emoji: '🎁' },
+  ajuste: { label: 'Ajuste / retoque', color: '#7C5C8E', bgColor: '#7C5C8E1A', emoji: '✂️' },
+  consulta: { label: 'Consulta inicial', color: '#2A7A5E', bgColor: '#2A7A5E1A', emoji: '💬' },
+  pago: { label: 'Pago / seña', color: '#1A6FA8', bgColor: '#1A6FA81A', emoji: '💳' },
 }
 
 const HORA_INICIO = 8
@@ -417,6 +417,7 @@ export default function CitasCalendario() {
   const [sheetCita, setSheetCita] = useState(null)
   const [sheetModo, setSheetModo] = useState(null)
   const [sheetLoading, setSheetLoading] = useState(false)
+  const [fechasVisibles, setFechasVisibles] = useState({ start: new Date(), end: new Date() })
   const calendarRef = useRef(null)
 
   useEffect(() => {
@@ -472,6 +473,26 @@ export default function CitasCalendario() {
     }
   }
 
+  const citasVisibles = citas.filter(c => {
+    const citaDate = new Date(c.inicio)
+    return citaDate >= fechasVisibles.start && citaDate < fechasVisibles.end
+  }).length
+
+  const formatearTituloFecha = () => {
+    const start = new Date(fechasVisibles.start)
+    const end = new Date(fechasVisibles.end)
+    const esUnDia = (end - start) === 24 * 60 * 60 * 1000
+
+    if (esUnDia) {
+      return start.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+    } else {
+      const fmt = { day: 'numeric', month: 'short' }
+      const startStr = start.toLocaleDateString('es-ES', fmt)
+      const endStr = new Date(end.getTime() - 1).toLocaleDateString('es-ES', fmt)
+      return `${startStr} – ${endStr}`
+    }
+  }
+
   const calendarOptions = {
     plugins: [timeGridPlugin, interactionPlugin],
     initialView: 'timeGridWeek',
@@ -486,7 +507,7 @@ export default function CitasCalendario() {
       day: 'Día',
     },
     slotMinTime: `${String(HORA_INICIO).padStart(2, '0')}:00:00`,
-    slotMaxTime: `${String(HORA_FIN).padStart(2, '0')}:00:00`,
+    slotMaxTime: `${String(HORA_FIN).padStart(2, '0')}:00:01`,
     weekends: true,
     slotDuration: '00:30:00',
     slotLabelInterval: '00:30:00',
@@ -495,6 +516,7 @@ export default function CitasCalendario() {
       minute: '2-digit',
       meridiem: false,
     },
+    allDaySlot: false,
     businessHours: {
       daysOfWeek: [1, 2, 3, 4, 5, 6],
       startTime: '08:00',
@@ -514,8 +536,11 @@ export default function CitasCalendario() {
       if (!cita) return null
       const horaInicio = arg.event.start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
       const horaFin = arg.event.end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+      const color = TIPOS_CITA[cita.tipo]?.color || '#666'
+      const emoji = TIPOS_CITA[cita.tipo]?.emoji || ''
+      const label = TIPOS_CITA[cita.tipo]?.label || ''
       return {
-        html: `<div class="text-xs font-semibold">${horaInicio} - ${horaFin}</div><div class="text-sm font-semibold">${TIPOS_CITA[cita.tipo]?.emoji} ${TIPOS_CITA[cita.tipo]?.label}</div><div class="text-xs">${cita.cliente_nombre}</div>`
+        html: `<div style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.8rem;color:${color};margin-bottom:2px">${emoji} ${label}</div><div style="font-size:0.72rem;color:#666;margin-bottom:2px">${horaInicio}–${horaFin}</div><div style="font-weight:700;font-size:0.8rem;color:#1a1a1a">${cita.cliente_nombre}</div>`
       }
     },
     eventClick: info => {
@@ -531,6 +556,9 @@ export default function CitasCalendario() {
         fin: info.end,
       })
       setSheetModo('new')
+    },
+    datesSet: (info) => {
+      setFechasVisibles({ start: info.start, end: info.end })
     },
     eventDrop: async (info) => {
       try {
@@ -551,9 +579,9 @@ export default function CitasCalendario() {
 ${cita.cliente_nombre}`,
       start: cita.inicio,
       end: cita.fin,
-      backgroundColor: TIPOS_CITA[cita.tipo]?.color,
+      backgroundColor: TIPOS_CITA[cita.tipo]?.bgColor,
       borderColor: TIPOS_CITA[cita.tipo]?.color,
-      textColor: '#fff',
+      textColor: '#1a1a1a',
       extendedProps: {
         tipo: cita.tipo,
         citaData: cita,
@@ -584,6 +612,14 @@ ${cita.cliente_nombre}`,
           <div className="text-center py-12 text-[--text-light]">Cargando citas...</div>
         ) : (
           <div className="bg-white rounded-lg border border-[--border] p-6">
+            <div className="flex items-center justify-between mb-4 px-1">
+              <span className="text-lg font-semibold text-[--text-dark] capitalize">
+                {formatearTituloFecha()}
+              </span>
+              <span className="bg-primary/10 text-primary text-sm font-semibold px-3 py-1 rounded-full">
+                {citasVisibles} {citasVisibles === 1 ? 'cita' : 'citas'}
+              </span>
+            </div>
             <FullCalendar
               ref={calendarRef}
               {...calendarOptions}
