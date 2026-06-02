@@ -23,6 +23,11 @@ dist-ssr/
 .DS_Store
 Thumbs.db
 
+# Playwright
+test-screenshots/
+test-results/
+playwright-report/
+
 # Logs
 *.log
 npm-debug.log*
