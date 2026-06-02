@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "screenshot": "playwright test tests/screenshot.spec.ts --headed=false"
+    "screenshot": "playwright test tests/screenshot.spec.ts"
   },
   "dependencies": {
     "@fullcalendar/interaction": "^6.1.20",
