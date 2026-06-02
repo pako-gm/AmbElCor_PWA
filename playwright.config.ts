@@ -5,7 +5,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
     screenshot: 'only-on-failure',
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
     browserName: 'chromium',
   },
   webServer: {
