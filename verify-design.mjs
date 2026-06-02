@@ -1,5 +1,4 @@
 import { chromium } from 'playwright'
-import { writeFileSync } from 'fs'
 
 async function verifyDesign() {
   console.log('🚀 Verificando diseño del calendario...')
@@ -7,8 +6,8 @@ async function verifyDesign() {
   const page = await browser.newPage()
 
   try {
-    console.log('📍 Navegando a http://localhost:5174/citas')
-    await page.goto('http://localhost:5174/citas', {
+    console.log('📍 Navegando a http://localhost:5173/citas')
+    await page.goto('http://localhost:5173/citas', {
       waitUntil: 'domcontentloaded',
       timeout: 10000
     }).catch(() => null)
@@ -67,17 +66,6 @@ async function verifyDesign() {
   } finally {
     await browser.close()
   }
-}
-
-// Instalar browsers si no existen
-import { execSync } from 'child_process'
-try {
-  execSync('npx playwright install chromium --with-deps 2>&1 | tail -3', {
-    stdio: 'inherit',
-    timeout: 120000
-  })
-} catch (e) {
-  console.log('⚠️ Playwright install command completed')
 }
 
 await verifyDesign()

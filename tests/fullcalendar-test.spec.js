@@ -2,10 +2,10 @@ import { test, expect } from '@playwright/test'
 
 test('CitasCalendario with FullCalendar loads and displays', async ({ page }) => {
   // Go to citas page
-  await page.goto('http://localhost:5173/citas', { waitUntil: 'networkidle' })
+  await page.goto('/citas', { waitUntil: 'networkidle' })
 
   // Wait for FullCalendar to render
-  await page.waitForSelector('.fc-calendar-container, .fc-view-harness', { timeout: 10000 })
+  await page.waitForSelector('.fc-view-harness', { timeout: 10000 })
 
   console.log('✅ FullCalendar loaded successfully')
 
