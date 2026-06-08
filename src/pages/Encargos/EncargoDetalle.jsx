@@ -153,10 +153,10 @@ export default function EncargoDetalle() {
     const nuevoIndex = ESTADOS.indexOf(nuevoEstado)
     if (Math.abs(nuevoIndex - estadoActual) !== 1) return
 
-    // Bloquear avance a en_confeccion si no hay señal del 50%
+    // Bloquear avance a en_confeccion si no hay señal del 30%
     if (nuevoIndex > estadoActual && nuevoEstado === 'en_confeccion') {
       const cobrado = (encargo.pagos ?? []).filter(p => p.tipo !== 'devolucion').reduce((s, p) => s + parseFloat(p.importe), 0)
-      if (cobrado < (encargo.precio_total ?? 0) * 0.5) {
+      if (cobrado < (encargo.precio_total ?? 0) * 0.3) {
         setModalSenal(true)
         return
       }
@@ -370,7 +370,7 @@ export default function EncargoDetalle() {
         )}
 
         {/* PDFs manuales */}
-        {estadoActual >= 1 && (
+        {estadoActual >= 0 && (
           <div className="flex gap-2">
             <button
               onClick={async () => {
@@ -966,10 +966,10 @@ export default function EncargoDetalle() {
               <div>
                 <h3 className="font-display text-base text-[--text-dark]">Pago no registrado</h3>
                 <p className="text-xs text-[--text-light] mt-0.5">
-                  Para confirmar el encargo es necesario que se haya pagado una señal equivalente al 50 % del total del encargo.
+                  Para confirmar el encargo es necesario que se haya pagado una señal equivalente al 30 % del total del encargo.
                 </p>
                 <p className="text-xs text-[--text-dark] font-semibold mt-1">
-                  Cantidad a pagar: {formatImporte((encargo.precio_total ?? 0) * 0.5)}
+                  Cantidad a pagar: {formatImporte((encargo.precio_total ?? 0) * 0.3)}
                 </p>
               </div>
             </div>

@@ -12,7 +12,7 @@ const registrarHistorial = (encargo_id, descripcion) =>
   supabase.from('historial_encargo').insert({ encargo_id, descripcion })
 
 // Lista de encargos con datos del cliente
-export async function fetchEncargos({ estado } = {}) {
+export async function fetchEncargos({ estado, excludeEntregados = false } = {}) {
   let query = supabase
     .from('encargos')
     .select(`
@@ -23,6 +23,7 @@ export async function fetchEncargos({ estado } = {}) {
     .order('numero', { ascending: false })
 
   if (estado) query = query.eq('estado', estado)
+  else if (excludeEntregados) query = query.neq('estado', 'entregado')
 
   const { data, error } = await query
   if (error) throw error

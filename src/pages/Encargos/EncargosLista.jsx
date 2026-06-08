@@ -31,7 +31,7 @@ function formatFechaCorta(fecha) {
 }
 
 const FILTROS = [
-  { value: '', label: 'Todos' },
+  { value: 'activos', label: 'Todos' },
   { value: 'presupuestado', label: 'Presupuestado' },
   { value: 'confirmado', label: 'Confirmado' },
   { value: 'en_confeccion', label: 'En confección' },
@@ -43,12 +43,15 @@ export default function EncargosLista() {
   const navigate = useNavigate()
   const [encargos, setEncargos] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filtroEstado, setFiltroEstado] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState('activos')
   const [busqueda, setBusqueda] = useState('')
 
   useEffect(() => {
     setLoading(true)
-    fetchEncargos({ estado: filtroEstado || undefined })
+    const params = filtroEstado === 'activos'
+      ? { excludeEntregados: true }
+      : { estado: filtroEstado }
+    fetchEncargos(params)
       .then(setEncargos)
       .catch(console.error)
       .finally(() => setLoading(false))
