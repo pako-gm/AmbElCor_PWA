@@ -18,14 +18,9 @@ import NuevoCliente from '@/pages/Clientes/NuevoCliente'
 import ClienteDetalle from '@/pages/Clientes/ClienteDetalle'
 import MedidasCliente from '@/pages/Clientes/MedidasCliente'
 
-// Proveedores
-import ProveedoresLista from '@/pages/Proveedores/ProveedoresLista'
-import NuevoProveedor from '@/pages/Proveedores/NuevoProveedor'
-import ProveedorDetalle from '@/pages/Proveedores/ProveedorDetalle'
 
 // Contabilidad
 import ContabilidadDashboard from '@/pages/Contabilidad/ContabilidadDashboard'
-import ContabilidadPr from '@/pages/Contabilidad/Contabilidad_pr'
 import CobrosList from '@/pages/Contabilidad/CobrosList'
 import PagosList from '@/pages/Contabilidad/PagosList'
 import Reportes from '@/pages/Contabilidad/Reportes'
@@ -34,8 +29,7 @@ import Reportes from '@/pages/Contabilidad/Reportes'
 import MaterialesLista from '@/pages/Inventario/MaterialesLista'
 import NuevoMaterial from '@/pages/Inventario/NuevoMaterial'
 import MaterialDetalle from '@/pages/Inventario/MaterialDetalle'
-import InventarioPr from '@/pages/Inventario/ambelcor-inventario-v2'
-import InventarioPr2 from '@/pages/Inventario/ambelcor-taller-b-con-a'
+import ProveedoresPanel from '@/components/inventario/ProveedoresPanel'
 
 // Catálogo
 import CatalogoLista from '@/pages/Catalogo/CatalogoLista'
@@ -82,15 +76,11 @@ export default function App() {
         <Route path="/clientes/:id" element={<Protected><ClienteDetalle /></Protected>} />
         <Route path="/clientes/:id/medidas" element={<Protected><MedidasCliente /></Protected>} />
 
-        <Route path="/proveedores" element={<Protected><ProveedoresLista /></Protected>} />
-        <Route path="/proveedores/nuevo" element={<Protected><NuevoProveedor /></Protected>} />
-        <Route path="/proveedores/:id" element={<Protected><ProveedorDetalle /></Protected>} />
 
         <Route path="/inventario" element={<Protected><MaterialesLista /></Protected>} />
         <Route path="/inventario/nuevo" element={<Protected><NuevoMaterial /></Protected>} />
+        <Route path="/inventario/proveedores" element={<Protected><PageWrapper title="Proveedores"><div className="max-w-7xl mx-auto px-4 md:px-8 py-6"><ProveedoresPanel /></div></PageWrapper></Protected>} />
         <Route path="/inventario/:id" element={<Protected><MaterialDetalle /></Protected>} />
-        <Route path="/inventario-pr" element={<Protected><InventarioPr /></Protected>} />
-        <Route path="/inventario-pr2" element={<Protected><InventarioPr2 /></Protected>} />
 
         <Route path="/catalogo" element={<Protected><CatalogoLista /></Protected>} />
         <Route path="/catalogo/nueva" element={<Protected><CatalogoForm /></Protected>} />
@@ -100,7 +90,6 @@ export default function App() {
         <Route path="/contabilidad/cobros" element={<Protected><CobrosList /></Protected>} />
         <Route path="/contabilidad/pagos" element={<Protected><PagosList /></Protected>} />
         <Route path="/contabilidad/reportes" element={<Protected><Reportes /></Protected>} />
-        <Route path="/contabilidad-pr" element={<Protected><ContabilidadPr /></Protected>} />
 
         <Route path="/citas" element={<Protected><CitasCalendario /></Protected>} />
 

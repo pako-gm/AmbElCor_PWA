@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageWrapper from '@/components/layout/PageWrapper'
+import { Icon, Btn, Field } from '@/components/inventario/InventarioUI'
 import { useInventario } from '@/hooks/useInventario'
 
 const UNIDADES = [
-  { value: 'unidad', label: 'Unidad' },
+  { value: 'unidad', label: 'Unidad (ud.)' },
   { value: 'metro', label: 'Metro (m)' },
   { value: 'metro_cuadrado', label: 'Metro cuadrado (m²)' },
   { value: 'kilogramo', label: 'Kilogramo (kg)' },
@@ -14,15 +15,11 @@ const UNIDADES = [
   { value: 'caja', label: 'Caja' },
 ]
 
+const CATEGORIAS = ['Telas', 'Pasamanería', 'Joyería fallera', 'Mercería', 'Botones']
+
 const formVacio = {
-  codigo: '',
-  nombre: '',
-  descripcion: '',
-  unidad: 'unidad',
-  categoria: '',
-  stock_minimo: '0',
-  precio_referencia: '',
-  notas: '',
+  codigo: '', nombre: '', descripcion: '', unidad_gestion: 'unidad',
+  categoria: '', stock_minimo: '0', precio_referencia: '', notas: '',
 }
 
 export default function NuevoMaterial() {
@@ -36,9 +33,11 @@ export default function NuevoMaterial() {
   useEffect(() => {
     fetchMateriales({ soloActivos: false }).then(mats => {
       const cats = [...new Set(mats.map(m => m.categoria).filter(Boolean))].sort()
-      setCategoriasExistentes(cats)
+      setCategoriasExistentes([...new Set([...CATEGORIAS, ...cats])])
     })
   }, [])
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
 
   const handleGuardar = async () => {
     if (!form.nombre.trim()) return setError('El nombre es obligatorio.')
@@ -48,7 +47,7 @@ export default function NuevoMaterial() {
       const payload = {
         nombre: form.nombre.trim(),
         descripcion: form.descripcion.trim() || null,
-        unidad: form.unidad,
+        unidad_gestion: form.unidad_gestion,
         categoria: form.categoria.trim() || null,
         stock_minimo: parseFloat(form.stock_minimo) || 0,
         precio_referencia: form.precio_referencia !== '' ? parseFloat(form.precio_referencia) : null,
@@ -66,139 +65,126 @@ export default function NuevoMaterial() {
 
   return (
     <PageWrapper>
-      <div className="max-w-2xl mx-auto px-4 md:px-8 py-6">
-        <div className="mb-6">
-          <button
-            onClick={() => navigate('/inventario')}
-            className="text-xs text-primary hover:underline mb-2 block"
-          >
-            ← Volver al inventario
-          </button>
-          <h1 className="font-display text-2xl text-[--text-dark]">Nuevo material</h1>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '28px 24px 80px' }}>
+
+        {/* Backlink */}
+        <button className="backlink" onClick={() => navigate('/inventario')}>
+          <Icon name="back" size={15} />
+          Inventario
+        </button>
+
+        <h1 style={{ fontFamily: '"Lora", serif', fontSize: 38, fontWeight: 600, margin: '6px 0 22px', letterSpacing: '-.01em', color: 'var(--ink)' }}>
+          Nuevo material
+        </h1>
+
+        {/* Nota informativa */}
+        <div className="form-note" style={{ marginBottom: 24 }}>
+          <Icon name="info" size={16} />
+          <span>Tras crear el artículo podrás registrar la <b>primera entrada de stock</b> desde su ficha.</span>
         </div>
 
-        <div className="bg-white border border-[--border] rounded-xl p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Código */}
-            <div>
-              <label className="block text-xs text-[--text-light] mb-1">Código (opcional)</label>
+        <div className="card-form">
+          {/* Nombre + Categoría */}
+          <Field label="NOMBRE *" htmlFor="nm-nombre">
+            <input
+              id="nm-nombre"
+              className="input"
+              value={form.nombre}
+              onChange={set('nombre')}
+              placeholder="Ej: Espolín seda natural"
+              autoFocus
+            />
+          </Field>
+
+          <div className="grid-2">
+            <Field label="CATEGORÍA" htmlFor="nm-cat">
+              <div className="select-wrap">
+                <select id="nm-cat" className="input" value={form.categoria} onChange={set('categoria')}>
+                  <option value="">— Sin categoría —</option>
+                  {categoriasExistentes.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <Icon name="chevron" size={16} />
+              </div>
+            </Field>
+
+            <Field label="UNIDAD DE GESTIÓN" htmlFor="nm-unidad">
+              <div className="select-wrap">
+                <select id="nm-unidad" className="input" value={form.unidad_gestion} onChange={set('unidad_gestion')}>
+                  {UNIDADES.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                </select>
+                <Icon name="chevron" size={16} />
+              </div>
+            </Field>
+          </div>
+
+          <div className="grid-2">
+            <Field label="CÓDIGO (opcional)" hint="Si lo dejas vacío, se genera automáticamente." htmlFor="nm-codigo">
               <input
-                type="text"
+                id="nm-codigo"
+                className="input"
                 value={form.codigo}
-                onChange={e => setForm(f => ({ ...f, codigo: e.target.value }))}
-                placeholder="Autogenerado — MAT-XXX"
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm"
+                onChange={set('codigo')}
+                placeholder="TEL-001"
               />
-            </div>
+            </Field>
 
-            {/* Nombre */}
-            <div>
-              <label className="block text-xs text-[--text-light] mb-1">Nombre *</label>
+            <Field label="DESCRIPCIÓN" htmlFor="nm-desc">
               <input
-                type="text"
-                value={form.nombre}
-                onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-                placeholder="Ej: Tela de seda blanca"
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm"
-              />
-            </div>
-
-            {/* Descripción */}
-            <div className="md:col-span-2">
-              <label className="block text-xs text-[--text-light] mb-1">Descripción</label>
-              <input
-                type="text"
+                id="nm-desc"
+                className="input"
                 value={form.descripcion}
-                onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
+                onChange={set('descripcion')}
                 placeholder="Descripción detallada…"
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm"
               />
-            </div>
+            </Field>
+          </div>
 
-            {/* Unidad */}
-            <div>
-              <label className="block text-xs text-[--text-light] mb-1">Unidad de medida</label>
-              <select
-                value={form.unidad}
-                onChange={e => setForm(f => ({ ...f, unidad: e.target.value }))}
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm bg-white"
-              >
-                {UNIDADES.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
-              </select>
-            </div>
-
-            {/* Categoría */}
-            <div>
-              <label className="block text-xs text-[--text-light] mb-1">Categoría</label>
+          <div className="grid-2">
+            <Field label="STOCK MÍNIMO (alerta)" htmlFor="nm-min">
               <input
-                type="text"
-                list="categorias-list"
-                value={form.categoria}
-                onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}
-                placeholder="Ej: Telas, Botones, Hilos…"
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm"
-              />
-              <datalist id="categorias-list">
-                {categoriasExistentes.map(c => <option key={c} value={c} />)}
-              </datalist>
-            </div>
-
-            {/* Stock mínimo */}
-            <div>
-              <label className="block text-xs text-[--text-light] mb-1">Stock mínimo (alerta)</label>
-              <input
+                id="nm-min"
+                className="input"
                 type="number"
                 min="0"
                 step="0.01"
                 value={form.stock_minimo}
-                onChange={e => setForm(f => ({ ...f, stock_minimo: e.target.value }))}
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm"
+                onChange={set('stock_minimo')}
               />
-            </div>
+            </Field>
 
-            {/* Precio referencia */}
-            <div>
-              <label className="block text-xs text-[--text-light] mb-1">Precio de referencia (€)</label>
+            <Field label="PRECIO DE REFERENCIA (€)" htmlFor="nm-precio">
               <input
+                id="nm-precio"
+                className="input"
                 type="number"
                 min="0"
                 step="0.50"
                 value={form.precio_referencia}
-                onChange={e => setForm(f => ({ ...f, precio_referencia: e.target.value }))}
+                onChange={set('precio_referencia')}
                 placeholder="Precio por unidad/metro…"
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm"
               />
-            </div>
-
-            {/* Notas */}
-            <div className="md:col-span-2">
-              <label className="block text-xs text-[--text-light] mb-1">Notas</label>
-              <textarea
-                value={form.notas}
-                onChange={e => setForm(f => ({ ...f, notas: e.target.value }))}
-                placeholder="Observaciones…"
-                rows={2}
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm resize-none"
-              />
-            </div>
+            </Field>
           </div>
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          <Field label="NOTAS" htmlFor="nm-notas">
+            <textarea
+              id="nm-notas"
+              className="input textarea"
+              value={form.notas}
+              onChange={set('notas')}
+              placeholder="Observaciones, proveedor habitual, referencias cruzadas…"
+            />
+          </Field>
 
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={() => navigate('/inventario')}
-              className="px-4 py-2 text-sm rounded-md border border-[--border] text-[--text-medium] hover:bg-gray-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleGuardar}
-              disabled={guardando}
-              className="px-4 py-2 text-sm rounded-md bg-primary text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
-            >
+          {error && (
+            <div style={{ color: 'var(--danger)', fontSize: 13.5, fontWeight: 600 }}>{error}</div>
+          )}
+
+          <div className="form-actions">
+            <Btn kind="muted" icon="x" onClick={() => navigate('/inventario')}>Cancelar</Btn>
+            <Btn kind="brand" icon="plus" onClick={handleGuardar} disabled={guardando}>
               {guardando ? 'Guardando…' : 'Crear material'}
-            </button>
+            </Btn>
           </div>
         </div>
       </div>

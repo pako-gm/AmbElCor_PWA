@@ -28,6 +28,9 @@ test-screenshots/
 test-results/
 playwright-report/
 
+# Design handoff bundle
+DESIGN/
+
 # Logs
 *.log
 npm-debug.log*
