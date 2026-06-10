@@ -87,6 +87,27 @@ export function useInventario() {
 
   // ── Movimientos ───────────────────────────────────────────────────────────
 
+  const eliminarMovimiento = useCallback(async (id) => {
+    const { error: err } = await supabase
+      .from('movimientos_inventario')
+      .delete()
+      .eq('id', id)
+    if (err) throw err
+  }, [])
+
+  const actualizarMovimiento = useCallback(async (id, { fecha, cantidad, precio_unitario, notas, motivo }) => {
+    const payload = { fecha, cantidad, notas: notas || null, motivo: motivo || null }
+    if (precio_unitario !== undefined) payload.precio_unitario = precio_unitario || null
+    const { data, error: err } = await supabase
+      .from('movimientos_inventario')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single()
+    if (err) throw err
+    return data
+  }, [])
+
   const fetchMovimientos = useCallback(async ({ materialId, desde, hasta, tipo } = {}) => {
     setLoading(true)
     setError(null)
@@ -95,8 +116,9 @@ export function useInventario() {
         .from('movimientos_inventario')
         .select(`
           id, tipo, cantidad, precio_unitario, fecha, motivo, notas, created_at,
+          materiales ( id, codigo, nombre, unidad_gestion:unidad ),
           proveedores ( id, nombre ),
-          encargos ( id, numero )
+          encargos ( id, numero, codigo_corto )
         `)
         .order('fecha', { ascending: false })
       if (materialId) q = q.eq('material_id', materialId)
@@ -233,6 +255,79 @@ export function useInventario() {
     return data ?? []
   }, [])
 
+  // ── Categorías ────────────────────────────────────────────────────────────
+
+  const fetchCategorias = useCallback(async () => {
+    const { data, error: err } = await supabase
+      .from('categorias_inventario')
+      .select('*')
+      .order('orden')
+      .order('nombre')
+    if (err) throw err
+    return data ?? []
+  }, [])
+
+  const crearCategoria = useCallback(async ({ nombre, icono = 'box' }) => {
+    const maxOrden = await supabase
+      .from('categorias_inventario')
+      .select('orden')
+      .order('orden', { ascending: false })
+      .limit(1)
+      .single()
+    const orden = (maxOrden.data?.orden ?? 0) + 1
+    const { data, error: err } = await supabase
+      .from('categorias_inventario')
+      .insert({ nombre, icono, orden })
+      .select()
+      .single()
+    if (err) throw err
+    return data
+  }, [])
+
+  const eliminarCategoria = useCallback(async (id) => {
+    const { error: err } = await supabase
+      .from('categorias_inventario')
+      .delete()
+      .eq('id', id)
+    if (err) throw err
+  }, [])
+
+  // ── Unidades ──────────────────────────────────────────────────────────────
+
+  const fetchUnidades = useCallback(async () => {
+    const { data, error: err } = await supabase
+      .from('unidades_inventario')
+      .select('*')
+      .order('orden')
+    if (err) throw err
+    return data ?? []
+  }, [])
+
+  const crearUnidad = useCallback(async ({ clave, etiqueta, abreviatura }) => {
+    const maxOrden = await supabase
+      .from('unidades_inventario')
+      .select('orden')
+      .order('orden', { ascending: false })
+      .limit(1)
+      .single()
+    const orden = (maxOrden.data?.orden ?? 0) + 1
+    const { data, error: err } = await supabase
+      .from('unidades_inventario')
+      .insert({ clave, etiqueta, abreviatura, orden })
+      .select()
+      .single()
+    if (err) throw err
+    return data
+  }, [])
+
+  const eliminarUnidad = useCallback(async (id) => {
+    const { error: err } = await supabase
+      .from('unidades_inventario')
+      .delete()
+      .eq('id', id)
+    if (err) throw err
+  }, [])
+
   return {
     loading,
     error,
@@ -248,5 +343,13 @@ export function useInventario() {
     fetchAlertasStockBajo,
     fetchProveedores,
     fetchEncargosActivos,
+    eliminarMovimiento,
+    actualizarMovimiento,
+    fetchCategorias,
+    crearCategoria,
+    eliminarCategoria,
+    fetchUnidades,
+    crearUnidad,
+    eliminarUnidad,
   }
 }

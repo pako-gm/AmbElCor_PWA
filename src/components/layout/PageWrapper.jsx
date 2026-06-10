@@ -2,7 +2,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import logoAmbelcor from '@/public/img/ambelcor-oscuro.png'
 import {
   ClipboardList, Users, Package,
-  BarChart2, LogOut, CircleDollarSign, Receipt, Menu, X, Tag, Globe, CalendarDays,
+  BarChart2, LogOut, CircleDollarSign, Receipt, Menu, X, Tag, Globe, CalendarDays, BookOpen,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useState, useEffect } from 'react'
@@ -16,6 +16,7 @@ const navItems = [
   { to: '/contabilidad', icon: BarChart2, label: 'Contabilidad', end: true },
   { to: '/contabilidad/cobros', icon: CircleDollarSign, label: 'Cobros' },
   { to: '/contabilidad/pagos', icon: Receipt, label: 'Pagos' },
+  { to: '/contabilidad/pr', icon: BookOpen, label: 'Contabilidad v2' },
 ]
 
 function CopyrightYear() {

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Skill(run)",
-      "Skill(run:*)"
+      "Skill(run:*)",
+      "PowerShell(Get-ChildItem -Path 'c:\\\\Users\\\\Usuario\\\\Documents\\\\GitHub\\\\AmbElCor_PWA\\\\tests\\\\' -File | ForEach-Object { $_.FullName })"
     ]
   }
 }

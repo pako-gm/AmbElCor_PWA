@@ -4,19 +4,6 @@ import PageWrapper from '@/components/layout/PageWrapper'
 import { Icon, Btn, Field } from '@/components/inventario/InventarioUI'
 import { useInventario } from '@/hooks/useInventario'
 
-const UNIDADES = [
-  { value: 'unidad', label: 'Unidad (ud.)' },
-  { value: 'metro', label: 'Metro (m)' },
-  { value: 'metro_cuadrado', label: 'Metro cuadrado (m²)' },
-  { value: 'kilogramo', label: 'Kilogramo (kg)' },
-  { value: 'litro', label: 'Litro (l)' },
-  { value: 'par', label: 'Par' },
-  { value: 'rollo', label: 'Rollo' },
-  { value: 'caja', label: 'Caja' },
-]
-
-const CATEGORIAS = ['Telas', 'Pasamanería', 'Joyería fallera', 'Mercería', 'Botones']
-
 const formVacio = {
   codigo: '', nombre: '', descripcion: '', unidad_gestion: 'unidad',
   categoria: '', stock_minimo: '0', precio_referencia: '', notas: '',
@@ -24,16 +11,18 @@ const formVacio = {
 
 export default function NuevoMaterial() {
   const navigate = useNavigate()
-  const { crearMaterial, fetchMateriales } = useInventario()
+  const { crearMaterial, fetchCategorias, fetchUnidades } = useInventario()
   const [form, setForm] = useState(formVacio)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
-  const [categoriasExistentes, setCategoriasExistentes] = useState([])
+  const [categorias, setCategorias] = useState([])
+  const [unidades, setUnidades] = useState([])
 
   useEffect(() => {
-    fetchMateriales({ soloActivos: false }).then(mats => {
-      const cats = [...new Set(mats.map(m => m.categoria).filter(Boolean))].sort()
-      setCategoriasExistentes([...new Set([...CATEGORIAS, ...cats])])
+    fetchCategorias().then(setCategorias)
+    fetchUnidades().then(data => {
+      setUnidades(data)
+      if (data.length > 0) setForm(f => ({ ...f, unidad_gestion: data[0].clave }))
     })
   }, [])
 
@@ -47,7 +36,7 @@ export default function NuevoMaterial() {
       const payload = {
         nombre: form.nombre.trim(),
         descripcion: form.descripcion.trim() || null,
-        unidad_gestion: form.unidad_gestion,
+        unidad: form.unidad_gestion,
         categoria: form.categoria.trim() || null,
         stock_minimo: parseFloat(form.stock_minimo) || 0,
         precio_referencia: form.precio_referencia !== '' ? parseFloat(form.precio_referencia) : null,
@@ -101,7 +90,7 @@ export default function NuevoMaterial() {
               <div className="select-wrap">
                 <select id="nm-cat" className="input" value={form.categoria} onChange={set('categoria')}>
                   <option value="">— Sin categoría —</option>
-                  {categoriasExistentes.map(c => <option key={c} value={c}>{c}</option>)}
+                  {categorias.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
                 </select>
                 <Icon name="chevron" size={16} />
               </div>
@@ -110,7 +99,7 @@ export default function NuevoMaterial() {
             <Field label="UNIDAD DE GESTIÓN" htmlFor="nm-unidad">
               <div className="select-wrap">
                 <select id="nm-unidad" className="input" value={form.unidad_gestion} onChange={set('unidad_gestion')}>
-                  {UNIDADES.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                  {unidades.map(u => <option key={u.id} value={u.clave}>{u.etiqueta} ({u.abreviatura})</option>)}
                 </select>
                 <Icon name="chevron" size={16} />
               </div>

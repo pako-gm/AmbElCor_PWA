@@ -206,9 +206,10 @@ export function MovementModal({ type, materiales, proveedores, encargos, initial
 }
 
 /* ---------- Editar datos de un artículo del catálogo ---------- */
-export function LineEditModal({ material, categorias, onClose, onSave }) {
+export function LineEditModal({ material, categorias, unidades, onClose, onSave }) {
   const [nombre, setNombre] = useState(material.nombre || '')
   const [categoria, setCategoria] = useState(material.categoria || '')
+  const [unidad, setUnidad] = useState(material.unidad || 'unidad')
   const [min, setMin] = useState(fmtNum(parseFloat(material.stock_minimo || 0)))
   const [pmp, setPmp] = useState(fmtNum(parseFloat(material.precio_referencia || 0)))
   const [saving, setSaving] = useState(false)
@@ -218,7 +219,7 @@ export function LineEditModal({ material, categorias, onClose, onSave }) {
   const save = async () => {
     setSaving(true)
     try {
-      await onSave({ nombre, categoria, stock_minimo: parse(min), precio_referencia: parse(pmp) })
+      await onSave({ nombre, categoria, unidad, stock_minimo: parse(min), precio_referencia: parse(pmp) })
       onClose()
     } finally {
       setSaving(false)
@@ -240,14 +241,28 @@ export function LineEditModal({ material, categorias, onClose, onSave }) {
       <Field label="NOMBRE DEL ARTÍCULO">
         <input className="input" value={nombre} onChange={(e) => setNombre(e.target.value)} />
       </Field>
-      <Field label="CATEGORÍA">
-        <div className="select-wrap">
-          <select className="input" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-            {cats.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <Icon name="chevron" size={16} />
-        </div>
-      </Field>
+      <div className="grid-2">
+        <Field label="CATEGORÍA">
+          <div className="select-wrap">
+            <select className="input" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
+              <option value="">— Sin categoría —</option>
+              {cats.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <Icon name="chevron" size={16} />
+          </div>
+        </Field>
+        <Field label="UNIDAD DE GESTIÓN">
+          <div className="select-wrap">
+            <select className="input" value={unidad} onChange={(e) => setUnidad(e.target.value)}>
+              {unidades?.length
+                ? unidades.map(u => <option key={u.id} value={u.clave}>{u.etiqueta} ({u.abreviatura})</option>)
+                : <option value={unidad}>{unidad}</option>
+              }
+            </select>
+            <Icon name="chevron" size={16} />
+          </div>
+        </Field>
+      </div>
       <div className="grid-2">
         <Field label="STOCK MÍNIMO">
           <input className="input" value={min} onChange={(e) => setMin(e.target.value)} inputMode="decimal" />
@@ -294,6 +309,130 @@ export function MovementRow({ movimiento, unit, onEdit }) {
 }
 
 /* ---------- Modal confirmación de desactivación ---------- */
+export function EditMovimientoModal({ movimiento, unit, onClose, onSave }) {
+  const isAjuste = movimiento.tipo === 'ajuste'
+  const qty = parseFloat(movimiento.cantidad || 0)
+
+  const [fecha, setFecha] = useState(movimiento.fecha || '')
+  const [cantidad, setCantidad] = useState(String(Math.abs(qty)))
+  const [signo, setSigno] = useState(qty >= 0 ? '+' : '-')
+  const [precio, setPrecio] = useState(movimiento.precio_unitario ? fmtNum(parseFloat(movimiento.precio_unitario)) : '')
+  const [notas, setNotas] = useState(movimiento.notas || '')
+  const [motivo, setMotivo] = useState(movimiento.motivo || '')
+  const [saving, setSaving] = useState(false)
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      const cantidadFinal = isAjuste
+        ? (signo === '+' ? 1 : -1) * Math.abs(parse(cantidad))
+        : Math.abs(parse(cantidad))
+      await onSave({
+        fecha,
+        cantidad: cantidadFinal,
+        precio_unitario: precio !== '' ? parse(precio) : null,
+        notas,
+        motivo,
+      })
+      onClose()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal
+      tone="amber"
+      eyebrow={movimiento.tipo?.toUpperCase()}
+      title="Editar movimiento"
+      onClose={onClose}
+      footer={
+        <>
+          <Btn kind="muted" onClick={onClose}>Cancelar</Btn>
+          <Btn kind="brand" onClick={save} disabled={saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</Btn>
+        </>
+      }
+    >
+      <div className="grid-2">
+        <Field label="FECHA">
+          <input className="input" type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
+        </Field>
+        <Field label={`CANTIDAD (${unit})`}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {isAjuste && (
+              <div className="select-wrap" style={{ width: 64, flexShrink: 0 }}>
+                <select className="input" value={signo} onChange={e => setSigno(e.target.value)}>
+                  <option value="+">+</option>
+                  <option value="-">−</option>
+                </select>
+                <Icon name="chevron" size={14} />
+              </div>
+            )}
+            <input
+              className="input"
+              type="number"
+              min="0"
+              step="0.01"
+              value={cantidad}
+              onChange={e => setCantidad(e.target.value)}
+              inputMode="decimal"
+              style={{ flex: 1 }}
+            />
+          </div>
+        </Field>
+      </div>
+      {movimiento.tipo === 'entrada' && (
+        <Field label="PRECIO UNITARIO (€)">
+          <input className="input" value={precio} onChange={e => setPrecio(e.target.value)} inputMode="decimal" placeholder="0,00" />
+        </Field>
+      )}
+      <Field label={isAjuste ? 'MOTIVO' : 'NOTAS'}>
+        <input
+          className="input"
+          value={isAjuste ? motivo : notas}
+          onChange={e => isAjuste ? setMotivo(e.target.value) : setNotas(e.target.value)}
+          placeholder={isAjuste ? 'Motivo del ajuste…' : 'Observaciones…'}
+        />
+      </Field>
+    </Modal>
+  )
+}
+
+export function ConfirmEliminarMovimientoModal({ movimiento, unit, onClose, onConfirm }) {
+  const [saving, setSaving] = useState(false)
+  const qty = parseFloat(movimiento.cantidad || 0)
+  const pos = movimiento.tipo === 'entrada' || (movimiento.tipo === 'ajuste' && qty > 0)
+  const qtyStr = `${pos ? '+' : '−'}${Math.abs(qty).toLocaleString('es-ES', { maximumFractionDigits: 2 })} ${unit}`
+
+  const confirm = async () => {
+    setSaving(true)
+    try { await onConfirm() } finally { setSaving(false) }
+  }
+
+  return (
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="modal" style={{ maxWidth: 430 }} role="alertdialog" aria-modal="true">
+        <div style={{ padding: '32px 32px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 13 }}>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--danger-soft)', color: 'var(--danger)', display: 'grid', placeItems: 'center' }}>
+            <Icon name="trash" size={26} />
+          </div>
+          <h3 style={{ margin: '2px 0 0', fontSize: 21, fontWeight: 800, letterSpacing: '-.01em' }}>¿Eliminar este movimiento?</h3>
+          <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: 14.5, lineHeight: 1.5 }}>
+            Se eliminará el movimiento de <b style={{ color: 'var(--ink)' }}>{movimiento.tipo}</b>{' '}
+            de <b style={{ color: 'var(--ink)' }}>{qtyStr}</b> del{' '}
+            <b style={{ color: 'var(--ink)' }}>{movimiento.fecha}</b>.
+            El stock se recalculará automáticamente.
+          </p>
+        </div>
+        <div className="modal__foot" style={{ justifyContent: 'center' }}>
+          <Btn kind="muted" onClick={onClose}>Cancelar</Btn>
+          <Btn kind="danger" onClick={confirm} disabled={saving}>{saving ? 'Eliminando…' : 'Sí, eliminar'}</Btn>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ConfirmDesactivarModal({ nombre, onClose, onConfirm }) {
   const [saving, setSaving] = useState(false)
   const confirm = async () => {

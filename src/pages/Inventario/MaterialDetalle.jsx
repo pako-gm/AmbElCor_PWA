@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { Icon, Btn } from '@/components/inventario/InventarioUI'
-import { MovementModal, LineEditModal, ConfirmDesactivarModal } from '@/components/inventario/InventarioModals'
+import { MovementModal, LineEditModal, EditMovimientoModal, ConfirmEliminarMovimientoModal, ConfirmDesactivarModal } from '@/components/inventario/InventarioModals'
 import { useInventario } from '@/hooks/useInventario'
 import { formatImporte } from '@/utils/formatters'
 
@@ -24,7 +24,8 @@ export default function MaterialDetalle() {
   const {
     fetchMaterial, actualizarMaterial, desactivarMaterial,
     registrarEntrada, registrarSalida, registrarAjuste,
-    fetchProveedores, fetchEncargosActivos,
+    actualizarMovimiento, eliminarMovimiento,
+    fetchProveedores, fetchEncargosActivos, fetchCategorias, fetchUnidades,
   } = useInventario()
 
   const [material, setMaterial] = useState(null)
@@ -32,7 +33,10 @@ export default function MaterialDetalle() {
   const [loading, setLoading] = useState(true)
   const [proveedores, setProveedores] = useState([])
   const [encargos, setEncargos] = useState([])
-  const [modal, setModal] = useState(null) // null | 'entrada' | 'salida' | 'ajuste' | 'editar' | 'desactivar'
+  const [categoriasDB, setCategoriasDB] = useState([])
+  const [unidadesDB, setUnidadesDB] = useState([])
+  const [modal, setModal] = useState(null) // null | 'entrada' | 'salida' | 'ajuste' | 'editar' | 'desactivar' | 'editarMov' | 'borrarMov'
+  const [movSeleccionado, setMovSeleccionado] = useState(null)
   const [toast, setToast] = useState('')
 
   const cargar = async () => {
@@ -47,6 +51,8 @@ export default function MaterialDetalle() {
     cargar()
     fetchProveedores().then(setProveedores)
     fetchEncargosActivos().then(setEncargos)
+    fetchCategorias().then(setCategoriasDB)
+    fetchUnidades().then(setUnidadesDB)
   }, [id])
 
   useEffect(() => {
@@ -108,6 +114,26 @@ export default function MaterialDetalle() {
     navigate('/inventario')
   }
 
+  const handleEliminarMovimiento = async () => {
+    await eliminarMovimiento(movSeleccionado.id)
+    showToast('Movimiento eliminado.')
+    setModal(null)
+    setMovSeleccionado(null)
+    await cargar()
+  }
+
+  const handleEditarMovimiento = async (datos) => {
+    await actualizarMovimiento(movSeleccionado.id, datos)
+    showToast('Movimiento actualizado.')
+    await cargar()
+  }
+
+  const handleActivar = async () => {
+    await actualizarMaterial(id, { activo: true })
+    showToast('Material reactivado.')
+    await cargar()
+  }
+
   if (loading) return (
     <PageWrapper>
       <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--muted)' }}>Cargando…</div>
@@ -123,7 +149,7 @@ export default function MaterialDetalle() {
   const stock = parseFloat(material.stock_actual || 0)
   const minimo = parseFloat(material.stock_minimo || 0)
   const stockBajo = stock < minimo && minimo > 0
-  const unit = UNIT_DISPLAY[material.unidad_gestion] || material.unidad_gestion || 'ud.'
+  const unit = UNIT_DISPLAY[material.unidad] || material.unidad || 'ud.'
 
   // Adaptar proveedores y encargos para MovementModal
   const proveedoresAdapt = proveedores.map(p => ({ id: p.id, nombre: p.nombre }))
@@ -189,12 +215,17 @@ export default function MaterialDetalle() {
         {/* Botones de acción */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginTop: 18, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Btn kind="ent" icon="arrowDown" onClick={() => setModal('entrada')}>Entrada</Btn>
-            <Btn kind="sal" icon="arrowUp" onClick={() => setModal('salida')}>Salida</Btn>
-            <Btn kind="aju" icon="wrench" onClick={() => setModal('ajuste')}>Ajuste</Btn>
+            {material.activo && <>
+              <Btn kind="ent" icon="arrowDown" onClick={() => setModal('entrada')}>Entrada</Btn>
+              <Btn kind="sal" icon="arrowUp" onClick={() => setModal('salida')}>Salida</Btn>
+              <Btn kind="aju" icon="wrench" onClick={() => setModal('ajuste')}>Ajuste</Btn>
+            </>}
             <Btn kind="edi" icon="pencil" onClick={() => setModal('editar')}>Editar</Btn>
           </div>
-          <Btn kind="danger-ghost" icon="power" onClick={() => setModal('desactivar')}>Desactivar</Btn>
+          {material.activo
+            ? <Btn kind="danger-ghost" icon="power" onClick={() => setModal('desactivar')}>Desactivar</Btn>
+            : <Btn kind="brand" icon="power" onClick={handleActivar}>Activar</Btn>
+          }
         </div>
 
         {/* Historial de movimientos */}
@@ -239,6 +270,24 @@ export default function MaterialDetalle() {
                         {formatImporte(mv.precio_unitario)}/ud.
                       </span>
                     )}
+                    <button
+                      title="Editar movimiento"
+                      onClick={() => { setMovSeleccionado(mv); setModal('editarMov') }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center', opacity: 0.6 }}
+                      onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                      onMouseLeave={e => e.currentTarget.style.opacity = 0.6}
+                    >
+                      <Icon name="pencil" size={14} />
+                    </button>
+                    <button
+                      title="Eliminar movimiento"
+                      onClick={() => { setMovSeleccionado(mv); setModal('borrarMov') }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center', opacity: 0.5 }}
+                      onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                      onMouseLeave={e => e.currentTarget.style.opacity = 0.5}
+                    >
+                      <Icon name="trash" size={14} />
+                    </button>
                   </div>
                 </div>
               )
@@ -260,10 +309,29 @@ export default function MaterialDetalle() {
         />
       )}
 
+      {modal === 'borrarMov' && movSeleccionado && (
+        <ConfirmEliminarMovimientoModal
+          movimiento={movSeleccionado}
+          unit={unit}
+          onClose={() => { setModal(null); setMovSeleccionado(null) }}
+          onConfirm={handleEliminarMovimiento}
+        />
+      )}
+
+      {modal === 'editarMov' && movSeleccionado && (
+        <EditMovimientoModal
+          movimiento={movSeleccionado}
+          unit={unit}
+          onClose={() => { setModal(null); setMovSeleccionado(null) }}
+          onSave={handleEditarMovimiento}
+        />
+      )}
+
       {modal === 'editar' && (
         <LineEditModal
           material={material}
-          categorias={['Telas', 'Pasamanería', 'Joyería fallera', 'Mercería', 'Botones']}
+          categorias={categoriasDB.map(c => c.nombre)}
+          unidades={unidadesDB}
           onClose={() => setModal(null)}
           onSave={handleEditar}
         />

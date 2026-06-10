@@ -21,14 +21,12 @@ import MedidasCliente from '@/pages/Clientes/MedidasCliente'
 
 // Contabilidad
 import ContabilidadDashboard from '@/pages/Contabilidad/ContabilidadDashboard'
-import CobrosList from '@/pages/Contabilidad/CobrosList'
-import PagosList from '@/pages/Contabilidad/PagosList'
-import Reportes from '@/pages/Contabilidad/Reportes'
 
 // Inventario
 import MaterialesLista from '@/pages/Inventario/MaterialesLista'
 import NuevoMaterial from '@/pages/Inventario/NuevoMaterial'
 import MaterialDetalle from '@/pages/Inventario/MaterialDetalle'
+import AjustesInventario from '@/pages/Inventario/AjustesInventario'
 import ProveedoresPanel from '@/components/inventario/ProveedoresPanel'
 
 // Catálogo
@@ -79,6 +77,7 @@ export default function App() {
 
         <Route path="/inventario" element={<Protected><MaterialesLista /></Protected>} />
         <Route path="/inventario/nuevo" element={<Protected><NuevoMaterial /></Protected>} />
+        <Route path="/inventario/ajustes" element={<Protected><AjustesInventario /></Protected>} />
         <Route path="/inventario/proveedores" element={<Protected><PageWrapper title="Proveedores"><div className="max-w-7xl mx-auto px-4 md:px-8 py-6"><ProveedoresPanel /></div></PageWrapper></Protected>} />
         <Route path="/inventario/:id" element={<Protected><MaterialDetalle /></Protected>} />
 
@@ -87,9 +86,6 @@ export default function App() {
         <Route path="/catalogo/:id" element={<Protected><CatalogoForm /></Protected>} />
 
         <Route path="/contabilidad" element={<Protected><ContabilidadDashboard /></Protected>} />
-        <Route path="/contabilidad/cobros" element={<Protected><CobrosList /></Protected>} />
-        <Route path="/contabilidad/pagos" element={<Protected><PagosList /></Protected>} />
-        <Route path="/contabilidad/reportes" element={<Protected><Reportes /></Protected>} />
 
         <Route path="/citas" element={<Protected><CitasCalendario /></Protected>} />
 

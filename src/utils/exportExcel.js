@@ -1,6 +1,25 @@
 import * as XLSX from 'xlsx'
 import { CATEGORIA_GASTO_LABELS, TIPO_PAGO_LABELS, FORMA_PAGO_LABELS } from '@/utils/formatters'
 
+export const exportarLibroDiario = (entries, { año, mes } = {}) => {
+  const filas = entries.map(e => ({
+    Fecha: e.fecha,
+    Tipo: e.tipo === 'ingreso' ? 'Ingreso' : 'Gasto',
+    Descripción: e.descripcion,
+    Referencia: e.referencia ?? '',
+    'Base imponible': e.base != null ? e.base : '',
+    '% IVA': e.iva != null ? e.iva : '',
+    Total: e.tipo === 'ingreso' ? e.total : -e.total,
+    'Forma de pago': FORMA_PAGO_LABELS[e.forma_pago] ?? e.forma_pago ?? '',
+    Estado: e.estado ?? '',
+  }))
+  const ws = XLSX.utils.json_to_sheet(filas)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Libro Diario')
+  const sufijo = mes ? `_${mes}` : ''
+  XLSX.writeFile(wb, `libro_diario_${año ?? 'todos'}${sufijo}.xlsx`)
+}
+
 const filtrarPorTrimestre = (registros, trimestre, año) => {
   const meses = { 1: [0, 2], 2: [3, 5], 3: [6, 8], 4: [9, 11] }
   return registros.filter(r => {

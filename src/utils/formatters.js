@@ -51,6 +51,12 @@ export const FORMA_PAGO_LABELS = {
   stripe: 'Online',
 }
 
+// Formatea código de material: "TEL001" → "TEL-001"
+export const formatCodigo = (codigo) => {
+  if (!codigo) return ''
+  return codigo.replace(/^([A-Za-z]+)(\d+)$/, '$1-$2')
+}
+
 export const CATEGORIA_GASTO_LABELS = {
   material: 'Material y suministros confección',
   cuota_autonomo: 'Cuota autónomo (SS)',

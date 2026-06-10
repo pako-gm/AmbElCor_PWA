@@ -29,6 +29,7 @@ export function useContabilidad() {
         .from('pagos')
         .select(`
           id, fecha, importe, tipo, forma_pago, referencia, notas,
+          estado, fecha_vencimiento,
           encargos ( id, numero, cliente_id,
             clientes ( nombre, apellidos )
           )
@@ -53,6 +54,14 @@ export function useContabilidad() {
     }
   }, [])
 
+  const marcarEstadoCobro = useCallback(async (id, estado) => {
+    const { error: err } = await supabase
+      .from('pagos')
+      .update({ estado })
+      .eq('id', id)
+    if (err) throw err
+  }, [])
+
   // ── Pagos proveedor ───────────────────────────────────────────────────────
 
   const fetchPagosProveedor = useCallback(async ({ año, trimestre } = {}) => {
@@ -63,7 +72,7 @@ export function useContabilidad() {
         .from('pagos_proveedor')
         .select(`
           id, fecha, concepto, importe, forma_pago, referencia, notas,
-          categoria, base_imponible, iva_porcentaje, iva_importe,
+          categoria, base_imponible, iva_porcentaje, iva_importe, estado,
           proveedores ( id, nombre )
         `)
         .order('fecha', { ascending: false })
@@ -84,6 +93,14 @@ export function useContabilidad() {
     } finally {
       setLoading(false)
     }
+  }, [])
+
+  const marcarEstadoPago = useCallback(async (id, estado) => {
+    const { error: err } = await supabase
+      .from('pagos_proveedor')
+      .update({ estado })
+      .eq('id', id)
+    if (err) throw err
   }, [])
 
   const registrarPagoProveedor = useCallback(async (payload) => {
@@ -125,6 +142,71 @@ export function useContabilidad() {
     return data
   }, [])
 
+  // ── Libro diario (cobros + gastos combinados) ─────────────────────────────
+
+  const fetchLibroDiario = useCallback(async ({ año } = {}) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const desde = `${año}-01-01`
+      const hasta = `${año}-12-31`
+
+      const [{ data: cobros, error: e1 }, { data: pagos, error: e2 }] = await Promise.all([
+        supabase
+          .from('pagos')
+          .select('id, fecha, importe, tipo, forma_pago, referencia, estado, encargos(id, numero, clientes(nombre, apellidos))')
+          .gte('fecha', desde)
+          .lte('fecha', hasta),
+        supabase
+          .from('pagos_proveedor')
+          .select('id, fecha, concepto, importe, forma_pago, referencia, base_imponible, iva_porcentaje, estado')
+          .gte('fecha', desde)
+          .lte('fecha', hasta),
+      ])
+
+      if (e1) throw e1
+      if (e2) throw e2
+
+      const ingresos = (cobros ?? []).map(c => {
+        const cliente = c.encargos?.clientes
+          ? `${c.encargos.clientes.nombre} ${c.encargos.clientes.apellidos ?? ''}`.trim()
+          : '—'
+        return {
+          id: `c-${c.id}`,
+          tipo: 'ingreso',
+          fecha: c.fecha,
+          descripcion: cliente,
+          referencia: c.encargos?.numero ?? c.referencia ?? null,
+          base: parseFloat(c.importe) || 0,
+          iva: null,
+          total: parseFloat(c.importe) || 0,
+          forma_pago: c.forma_pago,
+          estado: c.estado ?? 'cobrado',
+        }
+      })
+
+      const gastos = (pagos ?? []).map(p => ({
+        id: `p-${p.id}`,
+        tipo: 'gasto',
+        fecha: p.fecha,
+        descripcion: p.concepto,
+        referencia: p.referencia ?? null,
+        base: p.base_imponible != null ? parseFloat(p.base_imponible) : parseFloat(p.importe) || 0,
+        iva: p.iva_porcentaje ?? null,
+        total: parseFloat(p.importe) || 0,
+        forma_pago: p.forma_pago,
+        estado: p.estado ?? 'pagado',
+      }))
+
+      return [...ingresos, ...gastos].sort((a, b) => a.fecha.localeCompare(b.fecha))
+    } catch (e) {
+      setError(e.message)
+      return []
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   // ── Resumen por categoría ────────────────────────────────────────────────
 
   const fetchResumenPorCategoria = useCallback(async (año, trimestre) => {
@@ -139,40 +221,26 @@ export function useContabilidad() {
       .sort((a, b) => b.total - a.total)
   }, [fetchPagosProveedor])
 
-  // ── Resumen anual para Reportes ───────────────────────────────────────────
+  // ── Resumen anual para gráfico mensual ────────────────────────────────────
 
   const fetchResumenAnual = useCallback(async (año) => {
     const desde = `${año}-01-01`
     const hasta = `${año}-12-31`
 
     const [{ data: cobros }, { data: pagos }] = await Promise.all([
-      supabase
-        .from('pagos')
-        .select('fecha, importe')
-        .gte('fecha', desde)
-        .lte('fecha', hasta),
-      supabase
-        .from('pagos_proveedor')
-        .select('fecha, importe')
-        .gte('fecha', desde)
-        .lte('fecha', hasta),
+      supabase.from('pagos').select('fecha, importe').gte('fecha', desde).lte('fecha', hasta),
+      supabase.from('pagos_proveedor').select('fecha, importe').gte('fecha', desde).lte('fecha', hasta),
     ])
 
-    const meses = Array.from({ length: 12 }, (_, i) => ({
-      mes: i + 1,
-      cobros: 0,
-      gastos: 0,
-    }))
-
+    const meses = Array.from({ length: 12 }, (_, i) => ({ mes: i + 1, cobros: 0, gastos: 0 }))
     ;(cobros ?? []).forEach(({ fecha, importe }) => {
-      const mes = new Date(fecha).getMonth()
+      const mes = new Date(fecha + 'T00:00:00').getMonth()
       meses[mes].cobros += parseFloat(importe) || 0
     })
     ;(pagos ?? []).forEach(({ fecha, importe }) => {
-      const mes = new Date(fecha).getMonth()
+      const mes = new Date(fecha + 'T00:00:00').getMonth()
       meses[mes].gastos += parseFloat(importe) || 0
     })
-
     return meses
   }, [])
 
@@ -180,11 +248,14 @@ export function useContabilidad() {
     loading,
     error,
     fetchCobros,
+    marcarEstadoCobro,
     fetchPagosProveedor,
+    marcarEstadoPago,
     registrarPagoProveedor,
     eliminarPagoProveedor,
     fetchProveedores,
     crearProveedor,
+    fetchLibroDiario,
     fetchResumenAnual,
     fetchResumenPorCategoria,
   }

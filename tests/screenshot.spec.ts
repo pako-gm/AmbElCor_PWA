@@ -23,3 +23,21 @@ test('Captura screenshot de / (dashboard)', async ({ page }) => {
   await page.waitForTimeout(500)
   await page.screenshot({ path: 'test-screenshots/dashboard.png', fullPage: true })
 })
+
+test('Captura screenshot de /inventario', async ({ page }) => {
+  await page.goto('/inventario', { waitUntil: 'networkidle' })
+  await page.waitForTimeout(1000)
+  await page.screenshot({ path: 'test-screenshots/inventario.png', fullPage: true })
+})
+
+test('Captura screenshot de /inventario/proveedores', async ({ page }) => {
+  await page.goto('/inventario/proveedores', { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+  await page.screenshot({ path: 'test-screenshots/inventario-proveedores.png', fullPage: true })
+})
+
+test('Captura screenshot de /inventario/nuevo', async ({ page }) => {
+  await page.goto('/inventario/nuevo', { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+  await page.screenshot({ path: 'test-screenshots/inventario-nuevo.png', fullPage: true })
+})
