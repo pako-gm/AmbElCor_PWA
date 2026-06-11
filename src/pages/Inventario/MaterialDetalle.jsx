@@ -130,13 +130,13 @@ export default function MaterialDetalle() {
 
   if (loading) return (
     <PageWrapper>
-      <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--muted)' }}>Cargando…</div>
+      <div className="text-center py-[60px] text-muted">Cargando…</div>
     </PageWrapper>
   )
 
   if (!material) return (
     <PageWrapper>
-      <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--muted)' }}>Material no encontrado.</div>
+      <div className="text-center py-[60px] text-muted">Material no encontrado.</div>
     </PageWrapper>
   )
 
@@ -253,7 +253,7 @@ export default function MaterialDetalle() {
                       </span>
                     )}
                     <button
-                      title="Editar movimiento"
+                      title="Editar movimiento" aria-label="Editar movimiento"
                       onClick={() => { setMovSeleccionado(mv); setModal('editarMov') }}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center', opacity: 0.6 }}
                       onMouseEnter={e => e.currentTarget.style.opacity = 1}
@@ -262,7 +262,7 @@ export default function MaterialDetalle() {
                       <Icon name="pencil" size={14} />
                     </button>
                     <button
-                      title="Eliminar movimiento"
+                      title="Eliminar movimiento" aria-label="Eliminar movimiento"
                       onClick={() => { setMovSeleccionado(mv); setModal('borrarMov') }}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center', opacity: 0.5 }}
                       onMouseEnter={e => e.currentTarget.style.opacity = 1}

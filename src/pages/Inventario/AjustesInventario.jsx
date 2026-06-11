@@ -51,7 +51,7 @@ function SeccionCategorias({ categorias, onAdd, onDelete }) {
             </div>
             <button
               onClick={() => onDelete(cat.id)}
-              title="Eliminar categoría"
+              title="Eliminar categoría" aria-label="Eliminar categoría"
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center' }}
             >
               <Icon name="trash" size={15} />
@@ -128,7 +128,7 @@ function SeccionUnidades({ unidades, onAdd, onDelete }) {
             </div>
             <button
               onClick={() => onDelete(u.id)}
-              title="Eliminar unidad"
+              title="Eliminar unidad" aria-label="Eliminar unidad"
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center' }}
             >
               <Icon name="trash" size={15} />

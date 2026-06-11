@@ -73,21 +73,21 @@ function MaterialCard({ material, iconoCategoria = 'box', onOpen, onMove }) {
         <div className="flex justify-start gap-2 pt-2 border-t border-line-2">
           <button
             className="w-9 h-9 flex items-center justify-center bg-green-soft text-green-ink rounded hover:opacity-80 transition"
-            title="Entrada"
+            title="Entrada" aria-label="Registrar entrada"
             onClick={(e) => { e.stopPropagation(); onMove('entrada', material.id); }}
           >
             <Icon name="plus" size={14} />
           </button>
           <button
             className="w-9 h-9 flex items-center justify-center bg-purple-soft text-purple-ink rounded hover:opacity-80 transition"
-            title="Salida"
+            title="Salida" aria-label="Registrar salida"
             onClick={(e) => { e.stopPropagation(); onMove('salida', material.id); }}
           >
             <Icon name="minus" size={14} />
           </button>
           <button
             className="w-9 h-9 flex items-center justify-center bg-amber-soft text-amber-ink rounded hover:opacity-80 transition"
-            title="Ajuste"
+            title="Ajuste" aria-label="Registrar ajuste"
             onClick={(e) => { e.stopPropagation(); onMove('ajuste', material.id); }}
           >
             <Icon name="wrench" size={14} />

@@ -4,6 +4,7 @@ import PageWrapper from '@/components/layout/PageWrapper'
 import { Icon, Btn, Field } from '@/components/inventario/InventarioUI'
 import { useInventario } from '@/hooks/useInventario'
 import { useToast } from '@/hooks/useToast'
+import { validarNumeroPositivo } from '@/utils/validators'
 
 const formVacio = {
   codigo: '', nombre: '', descripcion: '', unidad_gestion: 'unidad',
@@ -32,6 +33,10 @@ export default function NuevoMaterial() {
 
   const handleGuardar = async () => {
     if (!form.nombre.trim()) return setError('El nombre es obligatorio.')
+    if (form.stock_minimo !== '' && !validarNumeroPositivo(form.stock_minimo))
+      return setError('El stock mínimo debe ser un número igual o mayor que 0.')
+    if (form.precio_referencia !== '' && !validarNumeroPositivo(form.precio_referencia))
+      return setError('El precio de referencia debe ser un número igual o mayor que 0.')
     setError('')
     setGuardando(true)
     try {
