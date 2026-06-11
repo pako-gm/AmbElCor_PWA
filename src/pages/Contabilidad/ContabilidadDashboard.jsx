@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import { Download, Plus, Trash2, X, ArrowRight } from 'lucide-react'
+import { Download, Plus, Trash2, ArrowRight } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { useContabilidad } from '@/hooks/useContabilidad'
 import {
@@ -9,6 +9,11 @@ import {
 } from '@/utils/formatters'
 import { validarTelefono, validarEmail, normalizarTelefono } from '@/utils/validators'
 import { useToast } from '@/hooks/useToast'
+import Button from '@/components/ui/Button'
+import LoadingState from '@/components/ui/LoadingState'
+import Modal from '@/components/ui/Modal'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { Field, Input } from '@/components/ui/Field'
 import { exportarLibroCobros, exportarLibroPagos, exportarLibroDiario } from '@/utils/exportExcel'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -88,6 +93,7 @@ function SearchInput({ value, onChange, placeholder }) {
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-label={placeholder}
         className="border border-[--border] rounded-lg pl-7 pr-3 py-1.5 text-xs w-40"
       />
       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[--text-light]">
@@ -267,7 +273,7 @@ function DashboardPanel({ año }) {
       </div>
 
       {loading ? (
-        <p className="text-sm text-[--text-light] text-center py-8">Cargando...</p>
+        <LoadingState />
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
@@ -448,7 +454,7 @@ function CobrosPanel({ año }) {
       </div>
 
       {loading ? (
-        <p className="text-sm text-[--text-light] text-center py-10">Cargando...</p>
+        <LoadingState />
       ) : (
         <div className="bg-white border border-[--border] rounded-xl overflow-hidden">
           <div className="hidden md:grid grid-cols-[1fr_110px_90px_100px_80px_90px_110px] gap-3 px-4 py-2.5 bg-gray-50 border-b border-[--border] text-[10px] font-semibold uppercase tracking-wide text-[--text-light]">
@@ -776,7 +782,7 @@ function PagosPanel({ año }) {
       )}
 
       {loading ? (
-        <p className="text-sm text-[--text-light] text-center py-10">Cargando...</p>
+        <LoadingState />
       ) : (
         <div className="bg-white border border-[--border] rounded-xl overflow-hidden">
           <div className="hidden md:grid grid-cols-[90px_130px_120px_1fr_70px_55px_90px_80px_36px] gap-2 px-4 py-2.5 bg-gray-50 border-b border-[--border] text-[10px] font-semibold uppercase tracking-wide text-[--text-light]">
@@ -815,6 +821,7 @@ function PagosPanel({ año }) {
                 )}
               </div>
               <button onClick={() => setModalEliminar({ id: p.id, concepto: p.concepto })}
+                aria-label={`Eliminar gasto ${p.concepto}`}
                 className="text-gray-300 hover:text-red-400 transition-colors justify-self-end">
                 <Trash2 size={14} />
               </button>
@@ -823,61 +830,45 @@ function PagosPanel({ año }) {
         </div>
       )}
 
-      {modalEliminar && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
-            <h3 className="font-semibold text-[--text] mb-2">Eliminar gasto</h3>
-            <p className="text-sm text-[--text-medium] mb-6">
-              ¿Eliminar <strong>{modalEliminar.concepto}</strong>? Esta acción no se puede deshacer.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setModalEliminar(null)}
-                className="flex-1 border border-[--border] rounded-md px-4 py-2 text-sm text-[--text-medium] hover:bg-gray-50 transition-colors">
-                Cancelar
-              </button>
-              <button onClick={handleEliminar}
-                className="flex-1 bg-red-500 text-white rounded-md px-4 py-2 text-sm hover:bg-red-600 transition-colors">
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!modalEliminar}
+        title="Eliminar gasto"
+        description={modalEliminar ? `¿Eliminar "${modalEliminar.concepto}"? Esta acción no se puede deshacer.` : ''}
+        onConfirm={handleEliminar}
+        onCancel={() => setModalEliminar(null)}
+      />
 
-      {modalProveedor && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-[--text]">Nuevo proveedor</h3>
-              <button onClick={() => setModalProveedor(false)}>
-                <X size={18} className="text-[--text-light]" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              <input type="text" placeholder="Nombre *" value={nuevoProveedor.nombre}
-                onChange={e => setNuevoProveedor(p => ({ ...p, nombre: e.target.value }))}
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
-              <input type="tel" placeholder="Teléfono" value={nuevoProveedor.telefono}
-                onChange={e => setNuevoProveedor(p => ({ ...p, telefono: e.target.value }))}
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
-              <input type="email" placeholder="Email" value={nuevoProveedor.email}
-                onChange={e => setNuevoProveedor(p => ({ ...p, email: e.target.value }))}
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
-              {errProveedor && <p className="text-xs text-red-500">{errProveedor}</p>}
-            </div>
-            <div className="flex gap-3 mt-5">
-              <button onClick={() => setModalProveedor(false)}
-                className="flex-1 border border-[--border] rounded-md px-4 py-2 text-sm text-[--text-medium] hover:bg-gray-50 transition-colors">
-                Cancelar
-              </button>
-              <button onClick={handleCrearProveedor} disabled={guardandoProv || !nuevoProveedor.nombre.trim()}
-                className="flex-1 bg-primary text-white rounded-md px-4 py-2 text-sm hover:bg-primary-dark transition-colors disabled:opacity-50">
-                {guardandoProv ? 'Guardando…' : 'Crear'}
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={modalProveedor}
+        onClose={() => setModalProveedor(false)}
+        title="Nuevo proveedor"
+        maxWidth="max-w-sm"
+      >
+        <div className="space-y-3">
+          <Field label="Nombre" required>
+            <Input type="text" placeholder="Nombre" value={nuevoProveedor.nombre}
+              onChange={e => setNuevoProveedor(p => ({ ...p, nombre: e.target.value }))} />
+          </Field>
+          <Field label="Teléfono">
+            <Input type="tel" placeholder="Teléfono" value={nuevoProveedor.telefono}
+              onChange={e => setNuevoProveedor(p => ({ ...p, telefono: e.target.value }))} />
+          </Field>
+          <Field label="Email">
+            <Input type="email" placeholder="Email" value={nuevoProveedor.email}
+              onChange={e => setNuevoProveedor(p => ({ ...p, email: e.target.value }))} />
+          </Field>
+          {errProveedor && <p role="alert" className="text-xs text-red-500">{errProveedor}</p>}
         </div>
-      )}
+        <div className="flex gap-3 mt-5">
+          <Button variant="secondary" full onClick={() => setModalProveedor(false)}>
+            Cancelar
+          </Button>
+          <Button full onClick={handleCrearProveedor}
+            loading={guardandoProv} disabled={!nuevoProveedor.nombre.trim()}>
+            {guardandoProv ? 'Guardando…' : 'Crear'}
+          </Button>
+        </div>
+      </Modal>
     </div>
   )
 }
@@ -926,7 +917,7 @@ function LibroPanel({ año }) {
       </div>
 
       {loading ? (
-        <p className="text-sm text-[--text-light] text-center py-10">Cargando...</p>
+        <LoadingState />
       ) : (
         <div className="bg-white border border-[--border] rounded-xl overflow-hidden">
           <div className="hidden md:grid grid-cols-[90px_70px_1fr_100px_80px_50px_90px_90px_80px] gap-2 px-4 py-2.5 bg-gray-50 border-b border-[--border] text-[10px] font-semibold uppercase tracking-wide text-[--text-light]">
