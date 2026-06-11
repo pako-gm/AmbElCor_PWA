@@ -3,6 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, Check, X } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { fetchCliente, fetchMedidasCliente, guardarMedidasCliente } from '@/hooks/useClientes'
+import { useToast } from '@/hooks/useToast'
+import Button from '@/components/ui/Button'
+import { Field, Input, Textarea } from '@/components/ui/Field'
+import LoadingState from '@/components/ui/LoadingState'
 
 const CAMPOS_VACIOS = {
   fecha_toma: '',
@@ -78,6 +82,7 @@ const SECCIONES = [
 export default function MedidasCliente() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const toast = useToast()
   const [nombreCliente, setNombreCliente] = useState('')
   const [form, setForm] = useState(CAMPOS_VACIOS)
   const [loading, setLoading] = useState(true)
@@ -115,6 +120,7 @@ export default function MedidasCliente() {
         }
       })
       await guardarMedidasCliente(id, datos)
+      toast.success('Medidas guardadas.')
       navigate(`/clientes/${id}`)
     } catch (e) {
       setError('Error al guardar. Inténtalo de nuevo.')
@@ -124,7 +130,7 @@ export default function MedidasCliente() {
     }
   }
 
-  if (loading) return <PageWrapper><div className="p-8 text-center text-[--text-light] text-sm">Cargando…</div></PageWrapper>
+  if (loading) return <PageWrapper><LoadingState /></PageWrapper>
 
   return (
     <PageWrapper>
@@ -132,28 +138,25 @@ export default function MedidasCliente() {
 
         {/* Cabecera */}
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="text-[--text-light] hover:text-[--text-dark]">
+          <button
+            onClick={() => navigate(-1)}
+            aria-label="Volver"
+            className="text-[--text-light] hover:text-[--text-dark]"
+          >
             <ChevronLeft size={22} />
           </button>
           <div className="flex-1">
-            <h1 className="font-display text-xl text-[--text-dark]">Medidas</h1>
+            <h1 className="font-display text-2xl text-[--text-dark]">Medidas</h1>
             <p className="text-xs text-[--text-light]">{nombreCliente}</p>
           </div>
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p role="alert" className="text-xs text-red-500">{error}</p>}
           <div className="flex gap-2">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 border border-[--border] text-[--text-medium] text-sm px-3 py-1.5 rounded-md hover:bg-[--bg-alt] transition-colors"
-            >
+            <Button size="sm" variant="secondary" onClick={() => navigate(-1)}>
               <X size={14} /> Cancelar
-            </button>
-            <button
-              onClick={handleGuardar}
-              disabled={guardando}
-              className="flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-1.5 rounded-md hover:bg-primary-dark disabled:opacity-50 transition-colors"
-            >
+            </Button>
+            <Button size="sm" onClick={handleGuardar} loading={guardando}>
               <Check size={14} /> {guardando ? 'Guardando…' : 'Guardar'}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -161,11 +164,11 @@ export default function MedidasCliente() {
         <section className="bg-white rounded-lg border border-[--border] p-4 space-y-3">
           <h2 className="text-sm font-semibold text-[--text-medium]">Fecha de toma</h2>
           <div className="max-w-xs">
-            <input
+            <Input
               type="date"
+              aria-label="Fecha de toma"
               value={form.fecha_toma}
               onChange={e => set('fecha_toma', e.target.value)}
-              className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
         </section>
@@ -176,18 +179,15 @@ export default function MedidasCliente() {
             <h2 className="text-sm font-semibold text-[--text-medium]">{titulo}</h2>
             <div className="grid grid-cols-2 gap-3">
               {campos.map(({ key, label, unidad, tipo }) => (
-                <div key={key} className="space-y-1">
-                  <label className="text-xs text-[--text-light]">
-                    {label}{unidad ? ` (${unidad})` : ''}
-                  </label>
-                  <input
+                <Field key={key} label={`${label}${unidad ? ` (${unidad})` : ''}`}>
+                  <Input
                     type={tipo ?? 'number'}
+                    min={tipo ? undefined : '0'}
                     placeholder={unidad ? '0' : ''}
                     value={form[key]}
                     onChange={e => set(key, e.target.value)}
-                    className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                   />
-                </div>
+                </Field>
               ))}
             </div>
           </section>
@@ -196,12 +196,12 @@ export default function MedidasCliente() {
         {/* Notas */}
         <section className="bg-white rounded-lg border border-[--border] p-4 space-y-3">
           <h2 className="text-sm font-semibold text-[--text-medium]">Notas</h2>
-          <textarea
+          <Textarea
             placeholder="Observaciones sobre las medidas…"
+            aria-label="Notas de medidas"
             value={form.notas}
             onChange={e => set('notas', e.target.value)}
             rows={3}
-            className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none"
           />
         </section>
 

@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, Pencil, Trash2, ChevronDown, ChevronUp, Check, X } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
+import Button from '@/components/ui/Button'
+import { Field, Input, Textarea } from '@/components/ui/Field'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import LoadingState from '@/components/ui/LoadingState'
+import Badge from '@/components/ui/Badge'
 import { fetchCliente, actualizarCliente, eliminarCliente, fetchMedidasCliente } from '@/hooks/useClientes'
 import { formatFecha, formatImporte, formatTelefono, ESTADO_LABELS, ESTADO_COLORS } from '@/utils/formatters'
 import { validarTelefono, validarEmail } from '@/utils/validators'
@@ -82,7 +87,7 @@ export default function ClienteDetalle() {
     }
   }
 
-  if (loading) return <PageWrapper><div className="p-8 text-center text-[--text-light] text-sm">Cargando…</div></PageWrapper>
+  if (loading) return <PageWrapper><LoadingState /></PageWrapper>
   if (!cliente) return <PageWrapper><div className="p-8 text-center text-[--text-light] text-sm">Cliente no encontrado.</div></PageWrapper>
 
   const nombreCompleto = `${cliente.nombre} ${cliente.apellidos ?? ''}`.trim()
@@ -97,17 +102,22 @@ export default function ClienteDetalle() {
 
         {/* Cabecera */}
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/clientes')} className="text-[--text-light] hover:text-[--text-dark]">
+          <button
+            onClick={() => navigate('/clientes')}
+            aria-label="Volver"
+            className="text-[--text-light] hover:text-[--text-dark]"
+          >
             <ChevronLeft size={22} />
           </button>
           <div className="flex-1">
-            <h1 className="font-display text-xl text-[--text-dark]">{nombreCompleto}</h1>
+            <h1 className="font-display text-2xl text-[--text-dark]">{nombreCompleto}</h1>
             <p className="text-xs text-[--text-light]">Cliente desde {formatFecha(cliente.created_at)}</p>
           </div>
           <button
             onClick={() => { setEditando(true); setErroresEdit({}) }}
             className="text-[--text-light] hover:text-primary transition-colors"
             title="Editar datos"
+            aria-label="Editar datos"
           >
             <Pencil size={17} />
           </button>
@@ -115,6 +125,7 @@ export default function ClienteDetalle() {
             onClick={() => { setConfirmDelete(true); setErrorEliminar('') }}
             className="text-[--text-light] hover:text-red-500 transition-colors"
             title="Eliminar cliente"
+            aria-label="Eliminar cliente"
           >
             <Trash2 size={17} />
           </button>
@@ -127,71 +138,50 @@ export default function ClienteDetalle() {
           {editando ? (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs text-[--text-light]">Nombre *</label>
-                  <input
+                <Field label="Nombre" required error={erroresEdit.nombre}>
+                  <Input
                     type="text"
                     value={formEdit.nombre}
                     onChange={e => setFormEdit(v => ({ ...v, nombre: e.target.value }))}
-                    className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${erroresEdit.nombre ? 'border-red-400' : 'border-[--border]'}`}
                   />
-                  {erroresEdit.nombre && <p className="text-xs text-red-500">{erroresEdit.nombre}</p>}
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-[--text-light]">Apellidos</label>
-                  <input
+                </Field>
+                <Field label="Apellidos">
+                  <Input
                     type="text"
                     value={formEdit.apellidos}
                     onChange={e => setFormEdit(v => ({ ...v, apellidos: e.target.value }))}
-                    className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                   />
-                </div>
+                </Field>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs text-[--text-light]">Teléfono</label>
-                  <input
+                <Field label="Teléfono" error={erroresEdit.telefono}>
+                  <Input
                     type="tel"
                     value={formEdit.telefono}
                     onChange={e => setFormEdit(v => ({ ...v, telefono: e.target.value.replace(/\D/g, '').slice(0, 9) }))}
-                    className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${erroresEdit.telefono ? 'border-red-400' : 'border-[--border]'}`}
                   />
-                  {erroresEdit.telefono && <p className="text-xs text-red-500">{erroresEdit.telefono}</p>}
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-[--text-light]">Email</label>
-                  <input
+                </Field>
+                <Field label="Email" error={erroresEdit.email}>
+                  <Input
                     type="email"
                     value={formEdit.email}
                     onChange={e => setFormEdit(v => ({ ...v, email: e.target.value }))}
-                    className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${erroresEdit.email ? 'border-red-400' : 'border-[--border]'}`}
                   />
-                  {erroresEdit.email && <p className="text-xs text-red-500">{erroresEdit.email}</p>}
-                </div>
+                </Field>
               </div>
-              <div className="space-y-1">
-                <label className="text-xs text-[--text-light]">Notas</label>
-                <textarea
+              <Field label="Notas">
+                <Textarea
                   value={formEdit.notas}
                   onChange={e => setFormEdit(v => ({ ...v, notas: e.target.value }))}
-                  rows={2}
-                  className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                 />
-              </div>
+              </Field>
               <div className="flex gap-2">
-                <button
-                  onClick={handleGuardarDatos}
-                  disabled={guardandoEdit}
-                  className="flex items-center gap-1.5 bg-primary text-white text-xs px-3 py-1.5 rounded hover:bg-primary-dark disabled:opacity-50 transition-colors"
-                >
+                <Button size="sm" onClick={handleGuardarDatos} loading={guardandoEdit}>
                   <Check size={13} /> {guardandoEdit ? 'Guardando…' : 'Guardar'}
-                </button>
-                <button
-                  onClick={() => { setEditando(false); setErroresEdit({}) }}
-                  className="flex items-center gap-1.5 bg-gray-100 text-gray-500 text-xs px-3 py-1.5 rounded hover:bg-gray-200 transition-colors"
-                >
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => { setEditando(false); setErroresEdit({}) }}>
                   <X size={13} /> Cancelar
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -287,9 +277,7 @@ export default function ClienteDetalle() {
                     </p>
                   </div>
                   <div className="text-right space-y-1">
-                    <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${ESTADO_COLORS[e.estado]}`}>
-                      {ESTADO_LABELS[e.estado]}
-                    </span>
+                    <Badge estado={e.estado} />
                     <p className="text-sm font-semibold text-[--text-dark]">{formatImporte(e.precio_total)}</p>
                   </div>
                 </button>
@@ -301,42 +289,17 @@ export default function ClienteDetalle() {
       </div>
 
       {/* Modal confirmar eliminación */}
-      {confirmDelete && (
-        <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4"
-          onClick={() => setConfirmDelete(false)}
-        >
-          <div
-            className="bg-white rounded-xl w-full max-w-sm p-6 space-y-4"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
-                <Trash2 size={18} className="text-red-500" />
-              </div>
-              <div>
-                <h3 className="font-display text-base text-[--text-dark]">Eliminar cliente</h3>
-                <p className="text-xs text-[--text-light]">¿Eliminar a {nombreCompleto}? Esta acción no se puede deshacer.</p>
-              </div>
-            </div>
-            {errorEliminar && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded">{errorEliminar}</p>}
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="flex-1 text-sm border border-[--border] px-4 py-2 rounded-md text-[--text-medium] hover:bg-[--bg-alt] transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleEliminar}
-                className="flex-1 text-sm bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Eliminar cliente"
+        description={
+          errorEliminar
+            ? errorEliminar
+            : `¿Eliminar a ${nombreCompleto}? Esta acción no se puede deshacer.`
+        }
+        onConfirm={handleEliminar}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </PageWrapper>
   )
 }

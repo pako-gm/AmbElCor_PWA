@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, X } from 'lucide-react'
+import { Plus, Users } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { fetchClientes } from '@/hooks/useClientes'
 import { formatTelefono } from '@/utils/formatters'
+import PageHeader from '@/components/ui/PageHeader'
+import Button from '@/components/ui/Button'
+import SearchInput from '@/components/ui/SearchInput'
+import LoadingState from '@/components/ui/LoadingState'
+import EmptyState from '@/components/ui/EmptyState'
 
 export default function ClientesLista() {
   const navigate = useNavigate()
@@ -30,44 +35,37 @@ export default function ClientesLista() {
     <PageWrapper>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
         {/* Cabecera */}
-        <div className="flex items-center justify-between">
-          <h1 className="font-display text-2xl text-[--text-dark]">Clientes</h1>
-          <button
-            onClick={() => navigate('/clientes/nuevo')}
-            className="flex items-center gap-1.5 bg-primary text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-primary-dark transition-colors"
-          >
-            <Plus size={16} />
-            Nuevo
-          </button>
-        </div>
+        <PageHeader
+          titulo="Clientes"
+          accion={
+            <Button onClick={() => navigate('/clientes/nuevo')}>
+              <Plus size={16} />
+              Nuevo
+            </Button>
+          }
+        />
 
         {/* Buscador */}
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[--text-light]" />
-          <input
-            type="text"
-            placeholder="Buscar por nombre, teléfono o email…"
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 border border-[--border] rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-          {busqueda && (
-            <button
-              onClick={() => setBusqueda('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[--text-light] hover:text-[--text-dark]"
-            >
-              <X size={15} />
-            </button>
-          )}
-        </div>
+        <SearchInput
+          value={busqueda}
+          onChange={setBusqueda}
+          placeholder="Buscar por nombre, teléfono o email…"
+        />
 
         {/* Lista */}
         {loading ? (
-          <div className="text-center py-12 text-[--text-light] text-sm">Cargando…</div>
+          <LoadingState />
         ) : filtrados.length === 0 ? (
-          <div className="text-center py-12 text-[--text-light] text-sm">
-            {busqueda ? 'Sin resultados para esa búsqueda.' : 'Aún no hay clientes. ¡Crea el primero!'}
-          </div>
+          <EmptyState
+            icon={Users}
+            titulo={busqueda ? 'Sin resultados para esa búsqueda.' : 'Aún no hay clientes.'}
+            accion={!busqueda && (
+              <Button onClick={() => navigate('/clientes/nuevo')}>
+                <Plus size={16} />
+                Crear el primero
+              </Button>
+            )}
+          />
         ) : (
           <div className="space-y-2">
             {filtrados.map(c => (

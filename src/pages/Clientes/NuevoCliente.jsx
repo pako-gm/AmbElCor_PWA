@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { crearCliente } from '@/hooks/useClientes'
 import { validarTelefono, validarEmail } from '@/utils/validators'
 import { useToast } from '@/hooks/useToast'
+import PageHeader from '@/components/ui/PageHeader'
+import Button from '@/components/ui/Button'
+import { Field, Input, Textarea } from '@/components/ui/Field'
 
 export default function NuevoCliente() {
   const navigate = useNavigate()
@@ -48,93 +50,67 @@ export default function NuevoCliente() {
     <PageWrapper>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
         {/* Cabecera */}
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/clientes')} className="text-[--text-light] hover:text-[--text-dark]">
-            <ChevronLeft size={22} />
-          </button>
-          <h1 className="font-display text-xl text-[--text-dark]">Nuevo cliente</h1>
-        </div>
+        <PageHeader titulo="Nuevo cliente" backTo="/clientes" />
 
         {/* Datos personales */}
         <section className="bg-white rounded-lg border border-[--border] p-4 space-y-3">
           <h2 className="text-sm font-semibold text-[--text-medium]">Datos personales</h2>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs text-[--text-light]">Nombre *</label>
-              <input
+            <Field label="Nombre" required error={errores.nombre}>
+              <Input
                 type="text"
                 placeholder="Nombre"
                 value={form.nombre}
                 onChange={e => set('nombre', e.target.value)}
-                className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${errores.nombre ? 'border-red-400' : 'border-[--border]'}`}
               />
-              {errores.nombre && <p className="text-xs text-red-500">{errores.nombre}</p>}
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-[--text-light]">Apellidos</label>
-              <input
+            </Field>
+            <Field label="Apellidos">
+              <Input
                 type="text"
                 placeholder="Apellidos"
                 value={form.apellidos}
                 onChange={e => set('apellidos', e.target.value)}
-                className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
               />
-            </div>
+            </Field>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs text-[--text-light]">Teléfono</label>
-              <input
+            <Field label="Teléfono" error={errores.telefono}>
+              <Input
                 type="tel"
                 placeholder="612345678"
                 value={form.telefono}
                 onChange={e => set('telefono', e.target.value.replace(/\D/g, '').slice(0, 9))}
-                className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${errores.telefono ? 'border-red-400' : 'border-[--border]'}`}
               />
-              {errores.telefono && <p className="text-xs text-red-500">{errores.telefono}</p>}
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-[--text-light]">Email</label>
-              <input
+            </Field>
+            <Field label="Email" error={errores.email}>
+              <Input
                 type="email"
                 placeholder="correo@ejemplo.com"
                 value={form.email}
                 onChange={e => set('email', e.target.value)}
-                className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${errores.email ? 'border-red-400' : 'border-[--border]'}`}
               />
-              {errores.email && <p className="text-xs text-red-500">{errores.email}</p>}
-            </div>
+            </Field>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs text-[--text-light]">Notas</label>
-            <textarea
+          <Field label="Notas">
+            <Textarea
               placeholder="Observaciones sobre el cliente…"
               value={form.notas}
               onChange={e => set('notas', e.target.value)}
-              rows={2}
-              className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary resize-none"
             />
-          </div>
+          </Field>
         </section>
 
         {/* Botones */}
         <div className="flex gap-3">
-          <button
-            onClick={handleGuardar}
-            disabled={guardando}
-            className="flex-1 bg-primary text-white py-2.5 rounded-md text-sm font-medium hover:bg-primary-dark disabled:opacity-50 transition-colors"
-          >
+          <Button size="lg" className="flex-1" onClick={handleGuardar} loading={guardando}>
             {guardando ? 'Guardando…' : 'Guardar cliente'}
-          </button>
-          <button
-            onClick={() => navigate('/clientes')}
-            className="px-4 py-2.5 border border-[--border] rounded-md text-sm text-[--text-medium] hover:bg-[--bg-alt] transition-colors"
-          >
+          </Button>
+          <Button size="lg" variant="secondary" onClick={() => navigate('/clientes')}>
             Cancelar
-          </button>
+          </Button>
         </div>
       </div>
     </PageWrapper>
