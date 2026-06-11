@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { Icon, Btn, Field } from '@/components/inventario/InventarioUI'
 import { useInventario } from '@/hooks/useInventario'
+import { useToast } from '@/hooks/useToast'
 
 const formVacio = {
   codigo: '', nombre: '', descripcion: '', unidad_gestion: 'unidad',
@@ -11,6 +12,7 @@ const formVacio = {
 
 export default function NuevoMaterial() {
   const navigate = useNavigate()
+  const toast = useToast()
   const { crearMaterial, fetchCategorias, fetchUnidades } = useInventario()
   const [form, setForm] = useState(formVacio)
   const [guardando, setGuardando] = useState(false)
@@ -44,7 +46,8 @@ export default function NuevoMaterial() {
       }
       if (form.codigo.trim()) payload.codigo = form.codigo.trim()
       const material = await crearMaterial(payload)
-      navigate(`/inventario/${material.id}`, { state: { toastMsg: 'Material creado correctamente.' } })
+      toast.success('Material creado correctamente.')
+      navigate(`/inventario/${material.id}`)
     } catch (e) {
       setError(e.message)
     } finally {

@@ -4,6 +4,7 @@ import PageWrapper from '@/components/layout/PageWrapper'
 import { Icon, Btn } from '@/components/inventario/InventarioUI'
 import { MovementModal, LineEditModal, EditMovimientoModal, ConfirmEliminarMovimientoModal, ConfirmDesactivarModal } from '@/components/inventario/InventarioModals'
 import { useInventario } from '@/hooks/useInventario'
+import { useToast } from '@/hooks/useToast'
 import { formatImporte, formatCantidad } from '@/utils/formatters'
 
 const UNIT_DISPLAY = {
@@ -37,7 +38,7 @@ export default function MaterialDetalle() {
   const [unidadesDB, setUnidadesDB] = useState([])
   const [modal, setModal] = useState(null) // null | 'entrada' | 'salida' | 'ajuste' | 'editar' | 'desactivar' | 'editarMov' | 'borrarMov'
   const [movSeleccionado, setMovSeleccionado] = useState(null)
-  const [toast, setToast] = useState('')
+  const toast = useToast()
 
   const cargar = async () => {
     setLoading(true)
@@ -55,14 +56,7 @@ export default function MaterialDetalle() {
     fetchUnidades().then(setUnidadesDB)
   }, [id])
 
-  useEffect(() => {
-    if (toast) {
-      const t = setTimeout(() => setToast(''), 3000)
-      return () => clearTimeout(t)
-    }
-  }, [toast])
-
-  const showToast = (msg) => setToast(msg)
+  const showToast = (msg) => toast.success(msg)
 
   const handleMovimiento = async ({ kind, materialId, qty, costeUd, proveedorId, encargo, motivo, referencia }) => {
     if (kind === 'entrada') {
@@ -161,18 +155,6 @@ export default function MaterialDetalle() {
   return (
     <PageWrapper>
       <div style={{ maxWidth: 1000, margin: '0 auto', padding: '28px 24px 80px' }}>
-
-        {/* Toast */}
-        {toast && (
-          <div style={{
-            position: 'fixed', top: 16, right: 16, zIndex: 60,
-            background: 'var(--green)', color: '#fff', fontWeight: 700,
-            padding: '10px 18px', borderRadius: 12, boxShadow: 'var(--shadow-lg)',
-            fontSize: 14,
-          }}>
-            {toast}
-          </div>
-        )}
 
         {/* Backlink */}
         <button className="backlink" onClick={() => navigate('/inventario')}>

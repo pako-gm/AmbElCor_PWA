@@ -8,6 +8,7 @@ import {
   FORMA_PAGO_LABELS, CATEGORIA_GASTO_LABELS,
 } from '@/utils/formatters'
 import { validarTelefono, validarEmail, normalizarTelefono } from '@/utils/validators'
+import { useToast } from '@/hooks/useToast'
 import { exportarLibroCobros, exportarLibroPagos, exportarLibroDiario } from '@/utils/exportExcel'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -374,6 +375,7 @@ function DashboardPanel({ año }) {
 // ─── COBROS ───────────────────────────────────────────────────────────────────
 
 function CobrosPanel({ año }) {
+  const toast = useToast()
   const { fetchCobros, marcarEstadoCobro, loading } = useContabilidad()
   const [cobros, setCobros] = useState([])
   const [filtro, setFiltro] = useState('todos')
@@ -398,8 +400,14 @@ function CobrosPanel({ año }) {
   const totalVencido  = cobros.filter(c => c.estado === 'vencido').reduce((s, c) => s + parseFloat(c.importe || 0), 0)
 
   const handleMarcar = async (id) => {
-    await marcarEstadoCobro(id, 'cobrado')
-    cargar()
+    try {
+      await marcarEstadoCobro(id, 'cobrado')
+      toast.success('Cobro marcado como cobrado.')
+      cargar()
+    } catch (e) {
+      console.error(e)
+      toast.error('No se pudo actualizar el cobro.')
+    }
   }
 
   return (
@@ -498,6 +506,7 @@ function CobrosPanel({ año }) {
 // ─── PAGOS ────────────────────────────────────────────────────────────────────
 
 function PagosPanel({ año }) {
+  const toast = useToast()
   const {
     fetchPagosProveedor, registrarPagoProveedor, eliminarPagoProveedor,
     marcarEstadoPago, fetchProveedores, crearProveedor, loading,
@@ -562,6 +571,7 @@ function PagosPanel({ año }) {
       })
       setForm(formVacio)
       setMostrarForm(false)
+      toast.success('Gasto registrado.')
       await cargar()
     } catch (e) { setErrForm(e.message) }
     finally { setGuardando(false) }
@@ -569,9 +579,15 @@ function PagosPanel({ año }) {
 
   const handleEliminar = async () => {
     if (!modalEliminar) return
-    await eliminarPagoProveedor(modalEliminar.id)
+    try {
+      await eliminarPagoProveedor(modalEliminar.id)
+      toast.success('Gasto eliminado.')
+      cargar()
+    } catch (e) {
+      console.error(e)
+      toast.error('No se pudo eliminar el gasto.')
+    }
     setModalEliminar(null)
-    cargar()
   }
 
   const handleCrearProveedor = async () => {
@@ -601,8 +617,14 @@ function PagosPanel({ año }) {
   }
 
   const handleMarcarPagado = async (id) => {
-    await marcarEstadoPago(id, 'pagado')
-    cargar()
+    try {
+      await marcarEstadoPago(id, 'pagado')
+      toast.success('Gasto marcado como pagado.')
+      cargar()
+    } catch (e) {
+      console.error(e)
+      toast.error('No se pudo actualizar el gasto.')
+    }
   }
 
   return (

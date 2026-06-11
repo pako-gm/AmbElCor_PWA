@@ -4,9 +4,11 @@ import { ChevronLeft } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { crearCliente } from '@/hooks/useClientes'
 import { validarTelefono, validarEmail } from '@/utils/validators'
+import { useToast } from '@/hooks/useToast'
 
 export default function NuevoCliente() {
   const navigate = useNavigate()
+  const toast = useToast()
   const [form, setForm] = useState({
     nombre: '', apellidos: '', telefono: '', email: '', notas: '',
   })
@@ -32,9 +34,11 @@ export default function NuevoCliente() {
     setGuardando(true)
     try {
       const cliente = await crearCliente({ ...form })
+      toast.success('Cliente creado.')
       navigate(`/clientes/${cliente.id}`)
     } catch (e) {
       console.error(e)
+      toast.error('No se pudo guardar el cliente.')
     } finally {
       setGuardando(false)
     }

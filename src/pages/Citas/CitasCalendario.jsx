@@ -5,6 +5,7 @@ import interactionPlugin from '@fullcalendar/interaction'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { fetchCitas, crearCita, actualizarCita, eliminarCita } from '@/hooks/useCitas'
 import { fetchClientes } from '@/hooks/useClientes'
+import { useToast } from '@/hooks/useToast'
 import { X, Trash2, Edit2, Plus } from 'lucide-react'
 
 const TIPOS_CITA = {
@@ -33,6 +34,7 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
   })
 
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [errorCliente, setErrorCliente] = useState('')
   const [clientes, setClientes] = useState([])
   const [filtroClientes, setFiltroClientes] = useState('')
   const [mostrarListaClientes, setMostrarListaClientes] = useState(false)
@@ -93,13 +95,14 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
 
   const handleSave = () => {
     if (!form.cliente_id || !form.cliente_nombre.trim()) {
-      alert('Por favor selecciona un cliente')
+      setErrorCliente('Selecciona un cliente para la cita.')
       return
     }
-    if (form.fin <= form.inicio) {
-      form.fin = new Date(form.inicio.getTime() + 30 * 60000)
-    }
-    onSave(form)
+    setErrorCliente('')
+    const datos = form.fin <= form.inicio
+      ? { ...form, fin: new Date(form.inicio.getTime() + 30 * 60000) }
+      : form
+    onSave(datos)
   }
 
   const handleDelete = () => {
@@ -289,9 +292,10 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
                   setMostrarListaClientes(true)
                 }}
                 onFocus={() => setMostrarListaClientes(true)}
-                className="w-full px-3 py-2 border border-[--border] rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${errorCliente ? 'border-red-400' : 'border-[--border]'}`}
                 placeholder="Buscar o seleccionar cliente..."
               />
+              {errorCliente && <p role="alert" className="text-xs text-red-500 mt-1">{errorCliente}</p>}
               {mostrarListaClientes && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[--border] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
                   {clientes
@@ -310,6 +314,7 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
                             cliente_id: cliente.id,
                             cliente_nombre: `${cliente.nombre}${cliente.apellidos ? ' ' + cliente.apellidos : ''}`
                           }))
+                          setErrorCliente('')
                           setFiltroClientes('')
                           setMostrarListaClientes(false)
                         }}
@@ -412,6 +417,7 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
 }
 
 export default function CitasCalendario() {
+  const toast = useToast()
   const [citas, setCitas] = useState([])
   const [loading, setLoading] = useState(false)
   const [sheetCita, setSheetCita] = useState(null)
@@ -450,9 +456,10 @@ export default function CitasCalendario() {
       await cargarCitas()
       setSheetCita(null)
       setSheetModo(null)
+      toast.success(sheetModo === 'new' ? 'Cita creada.' : 'Cita actualizada.')
     } catch (err) {
       console.error('Error guardando cita:', err)
-      alert('Error al guardar la cita')
+      toast.error('No se pudo guardar la cita.')
     } finally {
       setSheetLoading(false)
     }
@@ -465,9 +472,10 @@ export default function CitasCalendario() {
       await cargarCitas()
       setSheetCita(null)
       setSheetModo(null)
+      toast.success('Cita eliminada.')
     } catch (err) {
       console.error('Error eliminando cita:', err)
-      alert('Error al eliminar la cita')
+      toast.error('No se pudo eliminar la cita.')
     } finally {
       setSheetLoading(false)
     }
@@ -569,7 +577,7 @@ export default function CitasCalendario() {
         await cargarCitas()
       } catch (err) {
         console.error('Error al mover cita:', err)
-        alert('Error al actualizar la cita')
+        toast.error('No se pudo mover la cita.')
         info.revert()
       }
     },

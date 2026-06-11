@@ -3,12 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { fetchPrenda, crearPrenda, actualizarPrenda } from '@/hooks/useCatalogo'
+import { useToast } from '@/hooks/useToast'
 
 const VACIO = { nombre: '', descripcion: '', precio_base: '', descuento: '0', activo: true }
 
 export default function CatalogoForm() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const toast = useToast()
   const esNueva = !id
   const [form, setForm] = useState(VACIO)
   const [loading, setLoading] = useState(!esNueva)
@@ -53,6 +55,7 @@ export default function CatalogoForm() {
       } else {
         await actualizarPrenda(id, payload)
       }
+      toast.success(esNueva ? 'Prenda creada.' : 'Prenda actualizada.')
       navigate('/catalogo')
     } catch (e) {
       setError('Error al guardar: ' + e.message)

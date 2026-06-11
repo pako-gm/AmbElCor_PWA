@@ -7,6 +7,7 @@ import {
 } from '@/hooks/useEncargos'
 import { formatImporte } from '@/utils/formatters'
 import { validarTelefono, validarEmail } from '@/utils/validators'
+import { useToast } from '@/hooks/useToast'
 
 function lineaVacia() {
   return { _id: Date.now() + Math.random(), prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', notas: '' }
@@ -14,6 +15,7 @@ function lineaVacia() {
 
 export default function NuevoEncargo() {
   const navigate = useNavigate()
+  const toast = useToast()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [erroresForm, setErroresForm] = useState({ cliente: false, fechaEntrega: false, lineas: new Set() })
@@ -145,6 +147,7 @@ export default function NuevoEncargo() {
         notas,
         lineas,
       })
+      toast.success('Encargo creado.')
       navigate(`/encargos/${encargo.id}`)
     } catch (e) {
       setError('Error al guardar: ' + e.message)

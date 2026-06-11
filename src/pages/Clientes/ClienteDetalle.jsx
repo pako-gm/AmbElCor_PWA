@@ -5,10 +5,12 @@ import PageWrapper from '@/components/layout/PageWrapper'
 import { fetchCliente, actualizarCliente, eliminarCliente, fetchMedidasCliente } from '@/hooks/useClientes'
 import { formatFecha, formatImporte, formatTelefono, ESTADO_LABELS, ESTADO_COLORS } from '@/utils/formatters'
 import { validarTelefono, validarEmail } from '@/utils/validators'
+import { useToast } from '@/hooks/useToast'
 
 export default function ClienteDetalle() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const toast = useToast()
   const [cliente, setCliente] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -61,14 +63,19 @@ export default function ClienteDetalle() {
         notas: formEdit.notas || null,
       })
       setEditando(false)
+      toast.success('Datos del cliente actualizados.')
       cargar()
-    } catch (e) { console.error(e) }
+    } catch (e) {
+      console.error(e)
+      toast.error('No se pudieron guardar los cambios.')
+    }
     finally { setGuardandoEdit(false) }
   }
 
   const handleEliminar = async () => {
     try {
       await eliminarCliente(id)
+      toast.success('Cliente eliminado.')
       navigate('/clientes')
     } catch (e) {
       setErrorEliminar(e.message)

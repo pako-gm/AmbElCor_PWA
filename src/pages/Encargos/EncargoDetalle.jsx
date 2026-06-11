@@ -8,6 +8,7 @@ import PageWrapper from '@/components/layout/PageWrapper'
 import { fetchEncargo, avanzarEstado, registrarPago, actualizarPago, eliminarPago, eliminarLinea, agregarLinea, actualizarLinea, fetchCatalogo, eliminarEncargo } from '@/hooks/useEncargos'
 import { supabase } from '@/lib/supabase'
 import { generarPresupuestoPDF, generarFacturaPDF } from '@/utils/pdfGenerator'
+import { useToast } from '@/hooks/useToast'
 import {
   formatFecha, formatImporte,
   ESTADO_LABELS,
@@ -22,6 +23,7 @@ const FORMAS_PAGO = ['efectivo', 'transferencia', 'tarjeta', 'bizum']
 export default function EncargoDetalle() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const toast = useToast()
   const [encargo, setEncargo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [avanzando, setAvanzando] = useState(false)
@@ -95,8 +97,13 @@ export default function EncargoDetalle() {
   }
 
   const handleEliminarLinea = async (lineaId, descripcion) => {
-    await eliminarLinea(lineaId, id, descripcion)
-    cargar()
+    try {
+      await eliminarLinea(lineaId, id, descripcion)
+      cargar()
+    } catch (e) {
+      console.error(e)
+      toast.error('No se pudo eliminar la línea.')
+    }
   }
 
   const handleAgregarLinea = async () => {
@@ -109,6 +116,7 @@ export default function EncargoDetalle() {
       cargar()
     } catch (e) {
       console.error(e)
+      toast.error('No se pudo añadir la línea.')
     } finally {
       setGuardandoLinea(false)
     }
@@ -188,6 +196,7 @@ export default function EncargoDetalle() {
       cargar()
     } catch (e) {
       console.error(e)
+      toast.error('No se pudo cambiar el estado del encargo.')
     } finally {
       setAvanzando(false)
     }
@@ -198,13 +207,20 @@ export default function EncargoDetalle() {
   }
 
   const handleConfirmDelete = async () => {
-    if (confirmDelete?.tipo === 'encargo') {
-      await eliminarEncargo(id)
-      navigate('/encargos')
-    } else if (confirmDelete?.tipo === 'pago') {
-      const pago = encargo.pagos?.find(p => p.id === confirmDelete.pagoId)
-      await eliminarPago(confirmDelete.pagoId, id, pago?.importe)
-      cargar()
+    try {
+      if (confirmDelete?.tipo === 'encargo') {
+        await eliminarEncargo(id)
+        toast.success('Encargo eliminado.')
+        navigate('/encargos')
+      } else if (confirmDelete?.tipo === 'pago') {
+        const pago = encargo.pagos?.find(p => p.id === confirmDelete.pagoId)
+        await eliminarPago(confirmDelete.pagoId, id, pago?.importe)
+        toast.success('Pago eliminado.')
+        cargar()
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error('No se pudo completar la eliminación.')
     }
     setConfirmDelete(null)
   }
@@ -228,9 +244,11 @@ export default function EncargoDetalle() {
       await registrarPago({ ...pago, encargo_id: id })
       setPago({ fecha: new Date().toISOString().split('T')[0], importe: '', tipo: 'señal', forma_pago: 'efectivo', referencia: '', notas: '' })
       setMostrarFormPago(false)
+      toast.success('Pago registrado.')
       cargar()
     } catch (e) {
       console.error(e)
+      toast.error('No se pudo registrar el pago.')
     } finally {
       setGuardandoPago(false)
     }
@@ -510,7 +528,7 @@ export default function EncargoDetalle() {
                           await actualizarPago(p.id, datosPagoEdicion)
                           await cargar()
                           setPagoEditando(null)
-                        } catch (e) { console.error(e) }
+                        } catch (e) { console.error(e); toast.error('No se pudo actualizar el pago.') }
                         finally { setGuardandoPagoEdicion(false) }
                       }}
                       disabled={guardandoPagoEdicion}
@@ -711,7 +729,7 @@ export default function EncargoDetalle() {
                               const updated = await fetchEncargo(encargo.id)
                               setEncargo(updated)
                               setLineaEditando(null)
-                            } catch (e) { console.error(e) }
+                            } catch (e) { console.error(e); toast.error('No se pudo actualizar la línea.') }
                             finally { setGuardandoEdicion(false) }
                           }}
                           disabled={guardandoEdicion}
