@@ -78,7 +78,7 @@ export default function App() {
         <Route path="/inventario" element={<Protected><MaterialesLista /></Protected>} />
         <Route path="/inventario/nuevo" element={<Protected><NuevoMaterial /></Protected>} />
         <Route path="/inventario/ajustes" element={<Protected><AjustesInventario /></Protected>} />
-        <Route path="/inventario/proveedores" element={<Protected><PageWrapper title="Proveedores"><div className="max-w-7xl mx-auto px-4 md:px-8 py-6"><ProveedoresPanel /></div></PageWrapper></Protected>} />
+        <Route path="/inventario/proveedores" element={<Protected><PageWrapper><div className="max-w-7xl mx-auto px-4 md:px-8 py-6"><ProveedoresPanel /></div></PageWrapper></Protected>} />
         <Route path="/inventario/:id" element={<Protected><MaterialDetalle /></Protected>} />
 
         <Route path="/catalogo" element={<Protected><CatalogoLista /></Protected>} />

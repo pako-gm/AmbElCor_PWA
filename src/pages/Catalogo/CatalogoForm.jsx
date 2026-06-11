@@ -136,22 +136,26 @@ export default function CatalogoForm() {
           </div>
 
           {/* Activo */}
-          <label className="flex items-center gap-3 cursor-pointer select-none">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => set('activo', !form.activo)}
-              className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${
-                form.activo ? 'bg-primary' : 'bg-gray-200'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                form.activo
+                  ? 'border-red-200 text-red-500 hover:bg-red-50'
+                  : 'border-green-200 text-green-600 hover:bg-green-50'
               }`}
             >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                form.activo ? 'translate-x-4' : 'translate-x-0.5'
-              }`} />
+              {form.activo ? (
+                <><span className="text-red-400">×</span> Desactivar</>
+              ) : (
+                <><span>✓</span> Activar</>
+              )}
             </button>
             <span className="text-sm text-[--text-medium]">
-              {form.activo ? 'Activa (aparece en el selector de encargos)' : 'Inactiva (oculta en encargos)'}
+              Pulsa para <strong>{form.activo ? 'Desactivar' : 'Activar'}</strong> / {form.activo ? 'Activar' : 'Desactivar'} la prenda
             </span>
-          </label>
+          </div>
         </section>
 
         <div className="flex gap-3">

@@ -13,8 +13,7 @@ function fmtDate(s) {
   return m ? `${m[3]}-${m[2]}-${m[1]}` : s
 }
 
-// Colores por categoría para el ícono de proveedor (basado en primera letra del nombre)
-const PROV_COLORS = ['#7b5fc4', '#1fb39a', '#c2872a', '#9b1f8c', '#5b7088', '#d6536d', '#16a163', '#b07d33']
+const PROV_COLORS = ['#1fb39a', '#118b78', '#0d5f52', '#b07d33', '#8a6520', '#1fb39a', '#118b78', '#b07d33']
 function colorForId(id) {
   if (!id) return PROV_COLORS[0]
   const n = typeof id === 'string' ? id.charCodeAt(0) : id
@@ -65,29 +64,22 @@ function ProviderDetail({ proveedorId, onEdit, onReload }) {
     <div className="prov-detail">
       {/* Cabecera del panel */}
       <div className="panel">
-        <div className="prov-detail__head">
-          <div className="prov-detail__id">
-            <span
-              className="prov-detail__icon"
-              style={{ background: colorForId(proveedor.id), color: '#fff', width: 58, height: 58, borderRadius: 15, display: 'grid', placeItems: 'center' }}
-            >
-              <Icon name="building" size={26} />
-            </span>
-            <div>
-              <div className="prov-eyebrow">Proveedor</div>
-              <h2 className="prov-name">{proveedor.nombre}</h2>
-              <p className="prov-sub">{proveedor.contacto || 'Sin contacto asignado'}</p>
-            </div>
-          </div>
-          <div className="prov-detail__actions">
-            <div className="prov-detail__btns">
-              <Btn kind="ghost" icon="pencil" onClick={onEdit}>Editar</Btn>
-            </div>
-          </div>
+        <div className="prov-detail__head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
+          <h2 className="prov-name" style={{ margin: 0 }}>{proveedor.nombre}</h2>
+          <Btn kind="ghost" icon="pencil" onClick={onEdit}>Editar</Btn>
         </div>
 
         {/* Datos de contacto */}
         <div className="prov-contact">
+          {proveedor.contacto && (
+            <div className="prov-contact__item">
+              <span className="prov-contact__ic"><Icon name="person" size={16} /></span>
+              <div>
+                <span className="prov-contact__label">CONTACTO</span>
+                <span className="prov-contact__value">{proveedor.contacto}</span>
+              </div>
+            </div>
+          )}
           <div className="prov-contact__item">
             <span className="prov-contact__ic"><Icon name="phone" size={16} /></span>
             <div>
@@ -295,11 +287,8 @@ export default function ProveedoresPanel() {
   return (
     <div>
       {/* Cabecera */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#7b5fc4', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 22 }}>P</div>
-          <h1 style={{ margin: 0, fontFamily: '"Lora", serif', fontSize: 30, fontWeight: 600, color: 'var(--ink)' }}>Proveedores</h1>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+        <h1 style={{ margin: 0, fontFamily: '"Playfair Display", serif', fontSize: 28, fontWeight: 600, color: 'var(--ink)' }}>Proveedores</h1>
         <Btn kind="brand" icon="plus" onClick={() => { setMode('create') }}>Nuevo proveedor</Btn>
       </div>
 

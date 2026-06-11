@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import { Download, Plus, Trash2, X } from 'lucide-react'
+import { Download, Plus, Trash2, X, ArrowRight } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { useContabilidad } from '@/hooks/useContabilidad'
 import {
@@ -100,12 +100,12 @@ function SearchInput({ value, onChange, placeholder }) {
 // ─── Gráfico donut SVG ────────────────────────────────────────────────────────
 
 function DonutChart({ data, total }) {
-  const R = 52, SW = 18, Cf = 2 * Math.PI * R
+  const R = 52, SW = 16, Cf = 2 * Math.PI * R
   let acc = 0
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-6">
-      <div className="relative shrink-0">
-        <svg viewBox="0 0 140 140" width="150" height="150">
+    <div className="flex flex-col gap-4">
+      <div className="relative w-full max-w-[220px] mx-auto">
+        <svg viewBox="0 0 140 140" className="w-full h-auto">
           <g transform="rotate(-90 70 70)">
             <circle cx="70" cy="70" r={R} fill="none" stroke="#E5E7EB" strokeWidth={SW} />
             {data.map((d, i) => {
@@ -120,23 +120,23 @@ function DonutChart({ data, total }) {
           </g>
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-          <span className="text-[10px] text-[--text-light]">Gastos</span>
-          <span className="text-sm font-bold text-[--text-dark]">{formatImporte(total)}</span>
+          <span className="text-[9px] text-[--text-light]">Gastos</span>
+          <span className="text-xs font-bold text-[--text-dark]">{formatImporte(total)}</span>
         </div>
       </div>
-      <ul className="flex-1 space-y-2 w-full">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2">
         {data.map((d, i) => (
-          <li key={i} className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: d.color }} />
+          <div key={i} className="flex items-start gap-1.5 min-w-0">
+            <span className="w-2 h-2 rounded-sm shrink-0 mt-0.5" style={{ background: d.color }} />
             <div className="min-w-0">
-              <p className="text-xs text-[--text-medium] leading-snug">{d.label}</p>
-              <p className="text-[10px] text-[--text-light]">
+              <p className="text-[10px] text-[--text-medium] leading-tight truncate">{d.label}</p>
+              <p className="text-[9px] text-[--text-light]">
                 {formatImporte(d.value)} · {((d.value / total) * 100).toFixed(1)}%
               </p>
             </div>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   )
 }
@@ -242,7 +242,7 @@ function DashboardPanel({ año }) {
   const totalGastosCat = categoriaData.reduce((s, d) => s + d.value, 0)
   const resultado = ingresosCobrados - gastosPagados
   const maxV = Math.max(1, ...mesesData.map(m => Math.max(m.ing, m.gas)))
-  const H = 100
+  const H = 200
 
   return (
     <div className="space-y-6">
@@ -268,7 +268,7 @@ function DashboardPanel({ año }) {
         <p className="text-sm text-[--text-light] text-center py-8">Cargando...</p>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             {/* Barras mensuales */}
             <div className="bg-white border border-[--border] rounded-xl p-5">
               <p className="text-xs font-semibold text-[--text-medium] mb-4">Evolución mensual</p>
@@ -278,12 +278,12 @@ function DashboardPanel({ año }) {
                     <div className="w-full flex items-end justify-center gap-px" style={{ height: H }}>
                       <div
                         className="flex-1 bg-primary/80 rounded-t-sm transition-all"
-                        style={{ height: Math.max(2, (d.ing / maxV) * H) }}
+                        style={{ height: (d.ing / maxV) * H }}
                         title={`Ingresos ${MESES_LABELS[i]}: ${formatImporte(d.ing)}`}
                       />
                       <div
                         className="flex-1 bg-amber-400/80 rounded-t-sm transition-all"
-                        style={{ height: Math.max(2, (d.gas / maxV) * H) }}
+                        style={{ height: (d.gas / maxV) * H }}
                         title={`Gastos ${MESES_LABELS[i]}: ${formatImporte(d.gas)}`}
                       />
                     </div>
@@ -941,13 +941,17 @@ export default function ContabilidadDashboard() {
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h1 className="font-display text-2xl text-[--text-dark]">Contabilidad</h1>
-          <select
-            value={año}
-            onChange={e => setAño(Number(e.target.value))}
-            className="border border-[--border] rounded-md px-3 py-2 text-sm bg-white"
-          >
-            {AÑOS.map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-[--text-light]">Selecciona el año</span>
+            <ArrowRight size={14} className="text-[--text-light]" />
+            <select
+              value={año}
+              onChange={e => setAño(Number(e.target.value))}
+              className="border border-[--border] rounded-md px-3 py-2 text-sm bg-white"
+            >
+              {AÑOS.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
         </div>
 
         <SubNav tab={tab} setTab={setTab} />

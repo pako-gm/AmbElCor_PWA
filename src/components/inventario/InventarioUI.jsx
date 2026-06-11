@@ -192,6 +192,7 @@ export function Icon({ name, size = 18, style }) {
       </>
     ),
     check: <path d="M20 6 9 17l-5-5" />,
+    person: <><circle cx="12" cy="7" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></>,
     power: (
       <>
         <path d="M12 3v9" />

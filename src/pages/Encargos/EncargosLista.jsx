@@ -36,7 +36,6 @@ const FILTROS = [
   { value: 'confirmado', label: 'Confirmado' },
   { value: 'en_confeccion', label: 'En confección' },
   { value: 'listo', label: 'Listo' },
-  { value: 'entregado', label: 'Entregado' },
 ]
 
 export default function EncargosLista() {
@@ -45,24 +44,34 @@ export default function EncargosLista() {
   const [loading, setLoading] = useState(true)
   const [filtroEstado, setFiltroEstado] = useState('activos')
   const [busqueda, setBusqueda] = useState('')
+  const [verEntregados, setVerEntregados] = useState(false)
 
   useEffect(() => {
     setLoading(true)
     const params = filtroEstado === 'activos'
-      ? { excludeEntregados: true }
+      ? (verEntregados ? {} : { excludeEntregados: true })
       : { estado: filtroEstado }
     fetchEncargos(params)
       .then(setEncargos)
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [filtroEstado])
+  }, [filtroEstado, verEntregados])
 
-  const filtrados = encargos.filter(e => {
-    if (!busqueda) return true
-    const q = busqueda.toLowerCase()
-    const nombre = `${e.clientes?.nombre ?? ''} ${e.clientes?.apellidos ?? ''}`.toLowerCase()
-    return nombre.includes(q) || (e.numero ?? '').toLowerCase().includes(q)
-  })
+  const filtrados = encargos
+    .filter(e => {
+      if (!busqueda) return true
+      const q = busqueda.toLowerCase()
+      const nombre = `${e.clientes?.nombre ?? ''} ${e.clientes?.apellidos ?? ''}`.toLowerCase()
+      return nombre.includes(q) || (e.numero ?? '').toLowerCase().includes(q)
+    })
+    .sort((a, b) => {
+      const fa = a.fecha_entrega_estimada
+      const fb = b.fecha_entrega_estimada
+      if (!fa && !fb) return 0
+      if (!fa) return 1
+      if (!fb) return -1
+      return fa.localeCompare(fb)
+    })
 
   return (
     <PageWrapper>
@@ -106,6 +115,18 @@ export default function EncargosLista() {
               {f.label}
             </button>
           ))}
+          {filtroEstado === 'activos' && (
+            <button
+              onClick={() => setVerEntregados(v => !v)}
+              className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                verEntregados
+                  ? 'bg-primary text-white'
+                  : 'bg-white border border-[--border] text-[--text-medium] hover:border-primary'
+              }`}
+            >
+              Mostrar entregados
+            </button>
+          )}
         </div>
 
         {/* Lista */}

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Search, X, Pencil } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
-import { fetchPrendasCatalogo, toggleActivoPrenda } from '@/hooks/useCatalogo'
+import { fetchPrendasCatalogo } from '@/hooks/useCatalogo'
 import { formatImporte } from '@/utils/formatters'
 
 export default function CatalogoLista() {
@@ -10,25 +10,16 @@ export default function CatalogoLista() {
   const [prendas, setPrendas] = useState([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
-  const [mostrarInactivas, setMostrarInactivas] = useState(false)
 
-  const cargar = () => {
+  useEffect(() => {
     setLoading(true)
     fetchPrendasCatalogo()
       .then(setPrendas)
       .catch(console.error)
       .finally(() => setLoading(false))
-  }
-
-  useEffect(cargar, [])
-
-  const handleToggleActivo = async (id, activo) => {
-    setPrendas(prev => prev.map(p => p.id === id ? { ...p, activo } : p))
-    await toggleActivoPrenda(id, activo).catch(() => cargar())
-  }
+  }, [])
 
   const filtradas = prendas.filter(p => {
-    if (!mostrarInactivas && !p.activo) return false
     if (!busqueda) return true
     const q = busqueda.toLowerCase()
     return (p.nombre ?? '').toLowerCase().includes(q) ||
@@ -50,36 +41,24 @@ export default function CatalogoLista() {
           </button>
         </div>
 
-        {/* Buscador + filtro */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[--text-light]" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre…"
-              value={busqueda}
-              onChange={e => setBusqueda(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 border border-[--border] rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            {busqueda && (
-              <button
-                onClick={() => setBusqueda('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[--text-light] hover:text-[--text-dark]"
-              >
-                <X size={15} />
-              </button>
-            )}
-          </div>
-          <button
-            onClick={() => setMostrarInactivas(v => !v)}
-            className={`text-xs px-3 py-2 rounded-md border transition-colors whitespace-nowrap ${
-              mostrarInactivas
-                ? 'bg-primary text-white border-primary'
-                : 'border-[--border] text-[--text-medium] hover:border-primary hover:text-primary'
-            }`}
-          >
-            {mostrarInactivas ? 'Ocultar inactivas' : 'Ver inactivas'}
-          </button>
+        {/* Buscador */}
+        <div className="relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[--text-light]" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre…"
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 border border-[--border] rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          {busqueda && (
+            <button
+              onClick={() => setBusqueda('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[--text-light] hover:text-[--text-dark]"
+            >
+              <X size={15} />
+            </button>
+          )}
         </div>
 
         {/* Lista */}
@@ -95,25 +74,14 @@ export default function CatalogoLista() {
               <div
                 key={p.id}
                 className={`bg-white rounded-lg border p-4 flex items-center gap-3 transition-colors ${
-                  p.activo ? 'border-[--border]' : 'border-dashed border-gray-200 opacity-60'
+                  p.activo ? 'border-[--border]' : 'border-dashed border-gray-200 opacity-50'
                 }`}
               >
-                {/* Toggle activo */}
-                <button
-                  onClick={() => handleToggleActivo(p.id, !p.activo)}
-                  title={p.activo ? 'Desactivar' : 'Activar'}
-                  className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${
-                    p.activo ? 'bg-primary' : 'bg-gray-200'
-                  }`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                    p.activo ? 'translate-x-4' : 'translate-x-0.5'
-                  }`} />
-                </button>
-
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[--text-dark] truncate">{p.nombre}</p>
+                  <p className={`text-sm font-medium truncate ${p.activo ? 'text-[--text-dark]' : 'text-[--text-light]'}`}>
+                    {p.nombre}
+                  </p>
                   {p.descripcion && (
                     <p className="text-xs text-[--text-light] truncate">{p.descripcion}</p>
                   )}

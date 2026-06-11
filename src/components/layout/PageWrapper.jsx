@@ -1,22 +1,40 @@
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom'
 import logoAmbelcor from '@/public/img/ambelcor-oscuro.png'
 import {
-  ClipboardList, Users, Package,
-  BarChart2, LogOut, CircleDollarSign, Receipt, Menu, X, Tag, Globe, CalendarDays, BookOpen,
+  Home, Users, Package,
+  BarChart2, LogOut, Menu, X, Tag, Globe, CalendarDays, Building2, ChevronRight,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useState, useEffect } from 'react'
 
+const BREADCRUMBS = {
+  '/clientes':               [{ label: 'Encargos', to: '/encargos' }, { label: 'Clientes' }],
+  '/catalogo':               [{ label: 'Encargos', to: '/encargos' }, { label: 'Catálogo' }],
+  '/inventario/proveedores': [{ label: 'Inventario', to: '/inventario' }, { label: 'Proveedores' }],
+}
+
+const CONTABILIDAD_TABS = {
+  cobros: [{ label: 'Contabilidad', to: '/contabilidad' }, { label: 'Cobros' }],
+  pagos:  [{ label: 'Contabilidad', to: '/contabilidad' }, { label: 'Pagos' }],
+  libro:  [{ label: 'Contabilidad', to: '/contabilidad' }, { label: 'Libro Diario' }],
+}
+
 const navItems = [
-  { to: '/encargos', icon: ClipboardList, label: 'Encargos' },
-  { to: '/clientes', icon: Users, label: 'Clientes' },
+  {
+    to: '/encargos', icon: Home, label: 'Encargos',
+    children: [
+      { to: '/clientes', label: 'Clientes', icon: Users },
+      { to: '/catalogo', label: 'Catálogo', icon: Tag },
+    ],
+  },
   { to: '/citas', icon: CalendarDays, label: 'Citas' },
-  { to: '/inventario', icon: Package, label: 'Inventario' },
-  { to: '/catalogo', icon: Tag, label: 'Catálogo' },
+  {
+    to: '/inventario', icon: Package, label: 'Inventario',
+    children: [
+      { to: '/inventario/proveedores', label: 'Proveedores', icon: Building2 },
+    ],
+  },
   { to: '/contabilidad', icon: BarChart2, label: 'Contabilidad', end: true },
-  { to: '/contabilidad/cobros', icon: CircleDollarSign, label: 'Cobros' },
-  { to: '/contabilidad/pagos', icon: Receipt, label: 'Pagos' },
-  { to: '/contabilidad/pr', icon: BookOpen, label: 'Contabilidad v2' },
 ]
 
 function CopyrightYear() {
@@ -28,7 +46,13 @@ export default function PageWrapper({ children, title }) {
   const { signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
   const [drawerOpen, setDrawerOpen] = useState(false)
+
+  const tab = searchParams.get('tab')
+  const breadcrumbs =
+    BREADCRUMBS[location.pathname] ??
+    (location.pathname === '/contabilidad' && tab ? CONTABILIDAD_TABS[tab] : null)
 
   useEffect(() => {
     setDrawerOpen(false)
@@ -91,22 +115,43 @@ export default function PageWrapper({ children, title }) {
 
         {/* Nav items */}
         <nav className="flex-1 py-3 overflow-y-auto">
-          {navItems.map(({ to, icon: Icon, label, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end ?? true}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-5 py-3 text-sm transition-colors ${
-                  isActive
-                    ? 'bg-primary-light text-primary-darker font-medium'
-                    : 'text-[--text-medium] hover:bg-[--bg-gray]'
-                }`
-              }
-            >
-              <Icon size={16} />
-              {label}
-            </NavLink>
+          {navItems.map(({ to, icon: Icon, label, end, children }) => (
+            <div key={to}>
+              <NavLink
+                to={to}
+                end={end ?? true}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-5 py-3 text-sm transition-colors ${
+                    isActive
+                      ? 'bg-primary-light text-primary-darker font-medium'
+                      : 'text-[--text-medium] hover:bg-[--bg-gray]'
+                  }`
+                }
+              >
+                <Icon size={16} />
+                {label}
+              </NavLink>
+              {children?.map(sub => {
+                const SubIcon = sub.icon
+                return (
+                  <NavLink
+                    key={sub.to}
+                    to={sub.to}
+                    end
+                    className={({ isActive }) =>
+                      `flex items-center gap-2 pl-10 pr-5 py-2 text-xs transition-colors ${
+                        isActive
+                          ? 'text-primary font-medium bg-primary-light/60'
+                          : 'text-[--text-light] hover:text-[--text-medium] hover:bg-[--bg-gray]'
+                      }`
+                    }
+                  >
+                    {SubIcon ? <SubIcon size={13} /> : <span className="w-1 h-1 rounded-full bg-current opacity-50 shrink-0" />}
+                    {sub.label}
+                  </NavLink>
+                )
+              })}
+            </div>
           ))}
           <a
             href="/ambelcor-emergent.html"
@@ -131,6 +176,22 @@ export default function PageWrapper({ children, title }) {
 
       {/* Contenido principal */}
       <main className="flex-1 pt-14">
+        {breadcrumbs && (
+          <nav className="max-w-5xl mx-auto px-4 md:px-8 pt-4 pb-0 flex items-center gap-1 text-xs text-[--text-light]">
+            {breadcrumbs.map((crumb, i) => (
+              <span key={i} className="flex items-center gap-1">
+                {i > 0 && <ChevronRight size={12} className="text-[--border]" />}
+                {crumb.to ? (
+                  <Link to={crumb.to} className="hover:text-primary transition-colors">
+                    {crumb.label}
+                  </Link>
+                ) : (
+                  <span className="text-[--text-medium] font-medium">{crumb.label}</span>
+                )}
+              </span>
+            ))}
+          </nav>
+        )}
         {title && (
           <div className="max-w-5xl mx-auto px-4 md:px-8 pt-6 pb-0 flex items-center justify-between">
             <h1 className="font-display text-2xl text-[--text-dark]">{title}</h1>
