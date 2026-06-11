@@ -7,13 +7,18 @@ import { fetchCitas, crearCita, actualizarCita, eliminarCita } from '@/hooks/use
 import { fetchClientes } from '@/hooks/useClientes'
 import { useToast } from '@/hooks/useToast'
 import { X, Trash2, Edit2, Plus } from 'lucide-react'
+import PageHeader from '@/components/ui/PageHeader'
+import Button from '@/components/ui/Button'
+import LoadingState from '@/components/ui/LoadingState'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
+// Colores de la paleta de marca (tailwind.config); FullCalendar necesita hex literales
 const TIPOS_CITA = {
-  prueba: { label: 'Prueba de traje', color: '#C8102E', bgColor: '#C8102E1A', emoji: '👗' },
-  entrega: { label: 'Entrega', color: '#C9A84C', bgColor: '#C9A84C1A', emoji: '🎁' },
-  ajuste: { label: 'Ajuste / retoque', color: '#7C5C8E', bgColor: '#7C5C8E1A', emoji: '✂️' },
-  consulta: { label: 'Consulta inicial', color: '#2A7A5E', bgColor: '#2A7A5E1A', emoji: '💬' },
-  pago: { label: 'Pago / seña', color: '#1A6FA8', bgColor: '#1A6FA81A', emoji: '💳' },
+  prueba: { label: 'Prueba de traje', color: '#d6536d', bgColor: '#d6536d1A', emoji: '👗' },
+  entrega: { label: 'Entrega', color: '#b07d33', bgColor: '#b07d331A', emoji: '🎁' },
+  ajuste: { label: 'Ajuste / retoque', color: '#8b5cd6', bgColor: '#8b5cd61A', emoji: '✂️' },
+  consulta: { label: 'Consulta inicial', color: '#16a163', bgColor: '#16a1631A', emoji: '💬' },
+  pago: { label: 'Pago / seña', color: '#1fb39a', bgColor: '#1fb39a1A', emoji: '💳' },
 }
 
 const HORA_INICIO = 8
@@ -105,9 +110,9 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
     onSave(datos)
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirmDelete) {
-      onDelete()
+      await onDelete()
       setConfirmDelete(false)
     }
   }
@@ -164,6 +169,7 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
           )}
           <button
             onClick={onClose}
+            aria-label="Cerrar"
             className="p-1 hover:bg-gray-100 rounded-lg"
           >
             <X size={20} />
@@ -208,20 +214,14 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
             </div>
 
             <div className="flex gap-2 pt-4">
-              <button
-                onClick={onEdit}
-                className="flex-1 flex items-center justify-center gap-2 bg-primary text-white py-2 rounded-lg hover:bg-primary-darker transition"
-              >
+              <Button full onClick={onEdit}>
                 <Edit2 size={16} />
                 Editar
-              </button>
-              <button
-                onClick={() => setConfirmDelete(true)}
-                className="flex-1 flex items-center justify-center gap-2 border border-red-300 text-red-700 py-2 rounded-lg hover:bg-red-50 transition"
-              >
+              </Button>
+              <Button variant="danger-outline" full onClick={() => setConfirmDelete(true)}>
                 <Trash2 size={16} />
                 Eliminar
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -372,45 +372,25 @@ function BottomSheet({ cita, modo, onClose, onSave, onEdit, onDelete, loading })
             </div>
 
             <div className="flex gap-2 pt-4">
-              <button
-                onClick={handleSave}
-                disabled={loading}
-                className="flex-1 bg-primary text-white py-2 rounded-lg hover:bg-primary-darker transition disabled:opacity-50"
-              >
-                {loading ? 'Guardando...' : modo === 'edit' ? 'Guardar cambios' : 'Guardar cita'}
-              </button>
-              <button
-                onClick={onClose}
-                disabled={loading}
-                className="flex-1 border border-[--border] text-[--text-dark] py-2 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
-              >
+              <Button full onClick={handleSave} loading={loading}>
+                {loading ? 'Guardando…' : modo === 'edit' ? 'Guardar cambios' : 'Guardar cita'}
+              </Button>
+              <Button variant="secondary" full onClick={onClose} disabled={loading}>
                 Cancelar
-              </button>
+              </Button>
             </div>
           </div>
         )}
 
-        {confirmDelete && (
-          <div className="mt-6 p-4 bg-red-50 rounded-lg border border-red-200">
-            <p className="text-sm text-red-700 mb-4">¿Eliminar esta cita? No se puede deshacer.</p>
-            <div className="flex gap-2">
-              <button
-                onClick={handleDelete}
-                disabled={loading}
-                className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50"
-              >
-                {loading ? 'Eliminando...' : 'Eliminar'}
-              </button>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                disabled={loading}
-                className="flex-1 border border-red-200 text-red-700 py-2 rounded-lg hover:bg-red-50 transition disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          open={confirmDelete}
+          title="¿Eliminar esta cita?"
+          description="Esta acción no se puede deshacer."
+          confirmLabel={loading ? 'Eliminando…' : 'Eliminar'}
+          loading={loading}
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
       </div>
     </>
   )
@@ -602,22 +582,24 @@ ${cita.cliente_nombre}`,
   return (
     <PageWrapper>
       <div className="max-w-6xl mx-auto px-4 py-6 pb-20">
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <h1 className="text-2xl font-semibold text-[--text-dark]">Calendario de Citas</h1>
-          <button
-            onClick={() => {
-              setSheetCita(null)
-              setSheetModo('new')
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-darker transition"
-          >
-            <Plus size={16} />
-            <span className="text-sm font-medium">Nueva cita</span>
-          </button>
-        </div>
+        <PageHeader
+          titulo="Calendario de Citas"
+          className="mb-6"
+          accion={
+            <Button
+              onClick={() => {
+                setSheetCita(null)
+                setSheetModo('new')
+              }}
+            >
+              <Plus size={16} />
+              Nueva cita
+            </Button>
+          }
+        />
 
         {loading ? (
-          <div className="text-center py-12 text-[--text-light]">Cargando citas...</div>
+          <LoadingState texto="Cargando citas…" />
         ) : (
           <div className="bg-white rounded-lg border border-[--border] p-6">
             <div className="flex items-center justify-between mb-4 px-1">
