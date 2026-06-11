@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
+import PageHeader from '@/components/ui/PageHeader'
+import Button from '@/components/ui/Button'
+import { Field, Input, Textarea } from '@/components/ui/Field'
+import LoadingState from '@/components/ui/LoadingState'
 import { fetchPrenda, crearPrenda, actualizarPrenda } from '@/hooks/useCatalogo'
 import { useToast } from '@/hooks/useToast'
 
@@ -63,20 +66,13 @@ export default function CatalogoForm() {
     }
   }
 
-  if (loading) return <PageWrapper><div className="p-8 text-center text-[--text-light] text-sm">Cargando…</div></PageWrapper>
+  if (loading) return <PageWrapper><LoadingState /></PageWrapper>
 
   return (
     <PageWrapper>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
         {/* Cabecera */}
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/catalogo')} className="text-[--text-light] hover:text-[--text-dark]">
-            <ChevronLeft size={22} />
-          </button>
-          <h1 className="font-display text-2xl text-[--text-dark]">
-            {esNueva ? 'Nueva prenda' : 'Editar prenda'}
-          </h1>
-        </div>
+        <PageHeader titulo={esNueva ? 'Nueva prenda' : 'Editar prenda'} backTo="/catalogo" />
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-4 py-2">
@@ -86,46 +82,38 @@ export default function CatalogoForm() {
 
         <section className="bg-white rounded-lg border border-[--border] p-4 space-y-4">
           {/* Nombre */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-[--text-medium]">Nombre *</label>
-            <input
+          <Field label="Nombre" required>
+            <Input
               type="text"
               placeholder="Ej. Traje fallera completo"
               value={form.nombre}
               onChange={e => set('nombre', e.target.value)}
-              className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
-          </div>
+          </Field>
 
           {/* Descripción */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-[--text-medium]">Descripción</label>
-            <textarea
+          <Field label="Descripción">
+            <Textarea
               placeholder="Descripción opcional…"
               value={form.descripcion}
               onChange={e => set('descripcion', e.target.value)}
-              rows={2}
-              className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
             />
-          </div>
+          </Field>
 
           {/* Precio y descuento */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-[--text-medium]">Precio base (€) *</label>
-              <input
+            <Field label="Precio base (€)" required>
+              <Input
                 type="number"
                 min="0"
                 step="0.50"
                 placeholder="0,00"
                 value={form.precio_base}
                 onChange={e => set('precio_base', e.target.value)}
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-[--text-medium]">Descuento (%)</label>
-              <input
+            </Field>
+            <Field label="Descuento (%)">
+              <Input
                 type="number"
                 min="0"
                 max="100"
@@ -133,9 +121,8 @@ export default function CatalogoForm() {
                 placeholder="0"
                 value={form.descuento}
                 onChange={e => set('descuento', e.target.value)}
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
-            </div>
+            </Field>
           </div>
 
           {/* Activo */}
@@ -162,19 +149,12 @@ export default function CatalogoForm() {
         </section>
 
         <div className="flex gap-3">
-          <button
-            onClick={handleGuardar}
-            disabled={saving}
-            className="bg-primary text-white px-6 py-2 rounded-md text-sm font-medium hover:bg-primary-dark disabled:opacity-50 transition-colors"
-          >
+          <Button size="lg" onClick={handleGuardar} loading={saving}>
             {saving ? 'Guardando…' : 'Guardar'}
-          </button>
-          <button
-            onClick={() => navigate('/catalogo')}
-            className="px-6 py-2 rounded-md text-sm text-[--text-medium] border border-[--border] hover:bg-[--bg-alt] transition-colors"
-          >
+          </Button>
+          <Button size="lg" variant="secondary" onClick={() => navigate('/catalogo')}>
             Cancelar
-          </button>
+          </Button>
         </div>
       </div>
     </PageWrapper>

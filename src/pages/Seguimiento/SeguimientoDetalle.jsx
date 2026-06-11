@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { formatFecha, formatImporte, ESTADO_LABELS } from '@/utils/formatters'
+import LoadingState from '@/components/ui/LoadingState'
 
 const ESTADOS = ['presupuestado', 'confirmado', 'en_confeccion', 'listo', 'entregado']
 
@@ -35,7 +36,7 @@ export default function SeguimientoDetalle() {
   }, [token])
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center text-gray-500">Cargando…</div>
+    <div className="min-h-screen flex items-center justify-center"><LoadingState /></div>
   )
   if (notFound) return (
     <div className="min-h-screen flex items-center justify-center text-center px-4">
@@ -67,7 +68,7 @@ export default function SeguimientoDetalle() {
         {/* Cabecera */}
         <div className="bg-white rounded-xl p-6 shadow-sm">
           <p className="text-xs text-gray-400 mb-1">{encargo.numero}</p>
-          <h1 className="text-2xl font-semibold text-gray-800">
+          <h1 className="font-display text-2xl text-[--text-dark]">
             {encargo.clientes?.nombre} {encargo.clientes?.apellidos}
           </h1>
         </div>
@@ -78,7 +79,7 @@ export default function SeguimientoDetalle() {
             const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
             const fin = new Date(encargo.fecha_entrega_estimada + 'T00:00:00')
             const dias = Math.round((fin - hoy) / 86400000)
-            const color = dias < 0 ? 'text-red-800' : dias <= 3 ? 'text-red-500' : dias <= 7 ? 'text-amber-500' : 'text-teal-600'
+            const color = dias < 0 ? 'text-red-800' : dias <= 3 ? 'text-red-500' : dias <= 7 ? 'text-amber-500' : 'text-primary-dark'
             return (
               <p className={`text-xs mb-5 ${color}`}>
                 {dias < 0
@@ -112,8 +113,8 @@ export default function SeguimientoDetalle() {
                       </div>
                     )}
                     {isCurrent && (
-                      <div className="w-8 h-8 rounded-full border-2 border-[#30BAAA] flex items-center justify-center flex-shrink-0">
-                        <div className="w-3 h-3 rounded-full bg-[#30BAAA]" />
+                      <div className="w-8 h-8 rounded-full border-2 border-primary flex items-center justify-center flex-shrink-0">
+                        <div className="w-3 h-3 rounded-full bg-primary" />
                       </div>
                     )}
                     {isFuture && (
@@ -131,7 +132,7 @@ export default function SeguimientoDetalle() {
                   <div className={`${isLast ? 'pb-0' : 'pb-6'}`}>
                     <p className={`font-medium text-sm ${
                       isFuture ? 'text-gray-400' :
-                      isCurrent ? 'text-[#30BAAA]' :
+                      isCurrent ? 'text-primary' :
                       'text-gray-700'
                     }`}>
                       {ESTADO_LABELS[estado]}
@@ -140,10 +141,10 @@ export default function SeguimientoDetalle() {
                       <p className="text-xs text-gray-400">{formatFecha(fecha)}</p>
                     )}
                     {isCurrent && fecha && (
-                      <p className="text-xs text-[#30BAAA]">Estado actual · desde {formatFecha(fecha)}</p>
+                      <p className="text-xs text-primary">Estado actual · desde {formatFecha(fecha)}</p>
                     )}
                     {isCurrent && !fecha && (
-                      <p className="text-xs text-[#30BAAA]">Estado actual</p>
+                      <p className="text-xs text-primary">Estado actual</p>
                     )}
                   </div>
                 </div>
@@ -176,7 +177,7 @@ export default function SeguimientoDetalle() {
               {total > 0 && (
                 <div className="border-t border-gray-100 pt-3 flex justify-between text-sm font-semibold">
                   <span className="text-gray-700">Total</span>
-                  <span className="text-[#30BAAA]">{formatImporte(total)}</span>
+                  <span className="text-primary">{formatImporte(total)}</span>
                 </div>
               )}
             </div>
@@ -204,7 +205,7 @@ export default function SeguimientoDetalle() {
                 </div>
                 <div className="flex justify-between text-sm font-semibold">
                   <span className="text-gray-700">Pendiente</span>
-                  <span className={pendiente > 0 ? 'text-amber-600' : 'text-teal-600'}>
+                  <span className={pendiente > 0 ? 'text-amber-600' : 'text-primary-dark'}>
                     {formatImporte(pendiente)}
                   </span>
                 </div>
