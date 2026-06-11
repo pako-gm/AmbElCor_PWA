@@ -222,12 +222,14 @@ export default function NuevoEncargo() {
             <div className="border border-[--border] rounded-md p-3 space-y-2 bg-[--bg-alt]">
               <input
                 placeholder="Nombre *"
+                aria-label="Nombre del cliente"
                 value={nuevoCliente.nombre}
                 onChange={e => setNuevoCliente(v => ({ ...v, nombre: e.target.value }))}
                 className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
               />
               <input
                 placeholder="Apellidos"
+                aria-label="Apellidos del cliente"
                 value={nuevoCliente.apellidos}
                 onChange={e => setNuevoCliente(v => ({ ...v, apellidos: e.target.value }))}
                 className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
@@ -235,6 +237,7 @@ export default function NuevoEncargo() {
               <div>
                 <input
                   placeholder="Teléfono *"
+                  aria-label="Teléfono del cliente"
                   value={nuevoCliente.telefono}
                   onChange={e => {
                     const val = e.target.value.replace(/\D/g, '').slice(0, 9)
@@ -249,6 +252,7 @@ export default function NuevoEncargo() {
                 <input
                   type="email"
                   placeholder="Correo electrónico"
+                  aria-label="Correo electrónico del cliente"
                   value={nuevoCliente.email}
                   onChange={e => {
                     setNuevoCliente(v => ({ ...v, email: e.target.value }))

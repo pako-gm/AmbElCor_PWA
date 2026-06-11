@@ -316,6 +316,7 @@ export default function EncargoDetalle() {
             onClick={handleEliminarEncargo}
             className="text-[--text-light] hover:text-red-500 transition-colors p-1"
             title="Eliminar encargo"
+            aria-label="Eliminar encargo"
           >
             <Trash2 size={18} />
           </button>
@@ -495,6 +496,7 @@ export default function EncargoDetalle() {
                       value={datosPagoEdicion.importe}
                       onChange={e => setDatosPagoEdicion(v => ({ ...v, importe: e.target.value }))}
                       placeholder="Importe (€)"
+                      aria-label="Importe del pago"
                       className="flex-1 border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                     <input
@@ -524,6 +526,7 @@ export default function EncargoDetalle() {
                     value={datosPagoEdicion.referencia}
                     onChange={e => setDatosPagoEdicion(v => ({ ...v, referencia: e.target.value }))}
                     placeholder="Referencia (opcional)"
+                    aria-label="Referencia del pago"
                     className="w-full border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   <div className="flex gap-2">
@@ -565,11 +568,12 @@ export default function EncargoDetalle() {
                 </span>
                 <button
                   onClick={() => { setPagoEditando(p.id); setDatosPagoEdicion({ importe: p.importe, fecha: p.fecha, tipo: p.tipo, forma_pago: p.forma_pago, referencia: p.referencia || '' }) }}
+                  aria-label="Editar pago"
                   className="text-[--text-light] hover:text-primary transition-colors"
                 >
                   <Pencil size={13} />
                 </button>
-                <button onClick={() => handleEliminarPago(p.id)} className="text-[--text-light] hover:text-red-500">
+                <button onClick={() => handleEliminarPago(p.id)} aria-label="Eliminar pago" className="text-[--text-light] hover:text-red-500">
                   <Trash2 size={13} />
                 </button>
               </div>
@@ -599,6 +603,7 @@ export default function EncargoDetalle() {
                     onChange={e => { setPago(v => ({ ...v, importe: e.target.value })); setErrorPago('') }}
                     className={`w-full border rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${errorPago ? 'border-red-400' : 'border-[--border]'}`}
                     placeholder="0.00"
+                    aria-label="Importe del pago"
                   />
                   {errorPago && <p className="text-xs text-red-500 mt-0.5">{errorPago}</p>}
                 </div>
@@ -638,6 +643,7 @@ export default function EncargoDetalle() {
                 value={pago.referencia}
                 onChange={e => setPago(v => ({ ...v, referencia: e.target.value }))}
                 placeholder="Referencia (opcional)"
+                aria-label="Referencia del pago"
                 className="w-full border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
               />
               <div className="flex gap-2">
@@ -711,6 +717,7 @@ export default function EncargoDetalle() {
                           value={datosEdicion.cantidad}
                           onChange={e => setDatosEdicion(v => ({ ...v, cantidad: e.target.value }))}
                           placeholder="Cant."
+                        aria-label="Cantidad"
                           className="w-20 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                         <input
@@ -718,6 +725,7 @@ export default function EncargoDetalle() {
                           value={datosEdicion.precio_unitario}
                           onChange={e => setDatosEdicion(v => ({ ...v, precio_unitario: e.target.value }))}
                           placeholder="Precio (€)"
+                        aria-label="Precio unitario"
                           className="flex-1 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
@@ -725,6 +733,7 @@ export default function EncargoDetalle() {
                         value={datosEdicion.notas}
                         onChange={e => setDatosEdicion(v => ({ ...v, notas: e.target.value }))}
                         placeholder="Notas de esta prenda"
+                      aria-label="Notas de la prenda"
                         className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                       <div className="flex gap-2 pt-1">
@@ -770,12 +779,14 @@ export default function EncargoDetalle() {
                             notas: l.notas || '',
                           })
                         }}
+                        aria-label="Editar línea"
                         className="text-[--text-light] hover:text-primary transition-colors flex-shrink-0"
                       >
                         <Pencil size={14} />
                       </button>
                       <button
                         onClick={() => handleEliminarLinea(l.id, l.descripcion || l.prendas_catalogo?.nombre)}
+                        aria-label="Eliminar línea"
                         className="text-[--text-light] hover:text-red-500 transition-colors flex-shrink-0"
                       >
                         <Trash2 size={15} />
@@ -818,6 +829,7 @@ export default function EncargoDetalle() {
                         value={nuevaLinea.cantidad}
                         onChange={e => updateNuevaLinea('cantidad', e.target.value)}
                         placeholder="Cant."
+                        aria-label="Cantidad"
                         className="w-20 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                       <input
@@ -825,6 +837,7 @@ export default function EncargoDetalle() {
                         value={nuevaLinea.precio_unitario}
                         onChange={e => updateNuevaLinea('precio_unitario', e.target.value)}
                         placeholder="Precio (€)"
+                        aria-label="Precio unitario"
                         className="flex-1 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
@@ -833,6 +846,7 @@ export default function EncargoDetalle() {
                       value={nuevaLinea.notas}
                       onChange={e => updateNuevaLinea('notas', e.target.value)}
                       placeholder="Notas de esta prenda"
+                      aria-label="Notas de la prenda"
                       className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     />
 
