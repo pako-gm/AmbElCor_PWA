@@ -24,8 +24,12 @@ export default function BottomNav() {
               }`
             }
           >
-            <Icon size={20} strokeWidth={isActive => isActive ? 2.5 : 1.5} />
-            {label}
+            {({ isActive }) => (
+              <>
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
+                {label}
+              </>
+            )}
           </NavLink>
         ))}
       </div>

@@ -37,11 +37,13 @@ Acceso CRM exclusivo de Carmen. Clientes acceden a sus encargos vía token/códi
 
 ## Diseño
 
-- **Primary:** `#30BAAA` | **Gold:** `#C8A96E`
-- **Fuentes:** Playfair Display (titulares) + Open Sans (cuerpo)
-- Mobile-first: bottom-tab nav en móvil, sidebar en desktop
+- **Primary/brand:** `#1fb39a` | **dark:** `#118b78` | **Gold/amber:** `#b07d33`
+- Paleta completa definida en `tailwind.config.js` (brand, ink, violet, purple, green, amber, danger, muted, line, surface…) y vars CSS en `src/index.css`
+- **Fuentes:** Lora (titulares, `font-display`) + Figtree (cuerpo, `font-sans`)
+- Hover de botón primario estándar: `hover:bg-primary-dark`
+- Mobile-first: bottom-tab nav en móvil, drawer lateral en desktop
 - CRM funcional y conciso (no tan visual como la landing)
-- Consultar `.claude/paleta.md` para colores detallados si existe
+- El módulo Inventario usa un design system CSS propio (`.btn`, `.panel`, `.modal`, `.input`… en `src/index.css`) con componentes en `src/components/inventario/InventarioUI.jsx` — no migrarlo a Tailwind utilities sin pedirlo
 
 ## Convenciones de código
 
@@ -49,8 +51,10 @@ Acceso CRM exclusivo de Carmen. Clientes acceden a sus encargos vía token/códi
 - Tablas y columnas Supabase en snake_case
 - Componentes React en PascalCase, hooks con prefijo `use`
 - No añadir dependencias nuevas sin evaluar si ya existe algo en el stack
-- Hooks Supabase en `src/hooks/` (useEncargos.js, useAuth.jsx, useClientes.js, useProveedores.js, useInventario.js, useContabilidad.js)
-- Formateo de fechas, importes y números de encargo en `src/utils/formatters.js`
+- Hooks Supabase en `src/hooks/` (useEncargos.js, useAuth.jsx, useClientes.js, useProveedores.js, useInventario.js, useContabilidad.js, useCitas.js, useCatalogo.js)
+- Formateo de fechas, importes, teléfonos y números de encargo en `src/utils/formatters.js`
+- Validaciones de entrada (teléfono, email, números) en `src/utils/validators.js`
+- Componentes base propios en `src/components/ui/` (Button, Field, Modal, ConfirmDialog, Toast, LoadingState, EmptyState, Badge, SearchInput, PageHeader)
 - Exportación Excel en `src/utils/exportExcel.js`
 - PDFs en `src/utils/pdfGenerator.js`
 - Componentes shadcn/ui en `src/components/ui/` — instalar con `npx shadcn@latest add <component>`
@@ -84,10 +88,12 @@ supabase/
 - Seguimiento público: `/seguimiento` (código corto) + `/seguimiento/:token`
 - Dashboard con métricas
 - Exportación Excel (`exportExcel.js`) con filtro trimestral
-- **Módulo Clientes:** lista, nuevo, detalle (`/clientes`, `/clientes/:id`)
-- **Módulo Proveedores:** lista, nuevo, detalle (`/proveedores`, `/proveedores/:id`)
-- **Módulo Inventario:** lista de materiales, nuevo, detalle
-- **Módulo Contabilidad:** dashboard, cobros, pagos, reportes
+- **Módulo Clientes:** lista, nuevo, detalle, medidas (`/clientes`, `/clientes/:id`, `/clientes/:id/medidas`)
+- **Módulo Proveedores:** panel integrado en Inventario (`/inventario/proveedores`)
+- **Módulo Inventario:** lista de materiales, nuevo, detalle, ajustes (`/inventario`, `/inventario/ajustes`)
+- **Módulo Contabilidad:** página única con tabs dashboard/cobros/pagos/libro (`/contabilidad`, `ContabilidadDashboard.jsx`)
+- **Módulo Citas:** calendario semanal FullCalendar (`/citas`)
+- **Módulo Catálogo:** lista y formulario de prendas (`/catalogo`)
 - Edge Function `notify-whatsapp` para notificaciones al cliente
 
 ### Pendiente
