@@ -4,6 +4,7 @@
    ============================================================ */
 import { useState, useEffect } from 'react'
 import { Icon, Btn, Modal, Field, Help, StatusPill, CatBadge } from './InventarioUI'
+import { formatCantidad } from '@/utils/formatters'
 
 const UNIT_DISPLAY = {
   unidad: 'ud.',
@@ -18,10 +19,7 @@ const UNIT_DISPLAY = {
 
 const CATEGORIAS_PREDEFINIDAS = ['Telas', 'Pasamanería', 'Joyería fallera', 'Mercería', 'Botones']
 
-function fmtNum(n) {
-  const v = n || 0
-  return v.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-}
+const fmtNum = (n) => formatCantidad(n || 0)
 function fmtDate(s) {
   if (!s) return ''
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s))
@@ -402,7 +400,7 @@ export function ConfirmEliminarMovimientoModal({ movimiento, unit, onClose, onCo
   const [saving, setSaving] = useState(false)
   const qty = parseFloat(movimiento.cantidad || 0)
   const pos = movimiento.tipo === 'entrada' || (movimiento.tipo === 'ajuste' && qty > 0)
-  const qtyStr = `${pos ? '+' : '−'}${Math.abs(qty).toLocaleString('es-ES', { maximumFractionDigits: 2 })} ${unit}`
+  const qtyStr = `${pos ? '+' : '−'}${formatCantidad(Math.abs(qty))} ${unit}`
 
   const confirm = async () => {
     setSaving(true)

@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, Pencil, Trash2, ChevronDown, ChevronUp, Check, X } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { fetchCliente, actualizarCliente, eliminarCliente, fetchMedidasCliente } from '@/hooks/useClientes'
-import { formatFecha, formatImporte, ESTADO_LABELS, ESTADO_COLORS } from '@/utils/formatters'
+import { formatFecha, formatImporte, formatTelefono, ESTADO_LABELS, ESTADO_COLORS } from '@/utils/formatters'
+import { validarTelefono, validarEmail } from '@/utils/validators'
 
 export default function ClienteDetalle() {
   const { id } = useParams()
@@ -42,8 +43,8 @@ export default function ClienteDetalle() {
   const validarEdit = () => {
     const errs = {}
     if (!formEdit.nombre?.trim()) errs.nombre = 'El nombre es obligatorio.'
-    if (formEdit.telefono && !/^\d{9}$/.test(formEdit.telefono)) errs.telefono = 'Debe tener 9 dígitos.'
-    if (formEdit.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEdit.email)) errs.email = 'Email no válido.'
+    if (formEdit.telefono && !validarTelefono(formEdit.telefono)) errs.telefono = 'Debe tener 9 dígitos.'
+    if (formEdit.email && !validarEmail(formEdit.email)) errs.email = 'Email no válido.'
     setErroresEdit(errs)
     return Object.keys(errs).length === 0
   }
@@ -188,7 +189,7 @@ export default function ClienteDetalle() {
             </div>
           ) : (
             <div className="space-y-1.5 text-sm">
-              {cliente.telefono && <p className="text-[--text-dark]">📞 {cliente.telefono}</p>}
+              {cliente.telefono && <p className="text-[--text-dark]">📞 {formatTelefono(cliente.telefono)}</p>}
               {cliente.email && <p className="text-[--text-dark]">✉️ {cliente.email}</p>}
               {cliente.notas && <p className="text-[--text-light] text-xs mt-2">{cliente.notas}</p>}
               {!cliente.telefono && !cliente.email && !cliente.notas && (

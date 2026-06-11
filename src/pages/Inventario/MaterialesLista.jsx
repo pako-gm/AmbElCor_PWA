@@ -4,7 +4,7 @@ import PageWrapper from '@/components/layout/PageWrapper'
 import { Icon, Btn, StatusPill, KpiCard } from '@/components/inventario/InventarioUI'
 import { MovementModal } from '@/components/inventario/InventarioModals'
 import { useInventario } from '@/hooks/useInventario'
-import { formatImporte, formatCodigo } from '@/utils/formatters'
+import { formatImporte, formatCodigo, formatCantidad } from '@/utils/formatters'
 
 
 const UNIT_DISPLAY = {
@@ -61,7 +61,7 @@ function MaterialCard({ material, iconoCategoria = 'box', onOpen, onMove }) {
       <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
         <div>
           <span className="text-xs text-faint">STOCK</span>
-          <b className="block text-ink">{stock.toFixed(2)} {unit}</b>
+          <b className="block text-ink">{formatCantidad(stock)} {unit}</b>
         </div>
         <div>
           <span className="text-xs text-faint">VALOR</span>
@@ -178,7 +178,7 @@ function Dashboard({ materiales }) {
                   <span className="text-muted ml-2">{m.nombre}</span>
                 </div>
                 <b className="text-danger">
-                  {parseFloat(m.stock_actual || 0).toFixed(2)} / {Math.ceil(parseFloat(m.stock_minimo || 0))}
+                  {formatCantidad(m.stock_actual || 0)} / {Math.ceil(parseFloat(m.stock_minimo || 0))}
                 </b>
               </li>
             )) : (
@@ -411,10 +411,10 @@ export default function MaterialesLista() {
                   const isEntrada = mov.tipo === 'entrada'
                   const isAjuste = mov.tipo === 'ajuste'
                   const qtyStr = isAjuste
-                    ? `${qty >= 0 ? '+' : ''}${qty.toFixed(2)} ${unit}`
+                    ? `${qty >= 0 ? '+' : ''}${formatCantidad(qty)} ${unit}`
                     : isEntrada
-                      ? `+${qty.toFixed(2)} ${unit}`
-                      : `-${qty.toFixed(2)} ${unit}`
+                      ? `+${formatCantidad(qty)} ${unit}`
+                      : `-${formatCantidad(qty)} ${unit}`
                   const qtyClass = isAjuste
                     ? 'text-amber-600 font-bold'
                     : isEntrada

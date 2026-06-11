@@ -4,7 +4,7 @@ import PageWrapper from '@/components/layout/PageWrapper'
 import { Icon, Btn } from '@/components/inventario/InventarioUI'
 import { MovementModal, LineEditModal, EditMovimientoModal, ConfirmEliminarMovimientoModal, ConfirmDesactivarModal } from '@/components/inventario/InventarioModals'
 import { useInventario } from '@/hooks/useInventario'
-import { formatImporte } from '@/utils/formatters'
+import { formatImporte, formatCantidad } from '@/utils/formatters'
 
 const UNIT_DISPLAY = {
   unidad: 'ud.', metro: 'm', metro_cuadrado: 'm²', kilogramo: 'kg',
@@ -201,7 +201,7 @@ export default function MaterialDetalle() {
               color: stockBajo ? 'var(--danger)' : 'var(--brand-deep)',
               lineHeight: 1, fontVariantNumeric: 'tabular-nums',
             }}>
-              {stock.toLocaleString('es-ES', { maximumFractionDigits: 2 })}
+              {formatCantidad(stock)}
             </b>
             <span style={{ display: 'block', color: 'var(--muted)', fontSize: 14, marginTop: 4 }}>{unit} en stock</span>
             {stockBajo && (
@@ -263,7 +263,7 @@ export default function MaterialDetalle() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                     <span className={`mov__tag mov__tag--${mv.tipo}`}>{mv.tipo}</span>
                     <span className={`mov__qty ${pos ? 'mov__qty--pos' : 'mov__qty--neg'}`}>
-                      {pos ? '+' : '−'}{Math.abs(qty).toLocaleString('es-ES', { maximumFractionDigits: 2 })} {unit}
+                      {pos ? '+' : '−'}{formatCantidad(Math.abs(qty))} {unit}
                     </span>
                     {mv.precio_unitario && (
                       <span style={{ fontSize: 12, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>

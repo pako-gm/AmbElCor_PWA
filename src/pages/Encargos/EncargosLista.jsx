@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { fetchEncargos } from '@/hooks/useEncargos'
-import { formatFecha, formatImporte, ESTADO_LABELS, ESTADO_COLORS } from '@/utils/formatters'
+import { formatFecha, formatFechaCorta, formatImporte, ESTADO_LABELS, ESTADO_COLORS } from '@/utils/formatters'
 
 function calcularProgreso(fechaInicio, fechaFin) {
   if (!fechaFin) return null
@@ -15,19 +15,6 @@ function calcularProgreso(fechaInicio, fechaFin) {
   const avance = ((hoy - inicio) / total) * 100
   const diasRestantes = Math.ceil((fin - hoy) / 86400000)
   return { pct: Math.max(0, avance), diasRestantes, vencido: hoy > fin }
-}
-
-function calcularFechaCheckpoint(fechaFin) {
-  if (!fechaFin) return null
-  const fin = new Date(fechaFin).getTime()
-  const checkpoint = new Date(fin - 7 * 86400000)
-  return checkpoint.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function formatFechaCorta(fecha) {
-  if (!fecha) return '—'
-  return new Date(fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-    .replace('.', '')
 }
 
 const FILTROS = [

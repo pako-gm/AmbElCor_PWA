@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { crearCliente } from '@/hooks/useClientes'
+import { validarTelefono, validarEmail } from '@/utils/validators'
 
 export default function NuevoCliente() {
   const navigate = useNavigate()
@@ -20,8 +21,8 @@ export default function NuevoCliente() {
   const validar = () => {
     const errs = {}
     if (!form.nombre.trim()) errs.nombre = 'El nombre es obligatorio.'
-    if (form.telefono && !/^\d{9}$/.test(form.telefono)) errs.telefono = 'Debe tener exactamente 9 dígitos.'
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Email no válido.'
+    if (form.telefono && !validarTelefono(form.telefono)) errs.telefono = 'Debe tener exactamente 9 dígitos.'
+    if (form.email && !validarEmail(form.email)) errs.email = 'Email no válido.'
     setErrores(errs)
     return Object.keys(errs).length === 0
   }

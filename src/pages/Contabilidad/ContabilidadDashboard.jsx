@@ -7,6 +7,7 @@ import {
   formatFecha, formatImporte,
   FORMA_PAGO_LABELS, CATEGORIA_GASTO_LABELS,
 } from '@/utils/formatters'
+import { validarTelefono, validarEmail, normalizarTelefono } from '@/utils/validators'
 import { exportarLibroCobros, exportarLibroPagos, exportarLibroDiario } from '@/utils/exportExcel'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -515,6 +516,7 @@ function PagosPanel({ año }) {
   const [modalProveedor, setModalProveedor] = useState(false)
   const [nuevoProveedor, setNuevoProveedor] = useState({ nombre: '', telefono: '', email: '' })
   const [guardandoProv, setGuardandoProv] = useState(false)
+  const [errProveedor, setErrProveedor] = useState('')
 
   const cargar = () => fetchPagosProveedor({ año, trimestre: trimestre || undefined }).then(setPagos)
   useEffect(() => { cargar() }, [año, trimestre])
@@ -574,13 +576,27 @@ function PagosPanel({ año }) {
 
   const handleCrearProveedor = async () => {
     if (!nuevoProveedor.nombre.trim()) return
+    if (nuevoProveedor.telefono && !validarTelefono(nuevoProveedor.telefono)) {
+      setErrProveedor('El teléfono debe tener 9 dígitos.')
+      return
+    }
+    if (nuevoProveedor.email && !validarEmail(nuevoProveedor.email)) {
+      setErrProveedor('El email no es válido.')
+      return
+    }
+    setErrProveedor('')
     setGuardandoProv(true)
     try {
-      const prov = await crearProveedor(nuevoProveedor)
+      const prov = await crearProveedor({
+        ...nuevoProveedor,
+        telefono: nuevoProveedor.telefono ? normalizarTelefono(nuevoProveedor.telefono) : nuevoProveedor.telefono,
+      })
       setProveedores(prev => [...prev, prov].sort((a, b) => a.nombre.localeCompare(b.nombre)))
       setForm(f => ({ ...f, proveedor_id: prov.id }))
       setModalProveedor(false)
       setNuevoProveedor({ nombre: '', telefono: '', email: '' })
+    } catch (e) {
+      setErrProveedor(e.message || 'Error al crear el proveedor.')
     } finally { setGuardandoProv(false) }
   }
 
@@ -825,6 +841,7 @@ function PagosPanel({ año }) {
               <input type="email" placeholder="Email" value={nuevoProveedor.email}
                 onChange={e => setNuevoProveedor(p => ({ ...p, email: e.target.value }))}
                 className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
+              {errProveedor && <p className="text-xs text-red-500">{errProveedor}</p>}
             </div>
             <div className="flex gap-3 mt-5">
               <button onClick={() => setModalProveedor(false)}

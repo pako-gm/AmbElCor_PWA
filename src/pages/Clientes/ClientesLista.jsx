@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Search, X } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { fetchClientes } from '@/hooks/useClientes'
+import { formatTelefono } from '@/utils/formatters'
 
 export default function ClientesLista() {
   const navigate = useNavigate()
@@ -81,7 +82,7 @@ export default function ClientesLista() {
                       {`${c.nombre} ${c.apellidos ?? ''}`.trim()}
                     </p>
                     <p className="text-xs text-[--text-light] mt-0.5">
-                      {[c.telefono, c.email].filter(Boolean).join(' · ') || 'Sin datos de contacto'}
+                      {[formatTelefono(c.telefono), c.email].filter(Boolean).join(' · ') || 'Sin datos de contacto'}
                     </p>
                   </div>
                 </div>

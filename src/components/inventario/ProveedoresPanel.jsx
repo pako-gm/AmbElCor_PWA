@@ -5,7 +5,8 @@
 import { useState, useEffect } from 'react'
 import { Icon, Btn, Field } from './InventarioUI'
 import { fetchProveedores, fetchProveedor, crearProveedor, actualizarProveedor } from '@/hooks/useProveedores'
-import { formatImporte } from '@/utils/formatters'
+import { formatImporte, formatCantidad, formatTelefono } from '@/utils/formatters'
+import { validarTelefono, validarEmail, normalizarTelefono } from '@/utils/validators'
 
 function fmtDate(s) {
   if (!s) return '—'
@@ -84,7 +85,7 @@ function ProviderDetail({ proveedorId, onEdit, onReload }) {
             <span className="prov-contact__ic"><Icon name="phone" size={16} /></span>
             <div>
               <span className="prov-contact__label">TELÉFONO</span>
-              <span className="prov-contact__value">{proveedor.telefono || '—'}</span>
+              <span className="prov-contact__value">{proveedor.telefono ? formatTelefono(proveedor.telefono) : '—'}</span>
             </div>
           </div>
           <div className="prov-contact__item">
@@ -137,10 +138,10 @@ function ProviderDetail({ proveedorId, onEdit, onReload }) {
                     <tr key={m.id}>
                       <td style={{ padding: '12px', fontWeight: 600, borderBottom: '1px solid var(--line-2)' }}>{m.nombre}</td>
                       <td style={{ padding: '12px', borderBottom: '1px solid var(--line-2)', color: stockBajo ? 'var(--bajo)' : 'var(--ink)', fontWeight: stockBajo ? 700 : 400 }}>
-                        {parseFloat(m.stock || 0).toFixed(2)}
+                        {formatCantidad(m.stock || 0)}
                         {stockBajo && <Icon name="warn" size={13} style={{ marginLeft: 4, verticalAlign: 'middle' }} />}
                       </td>
-                      <td style={{ padding: '12px', borderBottom: '1px solid var(--line-2)', color: 'var(--muted)' }}>{parseFloat(m.stock_minimo || 0).toFixed(2)}</td>
+                      <td style={{ padding: '12px', borderBottom: '1px solid var(--line-2)', color: 'var(--muted)' }}>{formatCantidad(m.stock_minimo || 0)}</td>
                       <td style={{ padding: '12px', borderBottom: '1px solid var(--line-2)', color: 'var(--muted)' }}>{m.unidad || '—'}</td>
                     </tr>
                   )
@@ -189,10 +190,12 @@ function ProviderForm({ proveedor, isNew, onSave, onCancel }) {
 
   const submit = async () => {
     if (!f.nombre.trim()) { setError('El nombre es obligatorio.'); return }
+    if (f.telefono && !validarTelefono(f.telefono)) { setError('El teléfono debe tener 9 dígitos.'); return }
+    if (f.email && !validarEmail(f.email)) { setError('El email no es válido.'); return }
     setSaving(true)
     setError('')
     try {
-      await onSave(f)
+      await onSave({ ...f, telefono: f.telefono ? normalizarTelefono(f.telefono) : f.telefono })
     } catch (e) {
       setError(e.message || 'Error al guardar.')
       setSaving(false)
@@ -288,7 +291,7 @@ export default function ProveedoresPanel() {
     <div>
       {/* Cabecera */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-        <h1 style={{ margin: 0, fontFamily: '"Playfair Display", serif', fontSize: 28, fontWeight: 600, color: 'var(--ink)' }}>Proveedores</h1>
+        <h1 style={{ margin: 0, fontFamily: '"Lora", serif', fontSize: 28, fontWeight: 600, color: 'var(--ink)' }}>Proveedores</h1>
         <Btn kind="brand" icon="plus" onClick={() => { setMode('create') }}>Nuevo proveedor</Btn>
       </div>
 

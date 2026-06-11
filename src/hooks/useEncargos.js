@@ -1,12 +1,5 @@
 import { supabase } from '@/lib/supabase'
-
-const ESTADO_LABELS = {
-  presupuestado: 'Presupuestado',
-  confirmado: 'Confirmado',
-  en_confeccion: 'En confección',
-  listo: 'Listo',
-  entregado: 'Entregado',
-}
+import { formatImporte, ESTADO_LABELS } from '@/utils/formatters'
 
 const registrarHistorial = (encargo_id, descripcion) =>
   supabase.from('historial_encargo').insert({ encargo_id, descripcion })
@@ -110,8 +103,7 @@ export async function registrarPago({ encargo_id, fecha, importe, tipo, forma_pa
     .single()
   if (error) throw error
 
-  const importeFormateado = parseFloat(importe).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })
-  await registrarHistorial(encargo_id, `Pago registrado: ${importeFormateado}`)
+  await registrarHistorial(encargo_id, `Pago registrado: ${formatImporte(parseFloat(importe))}`)
 
   return data
 }
@@ -134,8 +126,7 @@ export async function eliminarPago(id, encargo_id, importe) {
   if (error) throw error
 
   if (encargo_id) {
-    const importeFormateado = parseFloat(importe).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })
-    await registrarHistorial(encargo_id, `Pago eliminado: ${importeFormateado}`)
+    await registrarHistorial(encargo_id, `Pago eliminado: ${formatImporte(parseFloat(importe))}`)
   }
 }
 

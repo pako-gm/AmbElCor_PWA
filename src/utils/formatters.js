@@ -14,6 +14,32 @@ export const formatImporte = (importe) => {
   }).format(importe)
 }
 
+// Fecha corta sin año: "11 jun"
+export const formatFechaCorta = (fecha) => {
+  if (!fecha) return '—'
+  return new Date(fecha)
+    .toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+    .replace('.', '')
+}
+
+// Cantidades (stock, unidades) en es-ES sin símbolo de moneda
+export const formatCantidad = (valor, decimales = 2) => {
+  const n = typeof valor === 'number' ? valor : parseFloat(valor)
+  if (valor == null || isNaN(n)) return '—'
+  return n.toLocaleString('es-ES', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimales,
+  })
+}
+
+// Teléfono de 9 dígitos: "612 345 678"; si no encaja, se devuelve tal cual
+export const formatTelefono = (telefono) => {
+  if (!telefono) return ''
+  const limpio = String(telefono).replace(/[\s-]/g, '')
+  if (!/^\d{9}$/.test(limpio)) return telefono
+  return `${limpio.slice(0, 3)} ${limpio.slice(3, 6)} ${limpio.slice(6)}`
+}
+
 // Generar número de encargo YY/NNN
 export const formatNumeroEncargo = (numero) => numero ?? '—'
 

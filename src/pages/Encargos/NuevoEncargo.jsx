@@ -6,6 +6,7 @@ import {
   crearEncargo, fetchTodosClientes, crearClienteRapido, fetchCatalogo
 } from '@/hooks/useEncargos'
 import { formatImporte } from '@/utils/formatters'
+import { validarTelefono, validarEmail } from '@/utils/validators'
 
 function lineaVacia() {
   return { _id: Date.now() + Math.random(), prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', notas: '' }
@@ -70,9 +71,9 @@ export default function NuevoEncargo() {
 
   const validarCliente = () => {
     const errs = {}
-    if (!nuevoCliente.telefono || !/^\d{9}$/.test(nuevoCliente.telefono))
+    if (!nuevoCliente.telefono || !validarTelefono(nuevoCliente.telefono))
       errs.telefono = 'El teléfono debe tener exactamente 9 dígitos'
-    if (nuevoCliente.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nuevoCliente.email))
+    if (nuevoCliente.email && !validarEmail(nuevoCliente.email))
       errs.email = 'Correo electrónico no válido'
     setErroresCliente(errs)
     return Object.keys(errs).length === 0
