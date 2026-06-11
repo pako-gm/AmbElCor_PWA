@@ -9,6 +9,9 @@ import { fetchEncargo, avanzarEstado, registrarPago, actualizarPago, eliminarPag
 import { supabase } from '@/lib/supabase'
 import { generarPresupuestoPDF, generarFacturaPDF } from '@/utils/pdfGenerator'
 import { useToast } from '@/hooks/useToast'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import LoadingState from '@/components/ui/LoadingState'
+import Badge from '@/components/ui/Badge'
 import {
   formatFecha, formatImporte,
   ESTADO_LABELS,
@@ -138,7 +141,7 @@ export default function EncargoDetalle() {
 
   useEffect(cargar, [id])
 
-  if (loading) return <PageWrapper><div className="p-8 text-center text-[--text-light] text-sm">Cargando…</div></PageWrapper>
+  if (loading) return <PageWrapper><LoadingState /></PageWrapper>
   if (!encargo) return <PageWrapper><div className="p-8 text-center text-[--text-light] text-sm">Encargo no encontrado.</div></PageWrapper>
 
   const estadoActual = ESTADOS.indexOf(encargo.estado)
@@ -268,12 +271,16 @@ export default function EncargoDetalle() {
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
         {/* Cabecera */}
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/encargos')} className="text-[--text-light] hover:text-[--text-dark]">
+          <button
+            onClick={() => navigate('/encargos')}
+            aria-label="Volver"
+            className="text-[--text-light] hover:text-[--text-dark]"
+          >
             <ChevronLeft size={22} />
           </button>
           <div className="flex-1">
             <p className="text-xs text-[--text-light]">{encargo.numero}</p>
-            <h1 className="font-display text-xl text-[--text-dark]">{nombreCliente}</h1>
+            <h1 className="font-display text-2xl text-[--text-dark]">{nombreCliente}</h1>
           </div>
           {encargo.clientes?.telefono && (
             <div className="flex items-center gap-2">
@@ -893,47 +900,17 @@ export default function EncargoDetalle() {
       )}
 
       {/* Modal confirmar eliminación */}
-      {confirmDelete && (
-        <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4"
-          onClick={() => setConfirmDelete(null)}
-        >
-          <div
-            className="bg-white rounded-xl w-full max-w-sm p-6 space-y-4"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
-                <Trash2 size={18} className="text-red-500" />
-              </div>
-              <div>
-                <h3 className="font-display text-base text-[--text-dark]">
-                  {confirmDelete.tipo === 'encargo' ? 'Eliminar encargo' : 'Eliminar pago'}
-                </h3>
-                <p className="text-xs text-[--text-light]">
-                  {confirmDelete.tipo === 'encargo'
-                    ? `¿Eliminar el encargo ${encargo.numero}? Esta acción no se puede deshacer.`
-                    : '¿Eliminar este pago? Esta acción no se puede deshacer.'}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => setConfirmDelete(null)}
-                className="flex-1 text-sm border border-[--border] px-4 py-2 rounded-md text-[--text-medium] hover:bg-[--bg-alt] transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="flex-1 text-sm bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={confirmDelete?.tipo === 'encargo' ? 'Eliminar encargo' : 'Eliminar pago'}
+        description={
+          confirmDelete?.tipo === 'encargo'
+            ? `¿Eliminar el encargo ${encargo.numero}? Esta acción no se puede deshacer.`
+            : '¿Eliminar este pago? Esta acción no se puede deshacer.'
+        }
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
 
       {/* Modal compartir */}
       {modalCompartir && (

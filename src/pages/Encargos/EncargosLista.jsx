@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search } from 'lucide-react'
+import { Plus, ClipboardList } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { fetchEncargos } from '@/hooks/useEncargos'
-import { formatFecha, formatFechaCorta, formatImporte, ESTADO_LABELS, ESTADO_COLORS } from '@/utils/formatters'
+import { formatFecha, formatFechaCorta, formatImporte } from '@/utils/formatters'
+import PageHeader from '@/components/ui/PageHeader'
+import Button from '@/components/ui/Button'
+import SearchInput from '@/components/ui/SearchInput'
+import LoadingState from '@/components/ui/LoadingState'
+import EmptyState from '@/components/ui/EmptyState'
+import Badge from '@/components/ui/Badge'
 
 function calcularProgreso(fechaInicio, fechaFin) {
   if (!fechaFin) return null
@@ -64,28 +70,22 @@ export default function EncargosLista() {
     <PageWrapper>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
         {/* Cabecera */}
-        <div className="flex items-center justify-between">
-          <h1 className="font-display text-2xl text-[--text-dark]">Encargos</h1>
-          <button
-            onClick={() => navigate('/encargos/nuevo')}
-            className="flex items-center gap-1.5 bg-primary text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-primary-dark transition-colors"
-          >
-            <Plus size={16} />
-            Nuevo
-          </button>
-        </div>
+        <PageHeader
+          titulo="Encargos"
+          accion={
+            <Button onClick={() => navigate('/encargos/nuevo')}>
+              <Plus size={16} />
+              Nuevo
+            </Button>
+          }
+        />
 
         {/* Buscador */}
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[--text-light]" />
-          <input
-            type="search"
-            placeholder="Buscar por cliente o nº encargo…"
-            value={busqueda}
-            onChange={e => setBusqueda(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-[--border] rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
+        <SearchInput
+          value={busqueda}
+          onChange={setBusqueda}
+          placeholder="Buscar por cliente o nº encargo…"
+        />
 
         {/* Filtros de estado */}
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -118,11 +118,18 @@ export default function EncargosLista() {
 
         {/* Lista */}
         {loading ? (
-          <div className="text-center py-12 text-[--text-light] text-sm">Cargando…</div>
+          <LoadingState />
         ) : filtrados.length === 0 ? (
-          <div className="text-center py-12 text-[--text-light] text-sm">
-            {busqueda || filtroEstado ? 'Sin resultados' : 'Aún no hay encargos. ¡Crea el primero!'}
-          </div>
+          <EmptyState
+            icon={ClipboardList}
+            titulo={busqueda || filtroEstado !== 'activos' ? 'Sin resultados' : 'Aún no hay encargos.'}
+            accion={!busqueda && filtroEstado === 'activos' && (
+              <Button onClick={() => navigate('/encargos/nuevo')}>
+                <Plus size={16} />
+                Crear el primero
+              </Button>
+            )}
+          />
         ) : (
           <div className="space-y-2">
             {filtrados.map(e => {
@@ -142,9 +149,7 @@ export default function EncargosLista() {
                   {/* Fila 1: número + badge estado */}
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-[--text-light]">{e.numero}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ESTADO_COLORS[e.estado]}`}>
-                      {ESTADO_LABELS[e.estado]}
-                    </span>
+                    <Badge estado={e.estado} />
                   </div>
 
                   {/* Fila 2: nombre + prendas (izq) e importe (der) */}

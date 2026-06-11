@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Trash2, ChevronLeft, UserPlus, X } from 'lucide-react'
+import { Plus, Trash2, UserPlus, X } from 'lucide-react'
+import PageHeader from '@/components/ui/PageHeader'
+import Button from '@/components/ui/Button'
 import PageWrapper from '@/components/layout/PageWrapper'
 import {
   crearEncargo, fetchTodosClientes, crearClienteRapido, fetchCatalogo
@@ -159,12 +161,7 @@ export default function NuevoEncargo() {
     <PageWrapper>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
         {/* Cabecera */}
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/encargos')} className="text-[--text-light] hover:text-[--text-dark]">
-            <ChevronLeft size={22} />
-          </button>
-          <h1 className="font-display text-2xl text-[--text-dark]">Nuevo encargo</h1>
-        </div>
+        <PageHeader titulo="Nuevo encargo" backTo="/encargos" />
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-4 py-2">
@@ -189,6 +186,7 @@ export default function NuevoEncargo() {
               <button
                 type="button"
                 onClick={() => { setClienteQuery(''); setClienteSeleccionado(null); setMostrarDropdown(false) }}
+                aria-label="Limpiar cliente"
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-[--text-light] hover:text-[--text-dark]"
               >
                 <X size={15} />
@@ -261,20 +259,16 @@ export default function NuevoEncargo() {
                 {erroresCliente.email && <p className="text-xs text-red-500 mt-0.5">{erroresCliente.email}</p>}
               </div>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={crearCliente}
-                  className="bg-primary text-white text-xs px-4 py-1.5 rounded hover:bg-primary-dark transition-colors"
-                >
+                <Button size="sm" onClick={crearCliente}>
                   Guardar cliente
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
                   onClick={() => { setMostrarFormCliente(false); setNuevoCliente({ nombre: '', apellidos: '', telefono: '', email: '' }); setErroresCliente({}) }}
-                  className="bg-gray-100 text-gray-500 text-xs px-4 py-1.5 rounded hover:bg-gray-200 transition-colors"
                 >
                   Cancelar
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -316,6 +310,7 @@ export default function NuevoEncargo() {
                   <button
                     type="button"
                     onClick={() => removeLinea(l._id)}
+                    aria-label={`Eliminar prenda ${idx + 1}`}
                     className="text-[--text-light] hover:text-red-500 transition-colors"
                   >
                     <Trash2 size={15} />
@@ -406,13 +401,9 @@ export default function NuevoEncargo() {
             <p className="text-xs text-[--text-light]">Total estimado</p>
             <p className="text-xl font-semibold text-[--text-dark]">{formatImporte(total)}</p>
           </div>
-          <button
-            onClick={handleGuardar}
-            disabled={saving}
-            className="bg-primary text-white px-6 py-2.5 rounded-md font-medium hover:bg-primary-dark disabled:opacity-50 transition-colors"
-          >
+          <Button size="lg" onClick={handleGuardar} loading={saving}>
             {saving ? 'Guardando…' : 'Guardar encargo'}
-          </button>
+          </Button>
         </div>
       </div>
     </PageWrapper>
