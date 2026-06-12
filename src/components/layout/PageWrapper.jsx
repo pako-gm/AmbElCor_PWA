@@ -5,7 +5,7 @@ import {
   BarChart2, LogOut, Menu, X, Tag, Globe, CalendarDays, Building2, ChevronRight,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const BREADCRUMBS = {
   '/clientes':               [{ label: 'Encargos', to: '/encargos' }, { label: 'Clientes' }],
@@ -48,14 +48,30 @@ export default function PageWrapper({ children, title }) {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const hideTimer = useRef(null)
 
   const tab = searchParams.get('tab')
   const breadcrumbs =
     BREADCRUMBS[location.pathname] ??
     (location.pathname === '/contabilidad' && tab ? CONTABILIDAD_TABS[tab] : null)
 
-  useEffect(() => {
+  const cancelarCierre = () => clearTimeout(hideTimer.current)
+
+  // El drawer se oculta 3 s después de retirar el cursor
+  const programarCierre = () => {
+    cancelarCierre()
+    hideTimer.current = setTimeout(() => setDrawerOpen(false), 3000)
+  }
+
+  const cerrarDrawer = () => {
+    cancelarCierre()
     setDrawerOpen(false)
+  }
+
+  useEffect(() => cancelarCierre, [])
+
+  useEffect(() => {
+    cerrarDrawer()
   }, [location.pathname])
 
   const handleSignOut = async () => {
@@ -68,7 +84,9 @@ export default function PageWrapper({ children, title }) {
       {/* Header fijo */}
       <header className="fixed top-0 left-0 right-0 h-14 bg-[--bg-gray] border-b border-[--border] flex items-center px-4 z-30">
         <button
-          onClick={() => setDrawerOpen(true)}
+          onClick={() => { cancelarCierre(); setDrawerOpen(true) }}
+          onMouseEnter={() => { cancelarCierre(); setDrawerOpen(true) }}
+          onMouseLeave={programarCierre}
           className="p-1 text-[--text-medium] hover:text-primary transition-colors"
           aria-label="Abrir menú"
         >
@@ -86,12 +104,14 @@ export default function PageWrapper({ children, title }) {
       {drawerOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-40"
-          onClick={() => setDrawerOpen(false)}
+          onClick={cerrarDrawer}
         />
       )}
 
       {/* Drawer */}
       <aside
+        onMouseEnter={cancelarCierre}
+        onMouseLeave={programarCierre}
         className={`fixed left-0 top-0 bottom-0 w-64 bg-white z-50 flex flex-col shadow-xl transition-transform duration-300 ${
           drawerOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
@@ -105,7 +125,7 @@ export default function PageWrapper({ children, title }) {
             </span>
           </div>
           <button
-            onClick={() => setDrawerOpen(false)}
+            onClick={cerrarDrawer}
             className="p-1 text-[--text-light] hover:text-[--text-medium] transition-colors"
             aria-label="Cerrar menú"
           >
