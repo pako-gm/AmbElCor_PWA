@@ -584,6 +584,7 @@ ${cita.cliente_nombre}`,
       <div className="max-w-6xl mx-auto px-4 py-6 pb-20">
         <PageHeader
           titulo="Calendario de Citas"
+          backTo="/encargos"
           className="mb-6"
           accion={
             <Button

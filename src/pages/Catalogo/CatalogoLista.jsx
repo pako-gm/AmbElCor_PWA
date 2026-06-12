@@ -37,6 +37,7 @@ export default function CatalogoLista() {
         {/* Cabecera */}
         <PageHeader
           titulo="Catálogo"
+          backTo="/encargos"
           accion={
             <Button onClick={() => navigate('/catalogo/nueva')}>
               <Plus size={16} />

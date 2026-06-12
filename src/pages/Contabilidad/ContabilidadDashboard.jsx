@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
-import { Download, Plus, Trash2, ArrowRight } from 'lucide-react'
+import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { Download, Plus, Trash2, ArrowRight, ChevronLeft } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { useContabilidad } from '@/hooks/useContabilidad'
 import {
@@ -961,6 +961,7 @@ function LibroPanel({ año }) {
 // ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 
 export default function ContabilidadDashboard() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const tab = searchParams.get('tab') || 'dashboard'
   const setTab = (t) => setSearchParams({ tab: t }, { replace: true })
@@ -970,7 +971,16 @@ export default function ContabilidadDashboard() {
     <PageWrapper>
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-          <h1 className="font-display text-2xl text-[--text-dark]">Contabilidad</h1>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => (tab !== 'dashboard' ? setTab('dashboard') : navigate('/encargos'))}
+              aria-label="Volver"
+              className="w-9 h-9 flex-shrink-0 flex items-center justify-center border border-[--border] rounded-lg bg-white text-[--text-medium] hover:border-primary hover:text-primary transition-colors"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <h1 className="font-display text-2xl text-[--text-dark]">Contabilidad</h1>
+          </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-[--text-light]">Selecciona el año</span>
             <ArrowRight size={14} className="text-[--text-light]" />

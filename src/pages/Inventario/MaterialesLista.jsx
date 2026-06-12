@@ -290,6 +290,13 @@ export default function MaterialesLista() {
         {/* Cabecera identidad + acciones */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/encargos')}
+              aria-label="Volver"
+              style={{ width: 38, height: 38, border: '1px solid var(--line)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', cursor: 'pointer', color: 'var(--ink-2)', flexShrink: 0 }}
+            >
+              <Icon name="back" size={15} />
+            </button>
             <h1 className="font-display text-3xl font-bold text-ink">Inventario</h1>
           </div>
           <div className="flex flex-wrap gap-2">

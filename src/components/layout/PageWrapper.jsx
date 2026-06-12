@@ -1,23 +1,11 @@
-import { NavLink, useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import logoAmbelcor from '@/public/img/ambelcor-oscuro.png'
 import {
   Home, Users, Package,
-  BarChart2, LogOut, Menu, X, Tag, Globe, CalendarDays, Building2, ChevronRight,
+  BarChart2, LogOut, Menu, X, Tag, Globe, CalendarDays, Building2,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useState, useEffect, useRef } from 'react'
-
-const BREADCRUMBS = {
-  '/clientes':               [{ label: 'Encargos', to: '/encargos' }, { label: 'Clientes' }],
-  '/catalogo':               [{ label: 'Encargos', to: '/encargos' }, { label: 'Catálogo' }],
-  '/inventario/proveedores': [{ label: 'Inventario', to: '/inventario' }, { label: 'Proveedores' }],
-}
-
-const CONTABILIDAD_TABS = {
-  cobros: [{ label: 'Contabilidad', to: '/contabilidad' }, { label: 'Cobros' }],
-  pagos:  [{ label: 'Contabilidad', to: '/contabilidad' }, { label: 'Pagos' }],
-  libro:  [{ label: 'Contabilidad', to: '/contabilidad' }, { label: 'Libro Diario' }],
-}
 
 const navItems = [
   {
@@ -46,14 +34,8 @@ export default function PageWrapper({ children, title }) {
   const { signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [searchParams] = useSearchParams()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const hideTimer = useRef(null)
-
-  const tab = searchParams.get('tab')
-  const breadcrumbs =
-    BREADCRUMBS[location.pathname] ??
-    (location.pathname === '/contabilidad' && tab ? CONTABILIDAD_TABS[tab] : null)
 
   const cancelarCierre = () => clearTimeout(hideTimer.current)
 
@@ -196,22 +178,6 @@ export default function PageWrapper({ children, title }) {
 
       {/* Contenido principal */}
       <main className="flex-1 pt-14">
-        {breadcrumbs && (
-          <nav className="max-w-5xl mx-auto px-4 md:px-8 pt-4 pb-0 flex items-center gap-1 text-xs text-[--text-light]">
-            {breadcrumbs.map((crumb, i) => (
-              <span key={i} className="flex items-center gap-1">
-                {i > 0 && <ChevronRight size={12} className="text-[--border]" />}
-                {crumb.to ? (
-                  <Link to={crumb.to} className="hover:text-primary transition-colors">
-                    {crumb.label}
-                  </Link>
-                ) : (
-                  <span className="text-[--text-medium] font-medium">{crumb.label}</span>
-                )}
-              </span>
-            ))}
-          </nav>
-        )}
         {title && (
           <div className="max-w-5xl mx-auto px-4 md:px-8 pt-6 pb-0 flex items-center justify-between">
             <h1 className="font-display text-2xl text-[--text-dark]">{title}</h1>

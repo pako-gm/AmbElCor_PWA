@@ -3,6 +3,7 @@
    (maestro-detalle + ficha + artículos + pagos + edición)
    ============================================================ */
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Icon, Btn, Field } from './InventarioUI'
 import { fetchProveedores, fetchProveedor, crearProveedor, actualizarProveedor } from '@/hooks/useProveedores'
 import { formatImporte, formatCantidad, formatTelefono } from '@/utils/formatters'
@@ -253,6 +254,7 @@ function ProviderForm({ proveedor, isNew, onSave, onCancel }) {
 
 /* ---------- Vista Proveedores (maestro-detalle) ---------- */
 export default function ProveedoresPanel() {
+  const navigate = useNavigate()
   const [proveedores, setProveedores] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState(null)
@@ -291,7 +293,16 @@ export default function ProveedoresPanel() {
     <div>
       {/* Cabecera */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-        <h1 style={{ margin: 0, fontFamily: '"Lora", serif', fontSize: 28, fontWeight: 600, color: 'var(--ink)' }}>Proveedores</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={() => navigate('/inventario')}
+            aria-label="Volver"
+            style={{ width: 38, height: 38, border: '1px solid var(--line)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', cursor: 'pointer', color: 'var(--ink-2)', flexShrink: 0 }}
+          >
+            <Icon name="back" size={15} />
+          </button>
+          <h1 style={{ margin: 0, fontFamily: '"Lora", serif', fontSize: 28, fontWeight: 600, color: 'var(--ink)' }}>Proveedores</h1>
+        </div>
         <Btn kind="brand" icon="plus" onClick={() => { setMode('create') }}>Nuevo proveedor</Btn>
       </div>
 

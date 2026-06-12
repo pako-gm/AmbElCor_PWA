@@ -274,9 +274,9 @@ export default function EncargoDetalle() {
           <button
             onClick={() => navigate('/encargos')}
             aria-label="Volver"
-            className="text-[--text-light] hover:text-[--text-dark]"
+            className="w-9 h-9 flex-shrink-0 flex items-center justify-center border border-[--border] rounded-lg bg-white text-[--text-medium] hover:border-primary hover:text-primary transition-colors"
           >
-            <ChevronLeft size={22} />
+            <ChevronLeft size={18} />
           </button>
           <div className="flex-1">
             <p className="text-xs text-[--text-light]">{encargo.numero}</p>

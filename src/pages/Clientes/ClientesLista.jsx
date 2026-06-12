@@ -37,6 +37,7 @@ export default function ClientesLista() {
         {/* Cabecera */}
         <PageHeader
           titulo="Clientes"
+          backTo="/encargos"
           accion={
             <Button onClick={() => navigate('/clientes/nuevo')}>
               <Plus size={16} />
