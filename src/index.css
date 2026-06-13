@@ -302,18 +302,3 @@
   .prov-contact { grid-template-columns:1fr 1fr }
   .grid-2 { grid-template-columns:1fr }
 }
-
-/* FullCalendar styling */
-.fc-timegrid-event {
-  border-left-width: 4px !important;
-  border-radius: 6px !important;
-  box-shadow: none !important;
-}
-
-.fc-timegrid-event .fc-event-main {
-  padding: 4px 6px !important;
-}
-
-.fc-event-title-container {
-  overflow: hidden;
-}

@@ -1,78 +1,36 @@
 import { test, expect } from '@playwright/test'
 
-test('CitasCalendario: Drag & drop with 15-min snap', async ({ page }) => {
-  // Navigate to citas page
-  await page.goto('http://localhost:5173/citas', { waitUntil: 'networkidle' })
+// El timeline usa Pointer Events con snap de 15 min (15 min ≈ 33px a 2.2 px/min)
+test('CitasCalendario: drag & drop de tarjeta con snap de 15 min', async ({ page }) => {
+  await page.goto('/citas', { waitUntil: 'networkidle' })
+  await page.waitForTimeout(800)
 
-  // Wait for timeline to be visible
-  await page.waitForSelector('[class*="timeline"]', { timeout: 5000 })
+  const card = page.getByTestId('cita-card').first()
+  const total = await page.getByTestId('cita-card').count()
 
-  console.log('✅ Page loaded')
-
-  // Find first cita card (drag me)
-  const citaCard = page.locator('[draggable=true]').first()
-  const exists = await citaCard.count()
-
-  if (exists === 0) {
-    console.log('⚠️ No citas found to drag - calendar may be empty')
+  if (total === 0) {
+    console.log('⚠️ No hay citas en el día seleccionado — nada que arrastrar')
     return
   }
+  console.log(`✅ ${total} tarjetas de cita encontradas`)
 
-  console.log(`✅ Found ${exists} draggable citas`)
+  const antes = await card.boundingBox()
+  console.log(`✅ Posición inicial: y=${antes.y}`)
 
-  // Get timeline bounds for drop target
-  const timeline = page.locator('[class*="overflow-y-auto"][class*="flex"]').first()
-  const timelineBounds = await timeline.boundingBox()
+  // Arrastrar hacia abajo ~66px (= 30 min): pointerdown → move → up
+  const x = antes.x + antes.width / 2
+  const y = antes.y + Math.min(12, antes.height / 2)
+  await page.mouse.move(x, y)
+  await page.mouse.down()
+  await page.mouse.move(x, y + 66, { steps: 12 })
+  await page.mouse.up()
 
-  if (!timelineBounds) {
-    console.log('❌ Could not find timeline bounds')
-    return
-  }
+  await page.waitForTimeout(800)
 
-  console.log(`✅ Timeline bounds: ${JSON.stringify(timelineBounds)}`)
+  const despues = await card.boundingBox()
+  console.log(`✅ Posición final: y=${despues.y}`)
 
-  // Get initial cita position
-  const citaBounds = await citaCard.boundingBox()
-  console.log(`✅ Cita initial position: top=${citaBounds.y}, height=${citaBounds.height}`)
+  expect(Math.abs(despues.y - antes.y)).toBeGreaterThan(30)
 
-  // Perform drag: grab center of card, drag down ~150px (should snap to nearest 15min)
-  const fromX = citaBounds.x + citaBounds.width / 2
-  const fromY = citaBounds.y + citaBounds.height / 2
-  const toX = citaBounds.x + citaBounds.width / 2
-  const toY = fromY + 150  // drag down
-
-  console.log(`🔍 Starting drag from (${fromX}, ${fromY}) to (${toX}, ${toY})`)
-
-  // Perform drag
-  await citaCard.dragTo(timeline, {
-    sourcePosition: { x: citaBounds.width / 2, y: citaBounds.height / 2 },
-    targetPosition: {
-      x: timelineBounds.width / 2,
-      y: 150
-    }
-  })
-
-  // Wait a moment for update
-  await page.waitForTimeout(500)
-
-  // Check if guide line appears during drag (we won't be able to catch this, but check after)
-  const guideLine = page.locator('[style*="background"]').filter({
-    has: page.locator('..').filter({ has: page.locator('[style*="top:"]') })
-  })
-
-  console.log('✅ Drag completed')
-
-  // Verify cita moved
-  const newCitaBounds = await citaCard.boundingBox()
-  const moved = newCitaBounds.y !== citaBounds.y
-
-  if (moved) {
-    console.log(`✅ Cita moved: old y=${citaBounds.y}, new y=${newCitaBounds.y}`)
-  } else {
-    console.log('⚠️ Cita did not move (drag may have been ignored)')
-  }
-
-  // Take screenshot to see current state
-  await page.screenshot({ path: 'verify-citas-drag.png', fullPage: false })
-  console.log('📸 Screenshot saved: verify-citas-drag.png')
+  await page.screenshot({ path: 'test-screenshots/citas-drag.png', fullPage: false })
 })

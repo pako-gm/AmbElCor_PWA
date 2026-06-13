@@ -6,6 +6,13 @@ test('Captura screenshot de /citas', async ({ page }) => {
   await page.screenshot({ path: 'test-screenshots/citas.png', fullPage: true })
 })
 
+test('Captura screenshot de /citas en móvil', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/citas', { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+  await page.screenshot({ path: 'test-screenshots/citas-movil.png', fullPage: true })
+})
+
 test('Captura screenshot de /encargos', async ({ page }) => {
   await page.goto('/encargos', { waitUntil: 'networkidle' })
   await page.waitForTimeout(500)

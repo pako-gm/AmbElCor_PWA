@@ -92,7 +92,7 @@ supabase/
 - **Módulo Proveedores:** panel integrado en Inventario (`/inventario/proveedores`)
 - **Módulo Inventario:** lista de materiales, nuevo, detalle, ajustes (`/inventario`, `/inventario/ajustes`)
 - **Módulo Contabilidad:** página única con tabs dashboard/cobros/pagos/libro (`/contabilidad`, `ContabilidadDashboard.jsx`)
-- **Módulo Citas:** calendario semanal FullCalendar (`/citas`)
+- **Módulo Citas:** agenda de día con timeline propio y drag&drop táctil (`/citas`, componentes en `src/components/citas/`)
 - **Módulo Catálogo:** lista y formulario de prendas (`/catalogo`)
 - Edge Function `notify-whatsapp` para notificaciones al cliente
 

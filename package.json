@@ -11,9 +11,6 @@
     "screenshot": "playwright test tests/screenshot.spec.ts"
   },
   "dependencies": {
-    "@fullcalendar/interaction": "^6.1.20",
-    "@fullcalendar/react": "^6.1.20",
-    "@fullcalendar/timegrid": "^6.1.20",
     "@stripe/react-stripe-js": "^2.8.0",
     "@stripe/stripe-js": "^4.4.0",
     "@supabase/supabase-js": "^2.45.4",
