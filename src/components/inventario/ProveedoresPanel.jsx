@@ -253,7 +253,7 @@ function ProviderForm({ proveedor, isNew, onSave, onCancel }) {
 }
 
 /* ---------- Vista Proveedores (maestro-detalle) ---------- */
-export default function ProveedoresPanel() {
+export default function ProveedoresPanel({ topNav = null }) {
   const navigate = useNavigate()
   const [proveedores, setProveedores] = useState([])
   const [loading, setLoading] = useState(true)
@@ -305,6 +305,8 @@ export default function ProveedoresPanel() {
         </div>
         <Btn kind="brand" icon="plus" onClick={() => { setMode('create') }}>Nuevo proveedor</Btn>
       </div>
+
+      {topNav}
 
       <div className="prov-grid">
         {/* Lista lateral */}

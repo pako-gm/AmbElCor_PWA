@@ -1,237 +1,82 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, ClipboardList } from 'lucide-react'
+import { useRef } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { ChevronLeft, Plus } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
-import { fetchEncargos } from '@/hooks/useEncargos'
-import { formatFecha, formatFechaCorta, formatImporte } from '@/utils/formatters'
-import PageHeader from '@/components/ui/PageHeader'
 import Button from '@/components/ui/Button'
-import SearchInput from '@/components/ui/SearchInput'
-import LoadingState from '@/components/ui/LoadingState'
-import EmptyState from '@/components/ui/EmptyState'
-import Badge from '@/components/ui/Badge'
+import EncargosPanel from '@/pages/Encargos/panels/EncargosPanel'
+import ClientesPanel from '@/pages/Encargos/panels/ClientesPanel'
+import CatalogoPanel from '@/pages/Encargos/panels/CatalogoPanel'
+import CitasPanel from '@/pages/Encargos/panels/CitasPanel'
 
-function calcularProgreso(fechaInicio, fechaFin) {
-  if (!fechaFin) return null
-  const inicio = new Date(fechaInicio).getTime()
-  const fin = new Date(fechaFin).getTime()
-  const hoy = Date.now()
-  const total = fin - inicio
-  if (total <= 0) return null
-  const avance = ((hoy - inicio) / total) * 100
-  const diasRestantes = Math.ceil((fin - hoy) / 86400000)
-  return { pct: Math.max(0, avance), diasRestantes, vencido: hoy > fin }
-}
-
-const FILTROS = [
-  { value: 'activos', label: 'Todos' },
-  { value: 'presupuestado', label: 'Presupuestado' },
-  { value: 'confirmado', label: 'Confirmado' },
-  { value: 'en_confeccion', label: 'En confección' },
-  { value: 'listo', label: 'Listo' },
+const TABS = [
+  { key: 'encargos', label: 'Encargos', accion: { to: '/encargos/nuevo', label: 'Nuevo encargo' } },
+  { key: 'citas', label: 'Citas', accion: { label: 'Nueva Cita' } },
+  { key: 'clientes', label: 'Clientes', accion: { to: '/clientes/nuevo', label: 'Nuevo cliente' } },
+  { key: 'catalogo', label: 'Catálogo', accion: { to: '/catalogo/nueva', label: 'Nueva prenda' } },
 ]
+
+function SubNav({ tab, setTab }) {
+  return (
+    <div className="flex items-center gap-0 mb-6 border-b border-[--border]">
+      {TABS.map(t => (
+        <button
+          key={t.key}
+          onClick={() => setTab(t.key)}
+          className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
+            tab === t.key
+              ? 'border-primary text-primary'
+              : 'border-transparent text-[--text-medium] hover:text-[--text]'
+          }`}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export default function EncargosLista() {
   const navigate = useNavigate()
-  const [encargos, setEncargos] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [filtroEstado, setFiltroEstado] = useState('activos')
-  const [busqueda, setBusqueda] = useState('')
-  const [verEntregados, setVerEntregados] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = searchParams.get('tab') || 'encargos'
+  const setTab = (t) => setSearchParams(t === 'encargos' ? {} : { tab: t }, { replace: true })
 
-  useEffect(() => {
-    setLoading(true)
-    const params = filtroEstado === 'activos'
-      ? (verEntregados ? {} : { excludeEntregados: true })
-      : { estado: filtroEstado }
-    fetchEncargos(params)
-      .then(setEncargos)
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }, [filtroEstado, verEntregados])
+  const tabActual = TABS.find(t => t.key === tab) ?? TABS[0]
 
-  const filtrados = encargos
-    .filter(e => {
-      if (!busqueda) return true
-      const q = busqueda.toLowerCase()
-      const nombre = `${e.clientes?.nombre ?? ''} ${e.clientes?.apellidos ?? ''}`.toLowerCase()
-      return nombre.includes(q) || (e.numero ?? '').toLowerCase().includes(q)
-    })
-    .sort((a, b) => {
-      const fa = a.fecha_entrega_estimada
-      const fb = b.fecha_entrega_estimada
-      if (!fa && !fb) return 0
-      if (!fa) return 1
-      if (!fb) return -1
-      return fa.localeCompare(fb)
-    })
+  // La acción "Nueva Cita" la maneja CitasPanel; se expone aquí vía ref.
+  const nuevaCitaRef = useRef(null)
+  const onAccion = () =>
+    tab === 'citas' ? nuevaCitaRef.current?.() : navigate(tabActual.accion.to)
 
   return (
     <PageWrapper>
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {/* Cabecera */}
-        <PageHeader
-          titulo="Encargos"
-          accion={
-            <Button onClick={() => navigate('/encargos/nuevo')}>
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* Cabecera unificada: botón volver (salvo en Encargos, que es la página principal) + título + acción */}
+        <div className="flex items-center gap-3 mb-6">
+          {tab !== 'encargos' && (
+            <button
+              onClick={() => setTab('encargos')}
+              aria-label="Volver"
+              className="w-9 h-9 flex-shrink-0 flex items-center justify-center border border-[--border] rounded-lg bg-white text-[--text-medium] hover:border-primary hover:text-primary transition-colors"
+            >
+              <ChevronLeft size={18} />
+            </button>
+          )}
+          <h1 className="font-display text-2xl text-[--text-dark] flex-1 min-w-0 truncate">{tabActual.label}</h1>
+          {tabActual.accion && (
+            <Button onClick={onAccion} className="flex-shrink-0">
               <Plus size={16} />
-              Nuevo
+              {tabActual.accion.label}
             </Button>
-          }
-        />
-
-        {/* Buscador */}
-        <SearchInput
-          value={busqueda}
-          onChange={setBusqueda}
-          placeholder="Buscar por cliente o nº encargo…"
-        />
-
-        {/* Filtros de estado */}
-        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {FILTROS.map(f => (
-            <button
-              key={f.value}
-              onClick={() => setFiltroEstado(f.value)}
-              className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                filtroEstado === f.value
-                  ? 'bg-primary text-white'
-                  : 'bg-white border border-[--border] text-[--text-medium] hover:border-primary'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-          {filtroEstado === 'activos' && (
-            <button
-              onClick={() => setVerEntregados(v => !v)}
-              className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                verEntregados
-                  ? 'bg-primary text-white'
-                  : 'bg-white border border-[--border] text-[--text-medium] hover:border-primary'
-              }`}
-            >
-              Mostrar entregados
-            </button>
           )}
         </div>
 
-        {/* Lista */}
-        {loading ? (
-          <LoadingState />
-        ) : filtrados.length === 0 ? (
-          <EmptyState
-            icon={ClipboardList}
-            titulo={busqueda || filtroEstado !== 'activos' ? 'Sin resultados' : 'Aún no hay encargos.'}
-            accion={!busqueda && filtroEstado === 'activos' && (
-              <Button onClick={() => navigate('/encargos/nuevo')}>
-                <Plus size={16} />
-                Crear el primero
-              </Button>
-            )}
-          />
-        ) : (
-          <div className="space-y-2">
-            {filtrados.map(e => {
-              const prog = calcularProgreso(e.fecha_encargo, e.fecha_entrega_estimada)
-              const marcoAviso = prog
-                ? Math.max(0, Math.min(100,
-                    ((new Date(e.fecha_entrega_estimada).getTime() - 7 * 86400000 - new Date(e.fecha_encargo).getTime())
-                     / (new Date(e.fecha_entrega_estimada).getTime() - new Date(e.fecha_encargo).getTime())) * 100
-                  ))
-                : 0
-              return (
-                <button
-                  key={e.id}
-                  onClick={() => navigate(`/encargos/${e.id}`)}
-                  className="w-full bg-white rounded-lg border border-[--border] p-4 text-left hover:border-primary transition-colors"
-                >
-                  {/* Fila 1: número + badge estado */}
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs text-[--text-light]">{e.numero}</p>
-                    <Badge estado={e.estado} />
-                  </div>
+        <SubNav tab={tab} setTab={setTab} />
 
-                  {/* Fila 2: nombre + prendas (izq) e importe (der) */}
-                  <div className="flex items-baseline justify-between gap-2 mb-2">
-                    <div className="flex items-baseline gap-2 min-w-0">
-                      <p className="font-medium text-[--text-dark] text-sm truncate">
-                        {e.clientes ? `${e.clientes.nombre} ${e.clientes.apellidos ?? ''}`.trim() : 'Sin cliente'}
-                      </p>
-                      <p className="text-xs text-[--text-light] flex-shrink-0">
-                        {e.encargo_lineas?.length ?? 0} prenda{(e.encargo_lineas?.length ?? 0) !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                    <p className="text-sm font-semibold text-[--text-dark] flex-shrink-0">
-                      {formatImporte(e.precio_total)}
-                    </p>
-                  </div>
-
-                  {/* Fila 3: timeline o fecha de entrega */}
-                  {e.estado === 'entregado' ? (
-                    <div className="mt-2 text-[10px] text-[--text-light]">
-                      Entregado el: <span className="font-medium">{formatFecha(e.fecha_entrega_real)}</span>
-                    </div>
-                  ) : prog ? (
-                    <div className="mt-2">
-                      <div className="flex justify-between text-[10px] text-[--text-light] mb-0.5">
-                        <span>inicio: {formatFechaCorta(e.fecha_encargo)}</span>
-                        {prog.vencido ? (
-                          <span className="text-red-500 font-medium">{Math.abs(prog.diasRestantes)} días de retraso</span>
-                        ) : (
-                          <span>entrega: {formatFechaCorta(e.fecha_entrega_estimada)}</span>
-                        )}
-                      </div>
-
-                      {/* Barra de progreso con cursor */}
-                      <div className="relative h-2 rounded-full bg-gray-200 overflow-visible mx-12">
-                        {/* Parte verde (hasta hoy) */}
-                        <div
-                          className="h-full rounded-full bg-primary transition-all"
-                          style={{ width: `${Math.min(prog.pct, 100)}%` }}
-                        />
-
-                        {/* Parte roja (desde checkpoint al final, si pasó el checkpoint) */}
-                        {prog.pct > marcoAviso && !prog.vencido && (
-                          <div
-                            className="absolute top-0 h-full bg-red-500 rounded-full"
-                            style={{
-                              left: `${marcoAviso}%`,
-                              right: '0',
-                              width: `${Math.min(100 - marcoAviso, 100)}%`
-                            }}
-                          />
-                        )}
-
-                        {/* Rojo total si vencido */}
-                        {prog.vencido && (
-                          <div className="absolute top-0 left-0 right-0 h-full bg-red-500 rounded-full" />
-                        )}
-
-                        {/* Cursor (círculo) en posición actual */}
-                        <div
-                          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-white border-2 border-primary rounded-full shadow-sm transition-all"
-                          style={{ left: `${Math.min(prog.pct, 100)}%` }}
-                        />
-
-                        {/* Checkpoint (línea vertical ámbar) - siempre visible */}
-                        <div
-                          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center"
-                          style={{ left: `${marcoAviso}%` }}
-                        >
-                          <div className="w-0.5 h-4 bg-amber-400" />
-                          <span className="text-[8px] text-amber-600 font-medium whitespace-nowrap mt-0.5">
-                            {'<7 días'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-                </button>
-              )
-            })}
-          </div>
-        )}
+        {tab === 'encargos' && <EncargosPanel />}
+        {tab === 'citas' && <CitasPanel nuevaCitaRef={nuevaCitaRef} />}
+        {tab === 'clientes' && <ClientesPanel />}
+        {tab === 'catalogo' && <CatalogoPanel />}
       </div>
     </PageWrapper>
   )

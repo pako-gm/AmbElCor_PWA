@@ -81,7 +81,7 @@ export default function ClienteDetalle() {
     try {
       await eliminarCliente(id)
       toast.success('Cliente eliminado.')
-      navigate('/clientes')
+      navigate('/encargos?tab=clientes')
     } catch (e) {
       setErrorEliminar(e.message)
     }
@@ -103,7 +103,7 @@ export default function ClienteDetalle() {
         {/* Cabecera */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/clientes')}
+            onClick={() => navigate('/encargos?tab=clientes')}
             aria-label="Volver"
             className="w-9 h-9 flex-shrink-0 flex items-center justify-center border border-[--border] rounded-lg bg-white text-[--text-medium] hover:border-primary hover:text-primary transition-colors"
           >

@@ -1,28 +1,17 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import logoAmbelcor from '@/public/img/ambelcor-oscuro.png'
 import {
-  Home, Users, Package,
-  BarChart2, LogOut, Menu, X, Tag, Globe, CalendarDays, Building2,
+  Home, Package,
+  BarChart2, LogOut, Menu, X, Globe, Settings,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useState, useEffect, useRef } from 'react'
 
 const navItems = [
-  {
-    to: '/encargos', icon: Home, label: 'Encargos',
-    children: [
-      { to: '/clientes', label: 'Clientes', icon: Users },
-      { to: '/catalogo', label: 'Catálogo', icon: Tag },
-    ],
-  },
-  { to: '/citas', icon: CalendarDays, label: 'Citas' },
-  {
-    to: '/inventario', icon: Package, label: 'Inventario',
-    children: [
-      { to: '/inventario/proveedores', label: 'Proveedores', icon: Building2 },
-    ],
-  },
-  { to: '/contabilidad', icon: BarChart2, label: 'Contabilidad', end: true },
+  { to: '/encargos', icon: Home, label: 'Encargos', permiso: 'encargos' },
+  { to: '/inventario', icon: Package, label: 'Inventario', permiso: 'inventario' },
+  { to: '/contabilidad', icon: BarChart2, label: 'Contabilidad', end: true, permiso: 'contabilidad' },
+  { to: '/ajustes', icon: Settings, label: 'Ajustes', end: true, permiso: 'ajustes' },
 ]
 
 function CopyrightYear() {
@@ -31,8 +20,13 @@ function CopyrightYear() {
 }
 
 export default function PageWrapper({ children, title }) {
-  const { signOut } = useAuth()
+  const { signOut, perfil } = useAuth()
   const navigate = useNavigate()
+
+  // Filtra el menú según los permisos del perfil activo (rol).
+  const itemsVisibles = navItems.filter(
+    item => !item.permiso || perfil?.permisos?.includes(item.permiso)
+  )
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const hideTimer = useRef(null)
@@ -58,7 +52,7 @@ export default function PageWrapper({ children, title }) {
 
   const handleSignOut = async () => {
     await signOut()
-    navigate('/login')
+    navigate('/acceso')
   }
 
   return (
@@ -117,7 +111,7 @@ export default function PageWrapper({ children, title }) {
 
         {/* Nav items */}
         <nav className="flex-1 py-3 overflow-y-auto">
-          {navItems.map(({ to, icon: Icon, label, end, children }) => (
+          {itemsVisibles.map(({ to, icon: Icon, label, end, children }) => (
             <div key={to}>
               <NavLink
                 to={to}
@@ -166,10 +160,18 @@ export default function PageWrapper({ children, title }) {
           </a>
         </nav>
 
+        {/* Perfil activo */}
+        {perfil && (
+          <div className="px-5 py-3 border-t border-[--border] flex-shrink-0">
+            <div className="text-sm font-medium text-[--text-dark] leading-tight">{perfil.nombre}</div>
+            <div className="text-xs text-[--text-light]">{perfil.rol}</div>
+          </div>
+        )}
+
         {/* Cerrar sesión */}
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-5 py-4 text-sm text-[--text-light] hover:text-[--text-medium] border-t border-[--border] transition-colors flex-shrink-0"
+          className={`flex items-center gap-3 px-5 py-4 text-sm text-[--text-light] hover:text-[--text-medium] transition-colors flex-shrink-0 ${perfil ? '' : 'border-t border-[--border]'}`}
         >
           <LogOut size={16} />
           Cerrar sesión

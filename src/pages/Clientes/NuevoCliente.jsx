@@ -50,7 +50,7 @@ export default function NuevoCliente() {
     <PageWrapper>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
         {/* Cabecera */}
-        <PageHeader titulo="Nuevo cliente" backTo="/clientes" />
+        <PageHeader titulo="Nuevo cliente" backTo="/encargos?tab=clientes" />
 
         {/* Datos personales */}
         <section className="bg-white rounded-lg border border-[--border] p-4 space-y-3">
@@ -108,7 +108,7 @@ export default function NuevoCliente() {
           <Button size="lg" className="flex-1" onClick={handleGuardar} loading={guardando}>
             {guardando ? 'Guardando…' : 'Guardar cliente'}
           </Button>
-          <Button size="lg" variant="secondary" onClick={() => navigate('/clientes')}>
+          <Button size="lg" variant="secondary" onClick={() => navigate('/encargos?tab=clientes')}>
             Cancelar
           </Button>
         </div>

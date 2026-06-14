@@ -59,7 +59,7 @@ export default function CatalogoForm() {
         await actualizarPrenda(id, payload)
       }
       toast.success(esNueva ? 'Prenda creada.' : 'Prenda actualizada.')
-      navigate('/catalogo')
+      navigate('/encargos?tab=catalogo')
     } catch (e) {
       setError('Error al guardar: ' + e.message)
       setSaving(false)
@@ -72,7 +72,7 @@ export default function CatalogoForm() {
     <PageWrapper>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
         {/* Cabecera */}
-        <PageHeader titulo={esNueva ? 'Nueva prenda' : 'Editar prenda'} backTo="/catalogo" />
+        <PageHeader titulo={esNueva ? 'Nueva prenda' : 'Editar prenda'} backTo="/encargos?tab=catalogo" />
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-4 py-2">
@@ -152,7 +152,7 @@ export default function CatalogoForm() {
           <Button size="lg" onClick={handleGuardar} loading={saving}>
             {saving ? 'Guardando…' : 'Guardar'}
           </Button>
-          <Button size="lg" variant="secondary" onClick={() => navigate('/catalogo')}>
+          <Button size="lg" variant="secondary" onClick={() => navigate('/encargos?tab=catalogo')}>
             Cancelar
           </Button>
         </div>

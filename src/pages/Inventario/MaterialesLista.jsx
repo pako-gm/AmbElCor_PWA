@@ -1,10 +1,36 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { Icon, Btn, StatusPill, KpiCard } from '@/components/inventario/InventarioUI'
 import { MovementModal } from '@/components/inventario/InventarioModals'
+import ProveedoresPanel from '@/components/inventario/ProveedoresPanel'
 import { useInventario } from '@/hooks/useInventario'
 import { formatImporte, formatCodigo, formatCantidad } from '@/utils/formatters'
+
+const TABS = [
+  { key: 'inventario', label: 'Inventario' },
+  { key: 'proveedores', label: 'Proveedores' },
+]
+
+function SubNav({ tab, setTab }) {
+  return (
+    <div className="flex items-center gap-0 mb-6 border-b border-[--border]">
+      {TABS.map(t => (
+        <button
+          key={t.key}
+          onClick={() => setTab(t.key)}
+          className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
+            tab === t.key
+              ? 'border-primary text-primary'
+              : 'border-transparent text-[--text-medium] hover:text-[--text]'
+          }`}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 
 const UNIT_DISPLAY = {
@@ -200,6 +226,9 @@ function calcularKpis(materiales) {
 
 export default function MaterialesLista() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = searchParams.get('tab') || 'inventario'
+  const setTab = (t) => setSearchParams(t === 'inventario' ? {} : { tab: t }, { replace: true })
   const { fetchMateriales, loading, registrarEntrada, registrarSalida, registrarAjuste, fetchProveedores, fetchEncargosActivos, fetchMovimientos, fetchCategorias } = useInventario()
   const [materiales, setMateriales] = useState([])
   const [categoriasDB, setCategoriasDB] = useState([])
@@ -281,15 +310,18 @@ export default function MaterialesLista() {
     label: `${e.numero} — ${e.clientes ? `${e.clientes.nombre} ${e.clientes.apellidos ?? ''}`.trim() : ''}`
   }))
 
-  if (loading) return <PageWrapper><p className="text-center py-8">Cargando...</p></PageWrapper>
-
   return (
     <PageWrapper>
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
 
+        {tab === 'proveedores' ? (
+          <ProveedoresPanel topNav={<SubNav tab={tab} setTab={setTab} />} />
+        ) : (
+          <>
+
         {/* Cabecera identidad + acciones */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={() => navigate('/encargos')}
               aria-label="Volver"
@@ -300,9 +332,6 @@ export default function MaterialesLista() {
             <h1 className="font-display text-3xl font-bold text-ink">Inventario</h1>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Btn kind="brand" icon="plus" onClick={() => navigate('/inventario/nuevo')}>
-              Nuevo material
-            </Btn>
             <Btn kind="green" icon="arrowDown" onClick={() => openModal('entrada')}>
               Entrada
             </Btn>
@@ -312,14 +341,18 @@ export default function MaterialesLista() {
             <Btn kind="amber" icon="wrench" onClick={() => openModal('ajuste')}>
               Ajuste
             </Btn>
-            <Btn kind="ghost" icon="building" onClick={() => navigate('/inventario/proveedores')}>
-              Proveedores
-            </Btn>
-            <Btn kind="ghost" icon="wrench" onClick={() => navigate('/inventario/ajustes')}>
-              Ajustes
+            <Btn kind="brand" icon="plus" onClick={() => navigate('/inventario/nuevo')}>
+              Nuevo material
             </Btn>
           </div>
         </div>
+
+        <SubNav tab={tab} setTab={setTab} />
+
+        {loading ? (
+          <p className="text-center py-8">Cargando...</p>
+        ) : (
+          <>
 
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -471,6 +504,10 @@ export default function MaterialesLista() {
               )}
             </div>
           </div>
+        )}
+          </>
+        )}
+          </>
         )}
       </div>
 

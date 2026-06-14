@@ -6,6 +6,7 @@ import PageWrapper from '@/components/layout/PageWrapper'
 import Login from '@/pages/Login'
 import Setup2FA from '@/pages/Setup2FA'
 import Verify2FA from '@/pages/Verify2FA'
+import Acceso from '@/pages/Acceso/Acceso'
 
 // CRM
 import EncargosLista from '@/pages/Encargos/EncargosLista'
@@ -13,7 +14,6 @@ import NuevoEncargo from '@/pages/Encargos/NuevoEncargo'
 import EncargoDetalle from '@/pages/Encargos/EncargoDetalle'
 
 // Clientes
-import ClientesLista from '@/pages/Clientes/ClientesLista'
 import NuevoCliente from '@/pages/Clientes/NuevoCliente'
 import ClienteDetalle from '@/pages/Clientes/ClienteDetalle'
 import MedidasCliente from '@/pages/Clientes/MedidasCliente'
@@ -26,19 +26,16 @@ import ContabilidadDashboard from '@/pages/Contabilidad/ContabilidadDashboard'
 import MaterialesLista from '@/pages/Inventario/MaterialesLista'
 import NuevoMaterial from '@/pages/Inventario/NuevoMaterial'
 import MaterialDetalle from '@/pages/Inventario/MaterialDetalle'
-import AjustesInventario from '@/pages/Inventario/AjustesInventario'
-import ProveedoresPanel from '@/components/inventario/ProveedoresPanel'
 
 // Catálogo
-import CatalogoLista from '@/pages/Catalogo/CatalogoLista'
 import CatalogoForm from '@/pages/Catalogo/CatalogoForm'
 
 // Seguimiento público
 import SeguimientoForm from '@/pages/Seguimiento/SeguimientoForm'
 import SeguimientoDetalle from '@/pages/Seguimiento/SeguimientoDetalle'
 
-// Citas
-import CitasCalendario from '@/pages/Citas/CitasCalendario'
+// Ajustes
+import Ajustes from '@/pages/Ajustes/Ajustes'
 
 const Placeholder = ({ title }) => (
   <PageWrapper>
@@ -49,8 +46,8 @@ const Placeholder = ({ title }) => (
   </PageWrapper>
 )
 
-const Protected = ({ children }) => (
-  <ProtectedRoute>{children}</ProtectedRoute>
+const Protected = ({ children, permiso }) => (
+  <ProtectedRoute permiso={permiso}>{children}</ProtectedRoute>
 )
 
 export default function App() {
@@ -61,6 +58,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/setup-2fa" element={<Setup2FA />} />
         <Route path="/verify-2fa" element={<Verify2FA />} />
+        <Route path="/acceso" element={<Acceso />} />
         <Route path="/seguimiento" element={<SeguimientoForm />} />
         <Route path="/seguimiento/:token" element={<SeguimientoDetalle />} />
 
@@ -69,7 +67,7 @@ export default function App() {
         <Route path="/encargos/nuevo" element={<Protected><NuevoEncargo /></Protected>} />
         <Route path="/encargos/:id" element={<Protected><EncargoDetalle /></Protected>} />
 
-        <Route path="/clientes" element={<Protected><ClientesLista /></Protected>} />
+        <Route path="/clientes" element={<Navigate to="/encargos?tab=clientes" replace />} />
         <Route path="/clientes/nuevo" element={<Protected><NuevoCliente /></Protected>} />
         <Route path="/clientes/:id" element={<Protected><ClienteDetalle /></Protected>} />
         <Route path="/clientes/:id/medidas" element={<Protected><MedidasCliente /></Protected>} />
@@ -77,17 +75,19 @@ export default function App() {
 
         <Route path="/inventario" element={<Protected><MaterialesLista /></Protected>} />
         <Route path="/inventario/nuevo" element={<Protected><NuevoMaterial /></Protected>} />
-        <Route path="/inventario/ajustes" element={<Protected><AjustesInventario /></Protected>} />
-        <Route path="/inventario/proveedores" element={<Protected><PageWrapper><div className="max-w-7xl mx-auto px-4 md:px-8 py-6"><ProveedoresPanel /></div></PageWrapper></Protected>} />
+        <Route path="/inventario/ajustes" element={<Navigate to="/ajustes" replace />} />
+        <Route path="/inventario/proveedores" element={<Navigate to="/inventario?tab=proveedores" replace />} />
         <Route path="/inventario/:id" element={<Protected><MaterialDetalle /></Protected>} />
 
-        <Route path="/catalogo" element={<Protected><CatalogoLista /></Protected>} />
+        <Route path="/catalogo" element={<Navigate to="/encargos?tab=catalogo" replace />} />
         <Route path="/catalogo/nueva" element={<Protected><CatalogoForm /></Protected>} />
         <Route path="/catalogo/:id" element={<Protected><CatalogoForm /></Protected>} />
 
-        <Route path="/contabilidad" element={<Protected><ContabilidadDashboard /></Protected>} />
+        <Route path="/contabilidad" element={<Protected permiso="contabilidad"><ContabilidadDashboard /></Protected>} />
 
-        <Route path="/citas" element={<Protected><CitasCalendario /></Protected>} />
+        <Route path="/citas" element={<Navigate to="/encargos?tab=citas" replace />} />
+
+        <Route path="/ajustes" element={<Protected permiso="ajustes"><Ajustes /></Protected>} />
 
         <Route path="/admin" element={<Protected><Placeholder title="Administración" /></Protected>} />
 

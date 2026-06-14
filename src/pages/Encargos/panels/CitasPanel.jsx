@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import PageWrapper from '@/components/layout/PageWrapper'
 import LoadingState from '@/components/ui/LoadingState'
 import { fetchCitas, crearCita, actualizarCita, eliminarCita } from '@/hooks/useCitas'
 import { useToast } from '@/hooks/useToast'
@@ -8,7 +7,7 @@ import TimelineDia from '@/components/citas/TimelineDia'
 import CitaSheet from '@/components/citas/CitaSheet'
 import { claveFechaLocal, semanaDesde, toHHMM } from '@/components/citas/citasUtils'
 
-export default function CitasCalendario() {
+export default function CitasPanel({ nuevaCitaRef }) {
   const toast = useToast()
   const [citas, setCitas] = useState([])
   const [loading, setLoading] = useState(true)
@@ -93,6 +92,10 @@ export default function CitasCalendario() {
     setSheetModo('new')
   }
 
+  // Exponer la acción "Nueva Cita" a la cabecera unificada de EncargosLista.
+  // Se reasigna en cada render para que capture el fechaSel actual.
+  if (nuevaCitaRef) nuevaCitaRef.current = abrirNuevaCita
+
   const handleGuardarCita = async formData => {
     setSheetLoading(true)
     try {
@@ -168,61 +171,58 @@ export default function CitasCalendario() {
   })
 
   return (
-    <PageWrapper>
-      <div className="max-w-3xl mx-auto md:px-4 pb-16">
-        <div className="sticky top-14 z-20">
-          <CabeceraAgenda
-            semana={semana}
-            fechaSel={fechaSel}
-            diasConCitas={diasConCitas}
-            onSelDia={setFechaSel}
-            onSemana={delta =>
-              setFechaBase(prev => {
-                const d = new Date(prev)
-                d.setDate(d.getDate() + delta * 7)
-                return d
-              })
-            }
-            onHoy={() => {
-              setFechaBase(new Date())
-              setFechaSel(claveFechaLocal(new Date()))
-            }}
-            onNuevaCita={abrirNuevaCita}
-          />
-          <div className="flex items-center justify-between bg-white border-b border-[--border] px-4 py-2">
-            <span className="text-xs text-[--text-light]">{tituloFecha}</span>
-            <span className="text-[11px] bg-primary-light text-primary-darker rounded-full px-2.5 py-0.5 font-semibold">
-              {citasDia.length} cita{citasDia.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-        </div>
-
-        {loading ? (
-          <LoadingState texto="Cargando citas…" />
-        ) : (
-          <div className="pt-2">
-            <TimelineDia
-              citasDia={citasDia}
-              esHoy={esHoy}
-              onAbrirCita={c => {
-                setSheetCita(c)
-                setSheetModo('view')
-              }}
-              onMoverCita={handleMoverCita}
-            />
-          </div>
-        )}
-
-        <CitaSheet
-          cita={sheetCita}
-          modo={sheetModo}
-          onClose={cerrarSheet}
-          onSave={handleGuardarCita}
-          onEdit={() => setSheetModo('edit')}
-          onDelete={handleEliminarCita}
-          loading={sheetLoading}
+    <div className="pb-16">
+      <div className="sticky top-14 z-20">
+        <CabeceraAgenda
+          semana={semana}
+          fechaSel={fechaSel}
+          diasConCitas={diasConCitas}
+          onSelDia={setFechaSel}
+          onSemana={delta =>
+            setFechaBase(prev => {
+              const d = new Date(prev)
+              d.setDate(d.getDate() + delta * 7)
+              return d
+            })
+          }
+          onHoy={() => {
+            setFechaBase(new Date())
+            setFechaSel(claveFechaLocal(new Date()))
+          }}
         />
+        <div className="flex items-center justify-between bg-white border border-[--border] rounded-2xl px-4 py-2 mt-2">
+          <span className="text-xs text-[--text-light]">{tituloFecha}</span>
+          <span className="text-[11px] bg-primary-light text-primary-darker rounded-full px-2.5 py-0.5 font-semibold">
+            {citasDia.length} cita{citasDia.length !== 1 ? 's' : ''}
+          </span>
+        </div>
       </div>
-    </PageWrapper>
+
+      {loading ? (
+        <LoadingState texto="Cargando citas…" />
+      ) : (
+        <div className="pt-2">
+          <TimelineDia
+            citasDia={citasDia}
+            esHoy={esHoy}
+            onAbrirCita={c => {
+              setSheetCita(c)
+              setSheetModo('view')
+            }}
+            onMoverCita={handleMoverCita}
+          />
+        </div>
+      )}
+
+      <CitaSheet
+        cita={sheetCita}
+        modo={sheetModo}
+        onClose={cerrarSheet}
+        onSave={handleGuardarCita}
+        onEdit={() => setSheetModo('edit')}
+        onDelete={handleEliminarCita}
+        loading={sheetLoading}
+      />
+    </div>
   )
 }

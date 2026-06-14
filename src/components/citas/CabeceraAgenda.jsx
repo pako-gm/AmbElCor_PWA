@@ -1,8 +1,7 @@
-import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { claveFechaLocal, DIAS_ES, MESES_ES } from './citasUtils'
 
-// Bloque teal de la agenda: título, "+ Nueva Cita", navegación de mes y tira semanal
+// Bloque teal de la agenda: navegación de mes y tira semanal
 export default function CabeceraAgenda({
   semana,
   fechaSel,
@@ -10,32 +9,9 @@ export default function CabeceraAgenda({
   onSelDia,
   onSemana,
   onHoy,
-  onNuevaCita,
 }) {
-  const navigate = useNavigate()
-
   return (
-    <header className="bg-primary text-white px-4 pt-4 pb-3 md:rounded-b-2xl">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate('/encargos')}
-            aria-label="Volver"
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <h1 className="font-display text-xl font-semibold">Citas</h1>
-        </div>
-        <button
-          onClick={onNuevaCita}
-          className="flex items-center gap-1 bg-white/25 hover:bg-white/35 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors"
-        >
-          <Plus size={15} />
-          Nueva Cita
-        </button>
-      </div>
-
+    <header className="bg-primary text-white px-4 pt-4 pb-3 rounded-2xl">
       <div className="flex items-center justify-between mb-2.5">
         <button
           onClick={() => onSemana(-1)}
