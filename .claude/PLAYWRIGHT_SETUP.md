@@ -5,8 +5,6 @@
 ✅ **Configuración completada:**
 - `playwright.config.ts` — configuración centralizada creada
 - `tests/screenshot.spec.ts` — spec para capturas de páginas principales creada
-- `verify-design.mjs` — puerto corregido (5174 → 5173) e instalación automática eliminada
-- `tests/fullcalendar-test.spec.js` — URL relativa + selector correcto
 - `package.json` — scripts `test:e2e` y `screenshot` añadidos
 
 ## Instalación de Chromium
@@ -43,14 +41,6 @@ Claude Code puede leer estos archivos con la herramienta `Read` para inspecciona
 npm run test:e2e
 ```
 
-### Opción 3: Verificación del calendario (script legacy)
-
-```bash
-node verify-design.mjs
-```
-
-Genera `citas-calendar.png` y verifica estilos CSS del evento.
-
 ## Flujo típico de trabajo
 
 1. Hacer cambios en el código
@@ -63,7 +53,6 @@ Genera `citas-calendar.png` y verifica estilos CSS del evento.
 
 - **Vite dev server:** `http://localhost:5173` (por defecto)
 - **Playwright baseURL:** `http://localhost:5173` (configurado en `playwright.config.ts`)
-- **verify-design.mjs:** ahora también apunta a `5173`
 
 Todos los scripts esperan que el dev server esté en `5173`.
 
@@ -73,6 +62,4 @@ Todos los scripts esperan que el dev server esté en `5173`.
 |---|---|
 | `playwright.config.ts` | Creado |
 | `tests/screenshot.spec.ts` | Creado |
-| `verify-design.mjs` | Puerto 5174 → 5173; eliminado `execSync` para instalar Chromium |
-| `tests/fullcalendar-test.spec.js` | URL relativa; selector `.fc-view-harness` |
 | `package.json` | Scripts `test:e2e` y `screenshot` |
