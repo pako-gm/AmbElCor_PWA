@@ -18,6 +18,12 @@ import {
   TIPO_PAGO_LABELS, FORMA_PAGO_LABELS
 } from '@/utils/formatters'
 
+// Datos fiscales del emisor (fila única) usados en presupuestos y facturas.
+const cargarFiscal = async () => {
+  const { data } = await supabase.from('datos_fiscales').select('*').limit(1).maybeSingle()
+  return data
+}
+
 const ESTADOS = ['presupuestado', 'confirmado', 'en_confeccion', 'listo', 'entregado']
 
 const TIPOS_PAGO = ['señal', 'parcial', 'final', 'devolucion']
@@ -401,7 +407,8 @@ export default function EncargoDetalle() {
             <button
               onClick={async () => {
                 const e = await fetchEncargo(id)
-                await generarPresupuestoPDF(e)
+                const fiscal = await cargarFiscal()
+                await generarPresupuestoPDF(e, fiscal)
               }}
               className="flex items-center gap-1.5 text-xs border border-[--border] px-3 py-2 rounded-md text-[--text-medium] hover:border-primary hover:text-primary bg-white transition-colors"
             >
@@ -412,7 +419,7 @@ export default function EncargoDetalle() {
               <button
                 onClick={async () => {
                   const e = await fetchEncargo(id)
-                  const { data: fiscal } = await supabase.from('datos_fiscales').select('*').limit(1).maybeSingle()
+                  const fiscal = await cargarFiscal()
                   await generarFacturaPDF(e, fiscal)
                 }}
                 className="flex items-center gap-1.5 text-xs border border-[--border] px-3 py-2 rounded-md text-[--text-medium] hover:border-primary hover:text-primary bg-white transition-colors"
@@ -897,10 +904,10 @@ export default function EncargoDetalle() {
                 onClick={async () => {
                   setModalPdf(null)
                   const actualizado = await fetchEncargo(id)
+                  const fiscal = await cargarFiscal()
                   if (modalPdf === 'presupuesto') {
-                    await generarPresupuestoPDF(actualizado)
+                    await generarPresupuestoPDF(actualizado, fiscal)
                   } else {
-                    const { data: fiscal } = await supabase.from('datos_fiscales').select('*').limit(1).maybeSingle()
                     await generarFacturaPDF(actualizado, fiscal)
                   }
                 }}

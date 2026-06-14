@@ -101,7 +101,7 @@ function addLineasTable(doc, lineas, y) {
   return y
 }
 
-export async function generarPresupuestoPDF(encargo) {
+export async function generarPresupuestoPDF(encargo, datosFiscales) {
   const logoData = await cargarLogo()
   const doc = new jsPDF()
 
@@ -113,6 +113,19 @@ export async function generarPresupuestoPDF(encargo) {
       : []),
   ]
   let y = addHeader(doc, 'PRESUPUESTO', rightLines, logoData)
+
+  // Datos emisor (Carmen)
+  if (datosFiscales) {
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.text(datosFiscales.nombre ?? '', 14, y)
+    doc.setFont('helvetica', 'normal')
+    if (datosFiscales.nif) { y += 5; doc.text('NIF: ' + datosFiscales.nif, 14, y) }
+    if (datosFiscales.direccion) { y += 5; doc.text(datosFiscales.direccion, 14, y) }
+    if (datosFiscales.telefono) { y += 5; doc.text(datosFiscales.telefono, 14, y) }
+    if (datosFiscales.email) { y += 5; doc.text(datosFiscales.email, 14, y) }
+    y += 8
+  }
 
   // Datos cliente
   doc.setFont('helvetica', 'bold')

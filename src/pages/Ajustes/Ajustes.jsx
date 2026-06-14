@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import {
   Tags, Ruler, TrendingUp, UserCog, Plus, Trash2, Pencil,
   Shirt, Layers, Gem, Scissors, Circle, Box, Boxes, Heart,
-  Mail, ShieldCheck, ShieldAlert,
+  Mail, ShieldCheck, ShieldAlert, ReceiptText,
 } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import PageHeader from '@/components/ui/PageHeader'
 import Button from '@/components/ui/Button'
-import { Field, Input, Select } from '@/components/ui/Field'
+import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
@@ -15,6 +15,7 @@ import LoadingState from '@/components/ui/LoadingState'
 import { useToast } from '@/hooks/useToast'
 import { useInventario } from '@/hooks/useInventario'
 import { useConfiguracion } from '@/hooks/useConfiguracion'
+import { useDatosFiscales } from '@/hooks/useDatosFiscales'
 import { useAuth } from '@/hooks/useAuth'
 import { USUARIOS } from '@/lib/usuarios'
 import { UsuarioForm } from '@/pages/Acceso/panels'
@@ -39,6 +40,7 @@ const SECCIONES = [
   { id: 'categorias',  label: 'Categorías',          icon: Tags },
   { id: 'unidades',    label: 'Unidades de gestión', icon: Ruler },
   { id: 'incremento',  label: 'Incremento de precios', icon: TrendingUp },
+  { id: 'facturacion', label: 'Datos de facturación', icon: ReceiptText },
   { id: 'usuarios',    label: 'Usuarios CRM',        icon: UserCog },
 ]
 
@@ -353,6 +355,84 @@ function SeccionIncremento({ valorActual, loading, onGuardar, onAplicar }) {
   )
 }
 
+// ── Sección: Datos de facturación ─────────────────────────────────────────────
+const CAMPOS_FISCALES = ['nombre', 'nif', 'direccion', 'telefono', 'email', 'iban']
+
+function SeccionDatosFacturacion({ datos, loading, onGuardar }) {
+  const [form, setForm] = useState({
+    nombre: '', nif: '', direccion: '', telefono: '', email: '', iban: '',
+  })
+  const [guardando, setGuardando] = useState(false)
+  const toast = useToast()
+
+  useEffect(() => {
+    if (datos) {
+      setForm(f => ({
+        ...f,
+        ...Object.fromEntries(CAMPOS_FISCALES.map(k => [k, datos[k] ?? ''])),
+      }))
+    }
+  }, [datos])
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const handleGuardar = async () => {
+    setGuardando(true)
+    try {
+      await onGuardar({ ...datos, ...form })
+      toast.success('Datos de facturación guardados.')
+    } catch (e) {
+      toast.error('No se pudo guardar: ' + e.message)
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  return (
+    <section className="bg-white rounded-lg border border-[--border] p-5 space-y-4">
+      <div>
+        <h2 className="font-display text-xl text-[--text-dark]">Datos de facturación</h2>
+        <p className="text-xs text-[--text-light]">
+          Datos fiscales del emisor que aparecen en presupuestos y facturas.
+        </p>
+      </div>
+
+      {loading ? (
+        <LoadingState />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Nombre" className="sm:col-span-2">
+              <Input value={form.nombre} onChange={set('nombre')} placeholder="Nombre y apellidos" />
+            </Field>
+            <Field label="DNI / NIF">
+              <Input value={form.nif} onChange={set('nif')} placeholder="00000000X" />
+            </Field>
+            <Field label="Teléfono">
+              <Input type="tel" value={form.telefono} onChange={set('telefono')} placeholder="600000000" />
+            </Field>
+            <Field label="Dirección" className="sm:col-span-2">
+              <Textarea value={form.direccion} onChange={set('direccion')} placeholder="Calle, nº - CP Localidad, Provincia" />
+            </Field>
+            <Field label="Email">
+              <Input type="email" value={form.email} onChange={set('email')} placeholder="correo@ejemplo.com" />
+            </Field>
+            <Field label="IBAN">
+              <Input value={form.iban} onChange={set('iban')} placeholder="ES00 0000 0000 0000 0000 0000" />
+            </Field>
+          </div>
+
+          <div className="border-t border-[--border] pt-4">
+            <Button onClick={handleGuardar} loading={guardando}>
+              Guardar
+            </Button>
+          </div>
+        </>
+      )}
+    </section>
+  )
+}
+
 // ── Sección: Usuarios CRM ─────────────────────────────────────────────────────
 function SeccionUsuarios() {
   const { user, mfaVerified } = useAuth()
@@ -442,19 +522,22 @@ export default function Ajustes() {
     fetchUnidades, crearUnidad, eliminarUnidad,
   } = useInventario()
   const { fetchConfig, guardarConfig, aplicarIncrementoCatalogo } = useConfiguracion()
+  const { fetchDatosFiscales, guardarDatosFiscales } = useDatosFiscales()
 
   const [seccion, setSeccion] = useState('categorias')
   const [categorias, setCategorias] = useState([])
   const [unidades, setUnidades] = useState([])
   const [incremento, setIncremento] = useState(null)
+  const [datosFiscales, setDatosFiscales] = useState(null)
   const [cargando, setCargando] = useState(true)
 
   const cargarCategorias = () => fetchCategorias().then(setCategorias)
   const cargarUnidades = () => fetchUnidades().then(setUnidades)
   const cargarConfig = () => fetchConfig().then(c => setIncremento(Number(c.incremento_precios_anual) || 0))
+  const cargarFiscales = () => fetchDatosFiscales().then(setDatosFiscales)
 
   useEffect(() => {
-    Promise.all([cargarCategorias(), cargarUnidades(), cargarConfig()])
+    Promise.all([cargarCategorias(), cargarUnidades(), cargarConfig(), cargarFiscales()])
       .finally(() => setCargando(false))
   }, [])
 
@@ -512,6 +595,13 @@ export default function Ajustes() {
                 loading={cargando}
                 onGuardar={async (pct) => { await guardarConfig('incremento_precios_anual', pct); await cargarConfig() }}
                 onAplicar={(pct) => aplicarIncrementoCatalogo(pct)}
+              />
+            )}
+            {seccion === 'facturacion' && (
+              <SeccionDatosFacturacion
+                datos={datosFiscales}
+                loading={cargando}
+                onGuardar={async (d) => { await guardarDatosFiscales(d); await cargarFiscales() }}
               />
             )}
             {seccion === 'usuarios' && <SeccionUsuarios />}
