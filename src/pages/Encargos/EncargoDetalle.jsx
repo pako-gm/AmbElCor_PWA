@@ -26,7 +26,7 @@ const cargarFiscal = async () => {
 
 const ESTADOS = ['presupuestado', 'confirmado', 'en_confeccion', 'listo', 'entregado']
 
-const TIPOS_PAGO = ['señal', 'parcial', 'final', 'devolucion']
+const TIPOS_PAGO = ['reserva', 'a_cuenta', 'final', 'devolucion']
 const FORMAS_PAGO = ['efectivo', 'transferencia', 'tarjeta', 'bizum']
 
 export default function EncargoDetalle() {
@@ -60,7 +60,7 @@ export default function EncargoDetalle() {
   // Modal confirmación eliminar
   const [confirmDelete, setConfirmDelete] = useState(null) // { tipo: 'encargo' | 'pago', pagoId? }
 
-  // Modal señal pendiente
+  // Modal reserva pendiente
   const [modalSenal, setModalSenal] = useState(false)
 
   // Timeline hover
@@ -90,7 +90,7 @@ export default function EncargoDetalle() {
 
   // Formulario pago
   const [mostrarFormPago, setMostrarFormPago] = useState(false)
-  const [pago, setPago] = useState({ fecha: new Date().toISOString().split('T')[0], importe: '', tipo: 'señal', forma_pago: 'efectivo', referencia: '', notas: '' })
+  const [pago, setPago] = useState({ fecha: new Date().toISOString().split('T')[0], importe: '', tipo: 'reserva', forma_pago: 'efectivo', referencia: '', notas: '' })
   const [guardandoPago, setGuardandoPago] = useState(false)
   const [errorPago, setErrorPago] = useState('')
 
@@ -170,7 +170,7 @@ export default function EncargoDetalle() {
     const nuevoIndex = ESTADOS.indexOf(nuevoEstado)
     if (Math.abs(nuevoIndex - estadoActual) !== 1) return
 
-    // Bloquear avance a en_confeccion si no hay señal del 30%
+    // Bloquear avance a en_confeccion si no hay reserva del 30%
     if (nuevoIndex > estadoActual && nuevoEstado === 'en_confeccion') {
       const cobrado = (encargo.pagos ?? []).filter(p => p.tipo !== 'devolucion').reduce((s, p) => s + parseFloat(p.importe), 0)
       if (cobrado < (encargo.precio_total ?? 0) * 0.3) {
@@ -251,7 +251,7 @@ export default function EncargoDetalle() {
     setGuardandoPago(true)
     try {
       await registrarPago({ ...pago, encargo_id: id })
-      setPago({ fecha: new Date().toISOString().split('T')[0], importe: '', tipo: 'señal', forma_pago: 'efectivo', referencia: '', notas: '' })
+      setPago({ fecha: new Date().toISOString().split('T')[0], importe: '', tipo: 'reserva', forma_pago: 'efectivo', referencia: '', notas: '' })
       setMostrarFormPago(false)
       toast.success('Pago registrado.')
       cargar()
@@ -626,7 +626,7 @@ export default function EncargoDetalle() {
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="block text-xs text-[--text-light] mb-1">Tipo</label>
+                  <label className="block text-xs text-[--text-light] mb-1">Tipo de Pago</label>
                   <select
                     value={pago.tipo}
                     onChange={e => setPago(v => ({ ...v, tipo: e.target.value }))}
@@ -965,7 +965,7 @@ export default function EncargoDetalle() {
           </div>
         </div>
       )}
-      {/* Modal señal pendiente */}
+      {/* Modal reserva pendiente */}
       {modalSenal && (
         <div
           className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4"
@@ -982,7 +982,7 @@ export default function EncargoDetalle() {
               <div>
                 <h3 className="font-display text-base text-[--text-dark]">Pago no registrado</h3>
                 <p className="text-xs text-[--text-light] mt-0.5">
-                  Para confirmar el encargo es necesario que se haya pagado una señal equivalente al 30 % del total del encargo.
+                  Para confirmar el encargo es necesario que se haya pagado una reserva equivalente al 30 % del total del encargo.
                 </p>
                 <p className="text-xs text-[--text-dark] font-semibold mt-1">
                   Cantidad a pagar: {formatImporte((encargo.precio_total ?? 0) * 0.3)}

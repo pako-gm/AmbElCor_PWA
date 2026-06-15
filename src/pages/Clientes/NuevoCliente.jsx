@@ -12,7 +12,7 @@ export default function NuevoCliente() {
   const navigate = useNavigate()
   const toast = useToast()
   const [form, setForm] = useState({
-    nombre: '', apellidos: '', telefono: '', email: '', notas: '',
+    nombre: '', apellidos: '', alias: '', telefono: '', email: '', notas: '',
   })
   const [errores, setErrores] = useState({})
   const [guardando, setGuardando] = useState(false)
@@ -74,6 +74,15 @@ export default function NuevoCliente() {
               />
             </Field>
           </div>
+
+          <Field label="Alias">
+            <Input
+              type="text"
+              placeholder="Referencia (p. ej. hija de Carmen)"
+              value={form.alias}
+              onChange={e => set('alias', e.target.value)}
+            />
+          </Field>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Teléfono" error={errores.telefono}>

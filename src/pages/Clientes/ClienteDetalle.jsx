@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Pencil, Trash2, ChevronDown, ChevronUp, Check, X } from 'lucide-react'
+import { ChevronLeft, Pencil, Trash2, ChevronDown, ChevronUp, Check, X, Phone, Mail, Tag, StickyNote } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import Button from '@/components/ui/Button'
 import { Field, Input, Textarea } from '@/components/ui/Field'
@@ -38,7 +38,7 @@ export default function ClienteDetalle() {
     Promise.all([fetchCliente(id), fetchMedidasCliente(id)])
       .then(([c, m]) => {
         setCliente(c)
-        setFormEdit({ nombre: c.nombre, apellidos: c.apellidos ?? '', telefono: c.telefono ?? '', email: c.email ?? '', notas: c.notas ?? '' })
+        setFormEdit({ nombre: c.nombre, apellidos: c.apellidos ?? '', alias: c.alias ?? '', telefono: c.telefono ?? '', email: c.email ?? '', notas: c.notas ?? '' })
         setMedidas(m)
       })
       .catch(console.error)
@@ -63,6 +63,7 @@ export default function ClienteDetalle() {
       await actualizarCliente(id, {
         nombre: formEdit.nombre,
         apellidos: formEdit.apellidos || null,
+        alias: formEdit.alias || null,
         telefono: formEdit.telefono || null,
         email: formEdit.email || null,
         notas: formEdit.notas || null,
@@ -91,6 +92,7 @@ export default function ClienteDetalle() {
   if (!cliente) return <PageWrapper><div className="p-8 text-center text-[--text-light] text-sm">Cliente no encontrado.</div></PageWrapper>
 
   const nombreCompleto = `${cliente.nombre} ${cliente.apellidos ?? ''}`.trim()
+  const iniciales = `${cliente.nombre?.[0] ?? ''}${cliente.apellidos?.[0] ?? ''}`.toUpperCase() || '?'
   const encargos = (cliente.encargos ?? []).sort((a, b) => new Date(b.fecha_encargo) - new Date(a.fecha_encargo))
   const totalFacturado = encargos.reduce((s, e) => s + (parseFloat(e.precio_total) || 0), 0)
   const tieneMedidas = medidas != null && Object.entries(medidas)
@@ -109,9 +111,17 @@ export default function ClienteDetalle() {
           >
             <ChevronLeft size={18} />
           </button>
-          <div className="flex-1">
-            <h1 className="font-display text-2xl text-[--text-dark]">{nombreCompleto}</h1>
-            <p className="text-xs text-[--text-light]">Cliente desde {formatFecha(cliente.created_at)}</p>
+          <div className="flex-1 flex items-center gap-3 min-w-0">
+            <div className="w-12 h-12 flex-shrink-0 rounded-full bg-gradient-to-br from-primary to-primary-dark text-white flex items-center justify-center font-display text-lg shadow-sm">
+              {iniciales}
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-display text-2xl text-[--text-dark] truncate">{nombreCompleto}</h1>
+              {cliente.alias && (
+                <p className="text-sm text-primary font-medium truncate">{cliente.alias}</p>
+              )}
+              <p className="text-xs text-[--text-light]">Cliente desde {formatFecha(cliente.created_at)}</p>
+            </div>
           </div>
           <button
             onClick={() => { setEditando(true); setErroresEdit({}) }}
@@ -153,6 +163,14 @@ export default function ClienteDetalle() {
                   />
                 </Field>
               </div>
+              <Field label="Alias">
+                <Input
+                  type="text"
+                  placeholder="Referencia (p. ej. hija de Carmen)"
+                  value={formEdit.alias}
+                  onChange={e => setFormEdit(v => ({ ...v, alias: e.target.value }))}
+                />
+              </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Teléfono" error={erroresEdit.telefono}>
                   <Input
@@ -185,11 +203,40 @@ export default function ClienteDetalle() {
               </div>
             </div>
           ) : (
-            <div className="space-y-1.5 text-sm">
-              {cliente.telefono && <p className="text-[--text-dark]">📞 {formatTelefono(cliente.telefono)}</p>}
-              {cliente.email && <p className="text-[--text-dark]">✉️ {cliente.email}</p>}
-              {cliente.notas && <p className="text-[--text-light] text-xs mt-2">{cliente.notas}</p>}
-              {!cliente.telefono && !cliente.email && !cliente.notas && (
+            <div className="space-y-2.5 text-sm">
+              {cliente.telefono && (
+                <a href={`tel:${cliente.telefono}`} className="flex items-center gap-3 group w-fit">
+                  <span className="w-9 h-9 flex-shrink-0 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+                    <Phone size={16} />
+                  </span>
+                  <span className="text-[--text-dark] group-hover:text-primary transition-colors">{formatTelefono(cliente.telefono)}</span>
+                </a>
+              )}
+              {cliente.email && (
+                <a href={`mailto:${cliente.email}`} className="flex items-center gap-3 group w-fit">
+                  <span className="w-9 h-9 flex-shrink-0 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+                    <Mail size={16} />
+                  </span>
+                  <span className="text-[--text-dark] group-hover:text-primary transition-colors break-all">{cliente.email}</span>
+                </a>
+              )}
+              {cliente.alias && (
+                <div className="flex items-center gap-3">
+                  <span className="w-9 h-9 flex-shrink-0 rounded-full bg-amber/10 text-amber flex items-center justify-center">
+                    <Tag size={16} />
+                  </span>
+                  <span className="text-[--text-medium]">{cliente.alias}</span>
+                </div>
+              )}
+              {cliente.notas && (
+                <div className="flex items-start gap-3 pt-2 mt-1 border-t border-[--border]">
+                  <span className="w-9 h-9 flex-shrink-0 rounded-full bg-[--bg-alt] text-[--text-light] flex items-center justify-center">
+                    <StickyNote size={16} />
+                  </span>
+                  <span className="text-[--text-light] self-center">{cliente.notas}</span>
+                </div>
+              )}
+              {!cliente.telefono && !cliente.email && !cliente.alias && !cliente.notas && (
                 <p className="text-[--text-light] text-xs">Sin datos de contacto</p>
               )}
             </div>

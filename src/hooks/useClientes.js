@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 export async function fetchClientes(query = '') {
   let q = supabase
     .from('clientes')
-    .select('id, nombre, apellidos, telefono, email, notas, created_at')
+    .select('id, nombre, apellidos, alias, telefono, email, notas, created_at')
     .order('nombre', { ascending: true })
 
   if (query.trim()) {
@@ -19,7 +19,7 @@ export async function fetchCliente(id) {
   const { data, error } = await supabase
     .from('clientes')
     .select(`
-      id, nombre, apellidos, telefono, email, medidas_base, notas, created_at,
+      id, nombre, apellidos, alias, telefono, email, medidas_base, notas, created_at,
       encargos (
         id, numero, estado, precio_total, fecha_encargo, fecha_entrega_estimada,
         encargo_lineas (id)
@@ -31,12 +31,13 @@ export async function fetchCliente(id) {
   return data
 }
 
-export async function crearCliente({ nombre, apellidos, telefono, email, medidas_base, notas }) {
+export async function crearCliente({ nombre, apellidos, alias, telefono, email, medidas_base, notas }) {
   const { data, error } = await supabase
     .from('clientes')
     .insert({
       nombre,
       apellidos: apellidos || null,
+      alias: alias || null,
       telefono: telefono || null,
       email: email || null,
       medidas_base: medidas_base || null,

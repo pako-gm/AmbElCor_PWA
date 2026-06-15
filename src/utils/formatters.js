@@ -62,8 +62,8 @@ export const ESTADO_COLORS = {
 
 // Etiquetas de tipo de pago
 export const TIPO_PAGO_LABELS = {
-  señal: 'Señal',
-  parcial: 'Parcial',
+  reserva: 'Reserva',
+  a_cuenta: 'A cuenta',
   final: 'Final',
   devolucion: 'Devolución',
 }
