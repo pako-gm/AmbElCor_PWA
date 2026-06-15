@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "screenshot": "playwright test tests/screenshot.spec.ts"
+    "screenshot": "playwright test tests/screenshot.spec.ts",
+    "export:carga": "node scripts/exportar-carga-datos.js",
+    "cargar:datos": "node scripts/cargar-datos.js"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^2.8.0",
