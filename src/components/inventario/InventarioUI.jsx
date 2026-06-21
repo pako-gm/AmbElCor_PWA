@@ -1,6 +1,7 @@
 /* ============================================================
    Inventario AmbElCor — UI base (iconos, botones, badges, KPI)
    ============================================================ */
+import { isValidElement, cloneElement, forwardRef } from 'react'
 
 // Iconos (stroke, currentColor)
 export function Icon({ name, size = 18, style }) {
@@ -284,15 +285,46 @@ export function Modal({ tone = 'green', eyebrow, title, titleNote, onClose, chil
 }
 
 // Campo de formulario
-export function Field({ label, hint, children, htmlFor }) {
+export function Field({ label, hint, error, children, htmlFor }) {
+  const child = error && isValidElement(children)
+    ? cloneElement(children, {
+        className: [children.props.className, 'input--error'].filter(Boolean).join(' '),
+      })
+    : children;
   return (
     <label className="field" htmlFor={htmlFor}>
       <span className="field__label">{label}</span>
-      {children}
-      {hint && <span className="field__hint">{hint}</span>}
+      {child}
+      {error
+        ? <span className="field__error" role="alert">{error}</span>
+        : hint && <span className="field__hint">{hint}</span>}
     </label>
   );
 }
+
+// Envuelve onChange aplicando un saneador antes de propagar el valor.
+function withSanitize(sanitize, onChange) {
+  if (!sanitize || !onChange) return onChange;
+  return (e) => {
+    const limpio = sanitize(e.target.value);
+    if (limpio !== e.target.value) e.target.value = limpio;
+    onChange(e);
+  };
+}
+
+// Input del design system de Inventario (className="input") con prop `sanitize`.
+export const Input = forwardRef(function Input({ className = 'input', sanitize, onChange, ...props }, ref) {
+  return (
+    <input ref={ref} className={className} onChange={withSanitize(sanitize, onChange)} {...props} />
+  );
+});
+
+// Textarea del design system de Inventario con prop `sanitize`.
+export const TextareaInput = forwardRef(function TextareaInput({ className = 'input textarea', sanitize, onChange, ...props }, ref) {
+  return (
+    <textarea ref={ref} className={className} onChange={withSanitize(sanitize, onChange)} {...props} />
+  );
+});
 
 // Tooltip "?" para explicar PMP
 export function Help({ children }) {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { Icon, Btn } from '@/components/inventario/InventarioUI'
 import { useInventario } from '@/hooks/useInventario'
+import { sanitizers } from '@/utils/validators'
 
 const ICONOS_DISPONIBLES = [
   { value: 'shirt',    label: 'Camiseta (telas)' },
@@ -20,9 +21,11 @@ function SeccionCategorias({ categorias, onAdd, onDelete }) {
   const [icono, setIcono] = useState('box')
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
+  const [errNombre, setErrNombre] = useState('')
 
   const handleAdd = async () => {
-    if (!nombre.trim()) return setError('El nombre es obligatorio.')
+    if (!nombre.trim()) return setErrNombre('El nombre es obligatorio.')
+    setErrNombre('')
     setError('')
     setGuardando(true)
     try {
@@ -66,14 +69,17 @@ function SeccionCategorias({ categorias, onAdd, onDelete }) {
       <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 16 }}>
         <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.06em', marginBottom: 8 }}>NUEVA CATEGORÍA</p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <input
-            className="input"
-            placeholder="Nombre…"
-            value={nombre}
-            onChange={e => setNombre(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleAdd()}
-            style={{ flex: 1, minWidth: 140 }}
-          />
+          <div style={{ flex: 1, minWidth: 140 }}>
+            <input
+              className={`input${errNombre ? ' input--error' : ''}`}
+              placeholder="Nombre…"
+              value={nombre}
+              onChange={e => { setNombre(sanitizers.texto(e.target.value)); if (errNombre) setErrNombre('') }}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+              style={{ width: '100%' }}
+            />
+            {errNombre && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4, fontWeight: 600 }}>{errNombre}</p>}
+          </div>
           <div className="select-wrap" style={{ minWidth: 180 }}>
             <select className="input" value={icono} onChange={e => setIcono(e.target.value)}>
               {ICONOS_DISPONIBLES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
@@ -96,10 +102,16 @@ function SeccionUnidades({ unidades, onAdd, onDelete }) {
   const [abreviatura, setAbreviatura] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
+  const [errs, setErrs] = useState({})
 
   const handleAdd = async () => {
-    if (!clave.trim() || !etiqueta.trim() || !abreviatura.trim()) return setError('Todos los campos son obligatorios.')
-    if (!/^[a-z_]+$/.test(clave.trim())) return setError('La clave solo puede tener letras minúsculas y guiones bajos.')
+    const nuevosErrs = {}
+    if (!clave.trim()) nuevosErrs.clave = 'Obligatorio.'
+    else if (!/^[a-z_]+$/.test(clave.trim())) nuevosErrs.clave = 'Solo minúsculas y guiones bajos.'
+    if (!etiqueta.trim()) nuevosErrs.etiqueta = 'Obligatorio.'
+    if (!abreviatura.trim()) nuevosErrs.abreviatura = 'Obligatorio.'
+    if (Object.keys(nuevosErrs).length > 0) { setErrs(nuevosErrs); return }
+    setErrs({})
     setError('')
     setGuardando(true)
     try {
@@ -143,27 +155,36 @@ function SeccionUnidades({ unidades, onAdd, onDelete }) {
       <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 16 }}>
         <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.06em', marginBottom: 8 }}>NUEVA UNIDAD</p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <input
-            className="input"
-            placeholder="Clave (ej: gramo)"
-            value={clave}
-            onChange={e => setClave(e.target.value.toLowerCase().replace(/[^a-z_]/g, ''))}
-            style={{ flex: 1, minWidth: 120 }}
-          />
-          <input
-            className="input"
-            placeholder="Etiqueta (ej: Gramo)"
-            value={etiqueta}
-            onChange={e => setEtiqueta(e.target.value)}
-            style={{ flex: 1, minWidth: 130 }}
-          />
-          <input
-            className="input"
-            placeholder="Abrev. (ej: g)"
-            value={abreviatura}
-            onChange={e => setAbreviatura(e.target.value)}
-            style={{ width: 90 }}
-          />
+          <div style={{ flex: 1, minWidth: 120 }}>
+            <input
+              className={`input${errs.clave ? ' input--error' : ''}`}
+              placeholder="Clave (ej: gramo)"
+              value={clave}
+              onChange={e => { setClave(e.target.value.toLowerCase().replace(/[^a-z_]/g, '')); if (errs.clave) setErrs(p => ({ ...p, clave: undefined })) }}
+              style={{ width: '100%' }}
+            />
+            {errs.clave && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4, fontWeight: 600 }}>{errs.clave}</p>}
+          </div>
+          <div style={{ flex: 1, minWidth: 130 }}>
+            <input
+              className={`input${errs.etiqueta ? ' input--error' : ''}`}
+              placeholder="Etiqueta (ej: Gramo)"
+              value={etiqueta}
+              onChange={e => { setEtiqueta(sanitizers.texto(e.target.value)); if (errs.etiqueta) setErrs(p => ({ ...p, etiqueta: undefined })) }}
+              style={{ width: '100%' }}
+            />
+            {errs.etiqueta && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4, fontWeight: 600 }}>{errs.etiqueta}</p>}
+          </div>
+          <div style={{ width: 90 }}>
+            <input
+              className={`input${errs.abreviatura ? ' input--error' : ''}`}
+              placeholder="Abrev. (ej: g)"
+              value={abreviatura}
+              onChange={e => { setAbreviatura(sanitizers.texto(e.target.value)); if (errs.abreviatura) setErrs(p => ({ ...p, abreviatura: undefined })) }}
+              style={{ width: '100%' }}
+            />
+            {errs.abreviatura && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4, fontWeight: 600 }}>{errs.abreviatura}</p>}
+          </div>
           <Btn kind="brand" icon="plus" onClick={handleAdd} disabled={guardando}>
             {guardando ? 'Añadiendo…' : 'Añadir'}
           </Btn>

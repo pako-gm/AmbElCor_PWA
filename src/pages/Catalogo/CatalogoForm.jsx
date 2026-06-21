@@ -7,6 +7,7 @@ import { Field, Input, Textarea } from '@/components/ui/Field'
 import LoadingState from '@/components/ui/LoadingState'
 import { fetchPrenda, crearPrenda, actualizarPrenda } from '@/hooks/useCatalogo'
 import { useToast } from '@/hooks/useToast'
+import { sanitizers } from '@/utils/validators'
 
 const VACIO = { nombre: '', descripcion: '', precio_base: '', descuento: '0', activo: true }
 
@@ -23,6 +24,7 @@ export default function CatalogoForm() {
   const [loading, setLoading] = useState(!esNueva)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [errs, setErrs] = useState({})
 
   useEffect(() => {
     if (esNueva) return
@@ -38,16 +40,22 @@ export default function CatalogoForm() {
       .finally(() => setLoading(false))
   }, [id])
 
-  const set = (campo, valor) => setForm(v => ({ ...v, [campo]: valor }))
+  const set = (campo, valor) => {
+    setForm(v => ({ ...v, [campo]: valor }))
+    if (errs[campo]) setErrs(prev => ({ ...prev, [campo]: undefined }))
+  }
 
   const handleGuardar = async () => {
-    if (!form.nombre.trim()) { setError('El nombre es obligatorio.'); return }
+    const nuevosErrs = {}
+    if (!form.nombre.trim()) nuevosErrs.nombre = 'El nombre es obligatorio.'
     const precio = parseFloat(form.precio_base)
-    if (isNaN(precio) || precio < 0) { setError('El precio debe ser un número positivo.'); return }
+    if (isNaN(precio) || precio < 0) nuevosErrs.precio_base = 'El precio debe ser un número positivo.'
     const descuento = parseFloat(form.descuento) || 0
-    if (descuento < 0 || descuento > 100) { setError('El descuento debe estar entre 0 y 100.'); return }
+    if (descuento < 0 || descuento > 100) nuevosErrs.descuento = 'Debe estar entre 0 y 100.'
+    if (Object.keys(nuevosErrs).length > 0) { setErrs(nuevosErrs); return }
 
     setSaving(true)
+    setErrs({})
     setError('')
     try {
       const payload = {
@@ -95,11 +103,12 @@ export default function CatalogoForm() {
 
         <section className="bg-white rounded-lg border border-[--border] p-4 space-y-4">
           {/* Nombre */}
-          <Field label="Nombre" required>
+          <Field label="Nombre" required error={errs.nombre}>
             <Input
               type="text"
               placeholder="Ej. Traje fallera completo"
               value={form.nombre}
+              sanitize={sanitizers.texto}
               onChange={e => set('nombre', e.target.value)}
             />
           </Field>
@@ -109,30 +118,35 @@ export default function CatalogoForm() {
             <Textarea
               placeholder="Descripción opcional…"
               value={form.descripcion}
+              sanitize={sanitizers.texto}
               onChange={e => set('descripcion', e.target.value)}
             />
           </Field>
 
           {/* Precio y descuento */}
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Precio base (€)" required>
+            <Field label="Precio base (€)" required error={errs.precio_base}>
               <Input
                 type="number"
                 min="0"
                 step="0.50"
                 placeholder="0,00"
+                inputMode="decimal"
                 value={form.precio_base}
+                sanitize={sanitizers.decimal}
                 onChange={e => set('precio_base', e.target.value)}
               />
             </Field>
-            <Field label="Descuento (%)">
+            <Field label="Descuento (%)" error={errs.descuento}>
               <Input
                 type="number"
                 min="0"
                 max="100"
                 step="1"
                 placeholder="0"
+                inputMode="numeric"
                 value={form.descuento}
+                sanitize={sanitizers.entero}
                 onChange={e => set('descuento', e.target.value)}
               />
             </Field>

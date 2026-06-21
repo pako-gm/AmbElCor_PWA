@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { crearCliente } from '@/hooks/useClientes'
-import { validarTelefono, validarEmail } from '@/utils/validators'
+import { validarTelefono, validarEmail, sanitizers } from '@/utils/validators'
 import { useToast } from '@/hooks/useToast'
 import PageHeader from '@/components/ui/PageHeader'
 import Button from '@/components/ui/Button'
@@ -73,6 +73,7 @@ export default function NuevoCliente() {
                 type="text"
                 placeholder="Nombre"
                 value={form.nombre}
+                sanitize={sanitizers.texto}
                 onChange={e => set('nombre', e.target.value)}
               />
             </Field>
@@ -81,6 +82,7 @@ export default function NuevoCliente() {
                 type="text"
                 placeholder="Apellidos"
                 value={form.apellidos}
+                sanitize={sanitizers.texto}
                 onChange={e => set('apellidos', e.target.value)}
               />
             </Field>
@@ -91,6 +93,7 @@ export default function NuevoCliente() {
               type="text"
               placeholder="Referencia (p. ej. hija de Carmen)"
               value={form.alias}
+              sanitize={sanitizers.texto}
               onChange={e => set('alias', e.target.value)}
             />
           </Field>
@@ -99,9 +102,11 @@ export default function NuevoCliente() {
             <Field label="Teléfono" error={errores.telefono}>
               <Input
                 type="tel"
+                inputMode="numeric"
                 placeholder="612345678"
                 value={form.telefono}
-                onChange={e => set('telefono', e.target.value.replace(/\D/g, '').slice(0, 9))}
+                sanitize={sanitizers.telefono}
+                onChange={e => set('telefono', e.target.value)}
               />
             </Field>
             <Field label="Email" error={errores.email}>
@@ -109,6 +114,7 @@ export default function NuevoCliente() {
                 type="email"
                 placeholder="correo@ejemplo.com"
                 value={form.email}
+                sanitize={sanitizers.email}
                 onChange={e => set('email', e.target.value)}
               />
             </Field>
@@ -118,6 +124,7 @@ export default function NuevoCliente() {
             <Textarea
               placeholder="Observaciones sobre el cliente…"
               value={form.notas}
+              sanitize={sanitizers.texto}
               onChange={e => set('notas', e.target.value)}
             />
           </Field>

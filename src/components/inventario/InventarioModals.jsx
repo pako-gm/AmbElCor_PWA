@@ -5,6 +5,11 @@
 import { useState, useEffect } from 'react'
 import { Icon, Btn, Modal, Field, Help, StatusPill, CatBadge } from './InventarioUI'
 import { formatCantidad } from '@/utils/formatters'
+import { sanitizers } from '@/utils/validators'
+
+// Para campos numéricos de inventario: conserva dígitos y separadores
+// (la función parse() admite miles "1.234,56"); solo bloquea el resto.
+const soloNumerico = (v) => (v ?? '').replace(/[^\d.,]/g, '')
 
 const UNIT_DISPLAY = {
   unidad: 'ud.',
@@ -43,20 +48,20 @@ const MOV_CONFIG = {
   entrada: {
     tone: 'green', title: 'Entrada', confirm: 'Confirmar entrada',
     qtyLabel: 'CANTIDAD', costLabel: 'COSTE/UD (€)', costEditable: true,
-    partyLabel: 'PROVEEDOR',
+    partyLabel: 'PROVEEDOR', partyPlaceholder: 'Elegir proveedor',
     refLabel: 'REFERENCIA', refPlaceholder: 'FAC-2605 · nº de albarán o factura',
     refHint: 'La referencia es el nº de albarán o factura del proveedor.',
   },
   salida: {
     tone: 'purple', title: 'Salida', confirm: 'Confirmar salida',
     qtyLabel: 'CANTIDAD', costLabel: 'COSTE (PMP)', costEditable: false,
-    partyLabel: 'ENCARGO / CLIENTE',
+    partyLabel: 'ENCARGO / CLIENTE', partyPlaceholder: 'Elegir encargo / cliente',
     refLabel: 'REFERENCIA', refPlaceholder: 'AMB-0143 · nº de encargo',
     refHint: 'La referencia es el nº de encargo al que se imputa el material.',
   },
   ajuste: {
     tone: 'amber', title: 'Ajuste', confirm: 'Confirmar ajuste',
-    qtyLabel: 'CANTIDAD (+/−)', costLabel: 'COSTE (PMP)', costEditable: false,
+    qtyLabel: 'CANTIDAD', costLabel: 'COSTE (PMP)', costEditable: false,
     partyLabel: null,
     refLabel: 'REFERENCIA', refPlaceholder: 'INV-0004 · documento interno',
     refHint: 'Documento interno de inventario (recuento, merma, regularización).',
@@ -73,10 +78,11 @@ export function MovementModal({ type, materiales, proveedores, encargos, initial
   const pmp = parseFloat(m?.precio_referencia || 0)
   const stock = parseFloat(m?.stock_actual || 0)
 
-  const [qty, setQty] = useState(type === 'ajuste' ? '0' : '0,01')
-  const [cost, setCost] = useState(cfg.costEditable ? '0,01' : fmtNum(pmp))
-  const [party, setParty] = useState(type === 'entrada' ? (proveedores[0]?.nombre || '') : (encargos[0]?.label || ''))
+  const [qty, setQty] = useState('')
+  const [cost, setCost] = useState(cfg.costEditable ? '' : fmtNum(pmp))
+  const [party, setParty] = useState('')
   const [motivo, setMotivo] = useState('')
+  const [tipoAjuste, setTipoAjuste] = useState('')
   const [ref, setRef] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -85,7 +91,11 @@ export function MovementModal({ type, materiales, proveedores, encargos, initial
   }, [matId])
 
   const qtyNum = parse(qty)
-  const delta = type === 'salida' ? -Math.abs(qtyNum) : type === 'ajuste' ? qtyNum : Math.abs(qtyNum)
+  const delta = type === 'salida'
+    ? -Math.abs(qtyNum)
+    : type === 'ajuste'
+    ? (tipoAjuste === 'salida' ? -1 : 1) * Math.abs(qtyNum)
+    : Math.abs(qtyNum)
   const resulting = Math.round((stock + delta) * 100) / 100
 
   const confirm = async () => {
@@ -113,6 +123,13 @@ export function MovementModal({ type, materiales, proveedores, encargos, initial
     ? encargos.map(e => e.label)
     : []
 
+  const partyRequired = type === 'entrada' || type === 'salida'
+  const canConfirm =
+    Math.abs(qtyNum) > 0 &&
+    (!cfg.costEditable || parse(cost) > 0) &&
+    (!partyRequired || !!party) &&
+    (type !== 'ajuste' || (tipoAjuste !== '' && motivo.trim() !== ''))
+
   return (
     <Modal
       tone={cfg.tone}
@@ -122,7 +139,7 @@ export function MovementModal({ type, materiales, proveedores, encargos, initial
       footer={
         <>
           <Btn kind="muted" onClick={onClose}>Cancelar</Btn>
-          <Btn kind={cfg.tone} onClick={confirm} disabled={saving}>
+          <Btn kind={cfg.tone} onClick={confirm} disabled={saving || !canConfirm}>
             {saving ? 'Guardando…' : cfg.confirm}
           </Btn>
         </>
@@ -141,10 +158,23 @@ export function MovementModal({ type, materiales, proveedores, encargos, initial
         </div>
       </Field>
 
+      {type === 'ajuste' && (
+        <Field label="TIPO DE AJUSTE" htmlFor="mv-tipo">
+          <div className="select-wrap">
+            <select id="mv-tipo" className="input" value={tipoAjuste} onChange={(e) => setTipoAjuste(e.target.value)}>
+              <option value="">Elegir tipo…</option>
+              <option value="entrada">Entrada (+)</option>
+              <option value="salida">Salida (−)</option>
+            </select>
+            <Icon name="chevron" size={16} />
+          </div>
+        </Field>
+      )}
+
       <div className="grid-2">
         <Field label={cfg.qtyLabel} htmlFor="mv-qty">
           <div className="input-affix" style={{ position: 'relative' }}>
-            <input id="mv-qty" className="input" value={qty} onChange={(e) => setQty(e.target.value)} inputMode="decimal" style={{ paddingRight: '48px' }} />
+            <input id="mv-qty" className="input" value={qty} onChange={(e) => setQty(soloNumerico(e.target.value))} inputMode="decimal" style={{ paddingRight: '48px' }} />
             <span className="affix" style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontWeight: 600, pointerEvents: 'none' }}>{unit}</span>
           </div>
         </Field>
@@ -165,7 +195,7 @@ export function MovementModal({ type, materiales, proveedores, encargos, initial
             id="mv-cost"
             className={`input${cfg.costEditable ? '' : ' input--readonly'}`}
             value={cost}
-            onChange={(e) => cfg.costEditable && setCost(e.target.value)}
+            onChange={(e) => cfg.costEditable && setCost(soloNumerico(e.target.value))}
             readOnly={!cfg.costEditable}
             inputMode="decimal"
           />
@@ -176,6 +206,7 @@ export function MovementModal({ type, materiales, proveedores, encargos, initial
         <Field label={cfg.partyLabel} htmlFor="mv-party">
           <div className="select-wrap">
             <select id="mv-party" className="input" value={party} onChange={(e) => setParty(e.target.value)}>
+              <option value="">{cfg.partyPlaceholder}</option>
               {listaParty.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
             <Icon name="chevron" size={16} />
@@ -185,12 +216,12 @@ export function MovementModal({ type, materiales, proveedores, encargos, initial
 
       {type === 'ajuste' && (
         <Field label="MOTIVO" htmlFor="mv-motivo">
-          <input id="mv-motivo" className="input" placeholder="Merma por corte" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+          <input id="mv-motivo" className="input" placeholder="Merma por corte" value={motivo} onChange={(e) => setMotivo(sanitizers.texto(e.target.value))} />
         </Field>
       )}
 
       <Field label={cfg.refLabel} hint={cfg.refHint} htmlFor="mv-ref">
-        <input id="mv-ref" className="input" placeholder={cfg.refPlaceholder} value={ref} onChange={(e) => setRef(e.target.value)} />
+        <input id="mv-ref" className="input" placeholder={cfg.refPlaceholder} value={ref} onChange={(e) => setRef(sanitizers.texto(e.target.value))} />
       </Field>
 
       <div className={`resume resume--${cfg.tone}`}>
@@ -237,7 +268,7 @@ export function LineEditModal({ material, categorias, unidades, onClose, onSave 
       }
     >
       <Field label="NOMBRE DEL ARTÍCULO">
-        <input className="input" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+        <input className="input" value={nombre} onChange={(e) => setNombre(sanitizers.texto(e.target.value))} />
       </Field>
       <div className="grid-2">
         <Field label="CATEGORÍA">
@@ -263,10 +294,10 @@ export function LineEditModal({ material, categorias, unidades, onClose, onSave 
       </div>
       <div className="grid-2">
         <Field label="STOCK MÍNIMO">
-          <input className="input" value={min} onChange={(e) => setMin(e.target.value)} inputMode="decimal" />
+          <input className="input" value={min} onChange={(e) => setMin(soloNumerico(e.target.value))} inputMode="decimal" />
         </Field>
         <Field label="PMP / PRECIO REF. (€)">
-          <input className="input" value={pmp} onChange={(e) => setPmp(e.target.value)} inputMode="decimal" />
+          <input className="input" value={pmp} onChange={(e) => setPmp(soloNumerico(e.target.value))} inputMode="decimal" />
         </Field>
       </div>
       <p style={{ margin: 0, fontSize: 13, color: '#e09090' }}>Editar el PMP es una rectificación contable: úsalo solo para corregir errores de captura.</p>
@@ -372,7 +403,7 @@ export function EditMovimientoModal({ movimiento, unit, onClose, onSave }) {
               min="0"
               step="0.01"
               value={cantidad}
-              onChange={e => setCantidad(e.target.value)}
+              onChange={e => setCantidad(soloNumerico(e.target.value))}
               inputMode="decimal"
               style={{ flex: 1 }}
             />
@@ -381,14 +412,14 @@ export function EditMovimientoModal({ movimiento, unit, onClose, onSave }) {
       </div>
       {movimiento.tipo === 'entrada' && (
         <Field label="PRECIO UNITARIO (€)">
-          <input className="input" value={precio} onChange={e => setPrecio(e.target.value)} inputMode="decimal" placeholder="0,00" />
+          <input className="input" value={precio} onChange={e => setPrecio(soloNumerico(e.target.value))} inputMode="decimal" placeholder="0,00" />
         </Field>
       )}
       <Field label={isAjuste ? 'MOTIVO' : 'NOTAS'}>
         <input
           className="input"
           value={isAjuste ? motivo : notas}
-          onChange={e => isAjuste ? setMotivo(e.target.value) : setNotas(e.target.value)}
+          onChange={e => isAjuste ? setMotivo(sanitizers.texto(e.target.value)) : setNotas(sanitizers.texto(e.target.value))}
           placeholder={isAjuste ? 'Motivo del ajuste…' : 'Observaciones…'}
         />
       </Field>

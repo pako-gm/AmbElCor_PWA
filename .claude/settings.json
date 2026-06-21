@@ -10,7 +10,8 @@
       "PowerShell(npx playwright test tests/citas-verify.tmp.spec.ts)",
       "PowerShell(npx playwright test tests/ajustes-verify.tmp.spec.ts)",
       "PowerShell(Remove-Item \"src\\\\pages\\\\Contabilidad\\\\Contabilidad_pr.jsx\" -Confirm:$false)",
-      "PowerShell(Remove-Item \"test-screenshots\\\\contabilidad-pr.png\" -Confirm:$false -ErrorAction SilentlyContinue)"
+      "PowerShell(Remove-Item \"test-screenshots\\\\contabilidad-pr.png\" -Confirm:$false -ErrorAction SilentlyContinue)",
+      "PowerShell(npm run build 2>&1)"
     ]
   }
 }

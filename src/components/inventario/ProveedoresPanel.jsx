@@ -4,10 +4,10 @@
    ============================================================ */
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Icon, Btn, Field } from './InventarioUI'
+import { Icon, Btn, Field, Input, TextareaInput } from './InventarioUI'
 import { fetchProveedores, fetchProveedor, crearProveedor, actualizarProveedor, eliminarProveedor } from '@/hooks/useProveedores'
 import { formatImporte, formatCantidad, formatTelefono } from '@/utils/formatters'
-import { validarTelefono, validarEmail, normalizarTelefono } from '@/utils/validators'
+import { validarTelefono, validarEmail, normalizarTelefono, sanitizers } from '@/utils/validators'
 
 function fmtDate(s) {
   if (!s) return '—'
@@ -228,13 +228,20 @@ function ProviderForm({ proveedor, isNew, onSave, onCancel }) {
   const [f, setF] = useState({ ...blank, ...(proveedor || {}) })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [errs, setErrs] = useState({})
 
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
+  const set = (k) => (e) => {
+    setF({ ...f, [k]: e.target.value })
+    if (errs[k]) setErrs(prev => ({ ...prev, [k]: undefined }))
+  }
 
   const submit = async () => {
-    if (!f.nombre.trim()) { setError('El nombre es obligatorio.'); return }
-    if (f.telefono && !validarTelefono(f.telefono)) { setError('El teléfono debe tener 9 dígitos.'); return }
-    if (f.email && !validarEmail(f.email)) { setError('El email no es válido.'); return }
+    const nuevosErrs = {}
+    if (!f.nombre.trim()) nuevosErrs.nombre = 'El nombre es obligatorio.'
+    if (f.telefono && !validarTelefono(f.telefono)) nuevosErrs.telefono = 'El teléfono debe tener 9 dígitos.'
+    if (f.email && !validarEmail(f.email)) nuevosErrs.email = 'El email no es válido.'
+    if (Object.keys(nuevosErrs).length > 0) { setErrs(nuevosErrs); return }
+    setErrs({})
     setSaving(true)
     setError('')
     try {
@@ -260,22 +267,22 @@ function ProviderForm({ proveedor, isNew, onSave, onCancel }) {
       <section className="panel">
         <h3 className="panel__title">Datos de contacto</h3>
         <div className="card-form" style={{ border: 'none', boxShadow: 'none', padding: 0, gap: 16 }}>
-          <Field label="NOMBRE *">
-            <input className="input" value={f.nombre} onChange={set('nombre')} placeholder="Ej: Bordados Artesanía Valencia" autoFocus />
+          <Field label="NOMBRE *" error={errs.nombre}>
+            <Input value={f.nombre} sanitize={sanitizers.texto} onChange={set('nombre')} placeholder="Ej: Bordados Artesanía Valencia" autoFocus />
           </Field>
           <Field label="PERSONA DE CONTACTO">
-            <input className="input" value={f.contacto || ''} onChange={set('contacto')} placeholder="Ej: Milagros" />
+            <Input value={f.contacto || ''} sanitize={sanitizers.texto} onChange={set('contacto')} placeholder="Ej: Milagros" />
           </Field>
           <div className="grid-2">
-            <Field label="TELÉFONO">
-              <input className="input" value={f.telefono || ''} onChange={set('telefono')} placeholder="963 000 000" />
+            <Field label="TELÉFONO" error={errs.telefono}>
+              <Input value={f.telefono || ''} inputMode="numeric" sanitize={sanitizers.telefono} onChange={set('telefono')} placeholder="963 000 000" />
             </Field>
-            <Field label="EMAIL">
-              <input className="input" type="email" value={f.email || ''} onChange={set('email')} placeholder="correo@proveedor.com" />
+            <Field label="EMAIL" error={errs.email}>
+              <Input type="email" value={f.email || ''} sanitize={sanitizers.email} onChange={set('email')} placeholder="correo@proveedor.com" />
             </Field>
           </div>
           <Field label="NOTAS">
-            <textarea className="input textarea" value={f.notas || ''} onChange={set('notas')} placeholder="Observaciones, condiciones, etc." />
+            <TextareaInput value={f.notas || ''} sanitize={sanitizers.texto} onChange={set('notas')} placeholder="Observaciones, condiciones, etc." />
           </Field>
 
           {error && (

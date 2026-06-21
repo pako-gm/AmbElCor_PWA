@@ -6,6 +6,7 @@ import { MovementModal } from '@/components/inventario/InventarioModals'
 import ProveedoresPanel from '@/components/inventario/ProveedoresPanel'
 import { useInventario } from '@/hooks/useInventario'
 import { formatImporte, formatCodigo, formatCantidad } from '@/utils/formatters'
+import { sanitizers } from '@/utils/validators'
 
 const TABS = [
   { key: 'inventario', label: 'Inventario' },
@@ -173,7 +174,7 @@ function Dashboard({ materiales, salidas }) {
                 </div>
                 <div className="h-2 bg-line-2 rounded">
                   <div
-                    className="h-full bg-violet rounded transition-all"
+                    className="h-full bg-primary rounded transition-all"
                     style={{ width: `${(valor / maxValor) * 100}%` }}
                   />
                 </div>
@@ -435,7 +436,7 @@ export default function MaterialesLista() {
               type="text"
               placeholder="Buscar en el taller…"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => setQuery(sanitizers.texto(e.target.value))}
               className="flex-1 text-sm text-ink placeholder:text-faint focus:outline-none bg-transparent"
             />
           </div>

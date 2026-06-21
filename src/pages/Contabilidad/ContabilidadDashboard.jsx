@@ -7,7 +7,7 @@ import {
   formatFecha, formatImporte,
   FORMA_PAGO_LABELS, CATEGORIA_GASTO_LABELS,
 } from '@/utils/formatters'
-import { validarTelefono, validarEmail, normalizarTelefono } from '@/utils/validators'
+import { validarTelefono, validarEmail, normalizarTelefono, sanitizers } from '@/utils/validators'
 import { useToast } from '@/hooks/useToast'
 import Button from '@/components/ui/Button'
 import LoadingState from '@/components/ui/LoadingState'
@@ -91,7 +91,7 @@ function SearchInput({ value, onChange, placeholder }) {
     <div className="relative">
       <input
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={e => onChange(sanitizers.texto(e.target.value))}
         placeholder={placeholder}
         aria-label={placeholder}
         className="border border-[--border] rounded-lg pl-7 pr-3 py-1.5 text-xs w-40"
@@ -527,11 +527,13 @@ function PagosPanel({ año }) {
   const [form, setForm] = useState(formVacio)
   const [guardando, setGuardando] = useState(false)
   const [errForm, setErrForm] = useState('')
+  const [errCampos, setErrCampos] = useState({})
   const [modalEliminar, setModalEliminar] = useState(null)
   const [modalProveedor, setModalProveedor] = useState(false)
   const [nuevoProveedor, setNuevoProveedor] = useState({ nombre: '', telefono: '', email: '' })
   const [guardandoProv, setGuardandoProv] = useState(false)
   const [errProveedor, setErrProveedor] = useState('')
+  const [errProvCampos, setErrProvCampos] = useState({})
 
   const cargar = () => fetchPagosProveedor({ año, trimestre: trimestre || undefined }).then(setPagos)
   useEffect(() => { cargar() }, [año, trimestre])
@@ -561,8 +563,11 @@ function PagosPanel({ año }) {
   }
 
   const handleGuardar = async () => {
-    if (!form.concepto.trim()) return setErrForm('El concepto es obligatorio.')
-    if (!form.importe || isNaN(form.importe)) return setErrForm('Importe inválido.')
+    const nuevosErrs = {}
+    if (!form.concepto.trim()) nuevosErrs.concepto = 'El concepto es obligatorio.'
+    if (!form.importe || isNaN(form.importe)) nuevosErrs.importe = 'Importe inválido.'
+    if (Object.keys(nuevosErrs).length > 0) { setErrCampos(nuevosErrs); return }
+    setErrCampos({})
     setErrForm('')
     setGuardando(true)
     try {
@@ -599,14 +604,13 @@ function PagosPanel({ año }) {
 
   const handleCrearProveedor = async () => {
     if (!nuevoProveedor.nombre.trim()) return
-    if (nuevoProveedor.telefono && !validarTelefono(nuevoProveedor.telefono)) {
-      setErrProveedor('El teléfono debe tener 9 dígitos.')
-      return
-    }
-    if (nuevoProveedor.email && !validarEmail(nuevoProveedor.email)) {
-      setErrProveedor('El email no es válido.')
-      return
-    }
+    const nuevosErrs = {}
+    if (nuevoProveedor.telefono && !validarTelefono(nuevoProveedor.telefono))
+      nuevosErrs.telefono = 'El teléfono debe tener 9 dígitos.'
+    if (nuevoProveedor.email && !validarEmail(nuevoProveedor.email))
+      nuevosErrs.email = 'El email no es válido.'
+    if (Object.keys(nuevosErrs).length > 0) { setErrProvCampos(nuevosErrs); return }
+    setErrProvCampos({})
     setErrProveedor('')
     setGuardandoProv(true)
     try {
@@ -708,10 +712,12 @@ function PagosPanel({ año }) {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-[--text-light] mb-1">Concepto *</label>
-              <input type="text" value={form.concepto} onChange={e => setForm(f => ({ ...f, concepto: e.target.value }))}
+              <label className={`block text-xs mb-1 ${errCampos.concepto ? 'text-red-500' : 'text-[--text-light]'}`}>Concepto *</label>
+              <input type="text" value={form.concepto}
+                onChange={e => { setForm(f => ({ ...f, concepto: sanitizers.texto(e.target.value) })); if (errCampos.concepto) setErrCampos(p => ({ ...p, concepto: undefined })) }}
                 placeholder="Descripción del gasto"
-                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
+                className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${errCampos.concepto ? 'border-red-400' : 'border-[--border]'}`} />
+              {errCampos.concepto && <p className="text-xs text-red-500 mt-1">{errCampos.concepto}</p>}
             </div>
             <div className="md:col-span-2">
               <div className="flex items-center gap-3 mb-2">
@@ -730,13 +736,13 @@ function PagosPanel({ año }) {
                   <div>
                     <label className="block text-xs text-[--text-light] mb-1">Base (€)</label>
                     <input type="number" min="0" step="0.50" value={form.base_imponible}
-                      onChange={e => handleBaseIvaChange('base_imponible', e.target.value)}
+                      onChange={e => handleBaseIvaChange('base_imponible', sanitizers.decimal(e.target.value))}
                       className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs text-[--text-light] mb-1">% IVA</label>
                     <input type="number" min="0" step="0.5" value={form.iva_porcentaje}
-                      onChange={e => handleBaseIvaChange('iva_porcentaje', e.target.value)}
+                      onChange={e => handleBaseIvaChange('iva_porcentaje', sanitizers.decimal(e.target.value))}
                       className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
                   </div>
                   <div>
@@ -747,10 +753,11 @@ function PagosPanel({ año }) {
                 </div>
               ) : (
                 <div>
-                  <label className="block text-xs text-[--text-light] mb-1">Importe (€) *</label>
+                  <label className={`block text-xs mb-1 ${errCampos.importe ? 'text-red-500' : 'text-[--text-light]'}`}>Importe (€) *</label>
                   <input type="number" min="0" step="0.50" value={form.importe}
-                    onChange={e => setForm(f => ({ ...f, importe: e.target.value }))}
-                    className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
+                    onChange={e => { setForm(f => ({ ...f, importe: sanitizers.decimal(e.target.value) })); if (errCampos.importe) setErrCampos(p => ({ ...p, importe: undefined })) }}
+                    className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${errCampos.importe ? 'border-red-400' : 'border-[--border]'}`} />
+                  {errCampos.importe && <p className="text-xs text-red-500 mt-1">{errCampos.importe}</p>}
                 </div>
               )}
             </div>
@@ -763,7 +770,7 @@ function PagosPanel({ año }) {
             </div>
             <div>
               <label className="block text-xs text-[--text-light] mb-1">Referencia</label>
-              <input type="text" value={form.referencia} onChange={e => setForm(f => ({ ...f, referencia: e.target.value }))}
+              <input type="text" value={form.referencia} onChange={e => setForm(f => ({ ...f, referencia: sanitizers.texto(e.target.value) }))}
                 placeholder="Nº factura, albarán…"
                 className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
             </div>
@@ -778,7 +785,7 @@ function PagosPanel({ año }) {
           </div>
           {errForm && <p className="text-xs text-red-500">{errForm}</p>}
           <div className="flex gap-2 justify-end">
-            <button onClick={() => { setMostrarForm(false); setForm(formVacio); setErrForm('') }}
+            <button onClick={() => { setMostrarForm(false); setForm(formVacio); setErrForm(''); setErrCampos({}) }}
               className="px-4 py-2 text-sm rounded-md border border-[--border] text-[--text-medium] hover:bg-gray-50 transition-colors">
               Cancelar
             </button>
@@ -855,16 +862,16 @@ function PagosPanel({ año }) {
       >
         <div className="space-y-3">
           <Field label="Nombre" required>
-            <Input type="text" placeholder="Nombre" value={nuevoProveedor.nombre}
+            <Input type="text" placeholder="Nombre" value={nuevoProveedor.nombre} sanitize={sanitizers.texto}
               onChange={e => setNuevoProveedor(p => ({ ...p, nombre: e.target.value }))} />
           </Field>
-          <Field label="Teléfono">
-            <Input type="tel" placeholder="Teléfono" value={nuevoProveedor.telefono}
-              onChange={e => setNuevoProveedor(p => ({ ...p, telefono: e.target.value }))} />
+          <Field label="Teléfono" error={errProvCampos.telefono}>
+            <Input type="tel" inputMode="numeric" placeholder="Teléfono" value={nuevoProveedor.telefono} sanitize={sanitizers.telefono}
+              onChange={e => { setNuevoProveedor(p => ({ ...p, telefono: e.target.value })); if (errProvCampos.telefono) setErrProvCampos(p => ({ ...p, telefono: undefined })) }} />
           </Field>
-          <Field label="Email">
-            <Input type="email" placeholder="Email" value={nuevoProveedor.email}
-              onChange={e => setNuevoProveedor(p => ({ ...p, email: e.target.value }))} />
+          <Field label="Email" error={errProvCampos.email}>
+            <Input type="email" placeholder="Email" value={nuevoProveedor.email} sanitize={sanitizers.email}
+              onChange={e => { setNuevoProveedor(p => ({ ...p, email: e.target.value })); if (errProvCampos.email) setErrProvCampos(p => ({ ...p, email: undefined })) }} />
           </Field>
           {errProveedor && <p role="alert" className="text-xs text-red-500">{errProveedor}</p>}
         </div>

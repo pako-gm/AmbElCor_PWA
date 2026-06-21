@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { formatImporte, ESTADO_LABELS } from '@/utils/formatters'
+import { escaparBusqueda } from '@/utils/validators'
 
 const registrarHistorial = (encargo_id, descripcion) =>
   supabase.from('historial_encargo').insert({ encargo_id, descripcion })
@@ -152,7 +153,7 @@ export async function buscarClientes(query) {
   const { data, error } = await supabase
     .from('clientes')
     .select('id, nombre, apellidos, telefono')
-    .or(`nombre.ilike.%${query}%,apellidos.ilike.%${query}%`)
+    .or(`nombre.ilike.%${escaparBusqueda(query)}%,apellidos.ilike.%${escaparBusqueda(query)}%`)
     .limit(8)
   if (error) throw error
   return data

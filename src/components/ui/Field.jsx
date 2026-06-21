@@ -36,22 +36,35 @@ export function Field({ label, error, hint, required, htmlFor, className, childr
   )
 }
 
-export const Input = forwardRef(function Input({ error, className, ...props }, ref) {
+// Envuelve onChange aplicando un saneador al valor antes de propagarlo.
+// `sanitize` es una función (valor) => valorSaneado (ver utils/validators sanitizers).
+function withSanitize(sanitize, onChange) {
+  if (!sanitize || !onChange) return onChange
+  return (e) => {
+    const limpio = sanitize(e.target.value)
+    if (limpio !== e.target.value) e.target.value = limpio
+    onChange(e)
+  }
+}
+
+export const Input = forwardRef(function Input({ error, className, sanitize, onChange, ...props }, ref) {
   return (
     <input
       ref={ref}
       className={cn(inputBase, inputBorder(error), className)}
+      onChange={withSanitize(sanitize, onChange)}
       {...props}
     />
   )
 })
 
-export const Textarea = forwardRef(function Textarea({ error, className, rows = 2, ...props }, ref) {
+export const Textarea = forwardRef(function Textarea({ error, className, rows = 2, sanitize, onChange, ...props }, ref) {
   return (
     <textarea
       ref={ref}
       rows={rows}
       className={cn(inputBase, inputBorder(error), 'resize-none', className)}
+      onChange={withSanitize(sanitize, onChange)}
       {...props}
     />
   )

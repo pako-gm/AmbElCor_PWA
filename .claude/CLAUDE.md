@@ -2,7 +2,7 @@
 
 ## Descripción del proyecto
 
-CRM web para el taller de indumentaria fallera **Amb el Cor** (Carmen Moya, Catarroja).
+CRM web para el taller de indumentaria fallera **Amb el Cor** (Carmen Moya, Paiporta).
 Gestión de clientas, encargos, presupuestos y seguimiento de pedidos.
 Acceso CRM exclusivo de Carmen. Clientes acceden a sus encargos vía token/código corto sin registro.
 
@@ -25,7 +25,7 @@ Acceso CRM exclusivo de Carmen. Clientes acceden a sus encargos vía token/códi
 - Modelo de encargo multi-línea: un encargo tiene varias líneas de trabajo
 - Seguimiento público de pedidos vía token + código corto (sin login)
 - Lógica de negocio principalmente en el navegador; Edge Function `notify-whatsapp` para notificaciones
-- Un solo usuario autenticado (Carmen); no hay sistema de roles
+- Varios usuarios autenticados, sistema de roles segun usuario, implementado en Ajustes > Usuarios
 
 ## Supabase
 
@@ -43,7 +43,7 @@ Acceso CRM exclusivo de Carmen. Clientes acceden a sus encargos vía token/códi
 - Hover de botón primario estándar: `hover:bg-primary-dark`
 - Mobile-first: bottom-tab nav en móvil, drawer lateral en desktop
 - CRM funcional y conciso (no tan visual como la landing)
-- El módulo Inventario usa un design system CSS propio (`.btn`, `.panel`, `.modal`, `.input`… en `src/index.css`) con componentes en `src/components/inventario/InventarioUI.jsx` — no migrarlo a Tailwind utilities sin pedirlo
+- El módulo Inventario usa un design system CSS propio (`.btn`, `.panel`, `.modal`, `.input`… en `src/index.css`) con componentes en `src/components/inventario/InventarioUI.jsx`
 
 ## Convenciones de código
 
@@ -137,6 +137,5 @@ npm run preview   # preview del build
 ```
 
 ## Lecciones aprendidas
-
-Los errores de programación corregidos durante el desarrollo se registran en `.claude/LECCIONES.md`.
-**Claude Code debe consultar ese archivo al inicio de cada tarea nueva y actualizarlo antes de continuar tras cometer un error.**
+Se ha eliminado estas referencia a claude/LECCIONES.md
+**Claude code no consultará ese archivo al inicio de cada tarea.**

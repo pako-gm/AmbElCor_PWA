@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/useToast'
 import Button from '@/components/ui/Button'
 import { Field, Input, Textarea } from '@/components/ui/Field'
 import LoadingState from '@/components/ui/LoadingState'
+import { sanitizers } from '@/utils/validators'
 
 const CAMPOS_VACIOS = {
   fecha_toma: '',
@@ -183,8 +184,10 @@ export default function MedidasCliente() {
                   <Input
                     type={tipo ?? 'number'}
                     min={tipo ? undefined : '0'}
+                    inputMode={tipo ? undefined : 'decimal'}
                     placeholder={unidad ? '0' : ''}
                     value={form[key]}
+                    sanitize={tipo === 'text' ? sanitizers.texto : sanitizers.decimal}
                     onChange={e => set(key, e.target.value)}
                   />
                 </Field>
@@ -200,6 +203,7 @@ export default function MedidasCliente() {
             placeholder="Observaciones sobre las medidas…"
             aria-label="Notas de medidas"
             value={form.notas}
+            sanitize={sanitizers.texto}
             onChange={e => set('notas', e.target.value)}
             rows={3}
           />

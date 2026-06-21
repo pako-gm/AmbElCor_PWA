@@ -9,7 +9,7 @@ import LoadingState from '@/components/ui/LoadingState'
 import Badge from '@/components/ui/Badge'
 import { fetchCliente, actualizarCliente, eliminarCliente, fetchMedidasCliente } from '@/hooks/useClientes'
 import { formatFecha, formatImporte, formatTelefono, ESTADO_LABELS, ESTADO_COLORS } from '@/utils/formatters'
-import { validarTelefono, validarEmail } from '@/utils/validators'
+import { validarTelefono, validarEmail, sanitizers } from '@/utils/validators'
 import { useToast } from '@/hooks/useToast'
 
 export default function ClienteDetalle() {
@@ -152,6 +152,7 @@ export default function ClienteDetalle() {
                   <Input
                     type="text"
                     value={formEdit.nombre}
+                    sanitize={sanitizers.texto}
                     onChange={e => setFormEdit(v => ({ ...v, nombre: e.target.value }))}
                   />
                 </Field>
@@ -159,6 +160,7 @@ export default function ClienteDetalle() {
                   <Input
                     type="text"
                     value={formEdit.apellidos}
+                    sanitize={sanitizers.texto}
                     onChange={e => setFormEdit(v => ({ ...v, apellidos: e.target.value }))}
                   />
                 </Field>
@@ -168,6 +170,7 @@ export default function ClienteDetalle() {
                   type="text"
                   placeholder="Referencia (p. ej. hija de Carmen)"
                   value={formEdit.alias}
+                  sanitize={sanitizers.texto}
                   onChange={e => setFormEdit(v => ({ ...v, alias: e.target.value }))}
                 />
               </Field>
@@ -175,14 +178,17 @@ export default function ClienteDetalle() {
                 <Field label="Teléfono" error={erroresEdit.telefono}>
                   <Input
                     type="tel"
+                    inputMode="numeric"
                     value={formEdit.telefono}
-                    onChange={e => setFormEdit(v => ({ ...v, telefono: e.target.value.replace(/\D/g, '').slice(0, 9) }))}
+                    sanitize={sanitizers.telefono}
+                    onChange={e => setFormEdit(v => ({ ...v, telefono: e.target.value }))}
                   />
                 </Field>
                 <Field label="Email" error={erroresEdit.email}>
                   <Input
                     type="email"
                     value={formEdit.email}
+                    sanitize={sanitizers.email}
                     onChange={e => setFormEdit(v => ({ ...v, email: e.target.value }))}
                   />
                 </Field>
@@ -190,6 +196,7 @@ export default function ClienteDetalle() {
               <Field label="Notas">
                 <Textarea
                   value={formEdit.notas}
+                  sanitize={sanitizers.texto}
                   onChange={e => setFormEdit(v => ({ ...v, notas: e.target.value }))}
                 />
               </Field>

@@ -8,6 +8,7 @@ import {
   crearEncargo, fetchTodosClientes, fetchCatalogo
 } from '@/hooks/useEncargos'
 import { formatImporte } from '@/utils/formatters'
+import { sanitizers } from '@/utils/validators'
 import { useToast } from '@/hooks/useToast'
 
 function lineaVacia() {
@@ -174,7 +175,7 @@ export default function NuevoEncargo() {
               type="text"
               placeholder="Buscar cliente por nombre…"
               value={clienteQuery}
-              onChange={e => { setClienteQuery(e.target.value); setClienteSeleccionado(null) }}
+              onChange={e => { setClienteQuery(sanitizers.texto(e.target.value)); setClienteSeleccionado(null) }}
               onFocus={handleFocoCliente}
               onBlur={handleBlurCliente}
               className={`w-full border rounded-md px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${erroresForm.cliente ? 'border-red-400' : 'border-[--border]'}`}
@@ -236,7 +237,7 @@ export default function NuevoEncargo() {
             <label className="block text-xs text-[--text-light] mb-1">Notas del encargo</label>
             <textarea
               value={notas}
-              onChange={e => setNotas(e.target.value)}
+              onChange={e => setNotas(sanitizers.texto(e.target.value))}
               rows={2}
               placeholder="Observaciones generales…"
               className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
@@ -297,7 +298,7 @@ export default function NuevoEncargo() {
                     type="number"
                     min="1"
                     value={l.cantidad}
-                    onChange={e => updateLinea(l._id, 'cantidad', e.target.value)}
+                    onChange={e => updateLinea(l._id, 'cantidad', sanitizers.entero(e.target.value))}
                     className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
@@ -307,7 +308,7 @@ export default function NuevoEncargo() {
                     type="text"
                     inputMode="decimal"
                     value={l.precio_unitario}
-                    onChange={e => updateLinea(l._id, 'precio_unitario', e.target.value.replace(',', '.'))}
+                    onChange={e => updateLinea(l._id, 'precio_unitario', sanitizers.decimal(e.target.value).replace(',', '.'))}
                     placeholder="0,00"
                     className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
@@ -323,7 +324,7 @@ export default function NuevoEncargo() {
                 <label className="block text-xs text-[--text-light] mb-1">Notas de esta prenda</label>
                 <input
                   value={l.notas}
-                  onChange={e => updateLinea(l._id, 'notas', e.target.value)}
+                  onChange={e => updateLinea(l._id, 'notas', sanitizers.texto(e.target.value))}
                   placeholder="Observaciones específicas…"
                   className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />

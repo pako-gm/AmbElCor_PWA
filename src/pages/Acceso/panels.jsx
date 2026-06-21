@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { ROLES } from '@/lib/usuarios'
 import { AC, Icon, Avatar, Field, Btn, Switch, TextLink } from './ui'
+import { sanitizers } from '@/utils/validators'
 
 // Matriz de permisos decorativa (granular, solo para la maqueta de alta de usuario).
 const PAGINAS_DECO = [
@@ -160,8 +161,8 @@ export function UsuarioForm({ modo = 'nuevo', inicial, onClose, onSubmit, compac
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1fr 1fr', gap: 14 }}>
-        <Field label="NOMBRE" value={name} onChange={setName} placeholder="Nombre y apellidos" icon="user" />
-        <Field label="CORREO ELECTRÓNICO" type="email" value={email} onChange={setEmail} placeholder="nombre@ambelcor.es" icon="mail" />
+        <Field label="NOMBRE" value={name} onChange={(v) => setName(sanitizers.texto(v))} placeholder="Nombre y apellidos" icon="user" />
+        <Field label="CORREO ELECTRÓNICO" type="email" value={email} onChange={(v) => setEmail(sanitizers.email(v))} placeholder="nombre@ambelcor.es" icon="mail" />
       </div>
 
       <div>

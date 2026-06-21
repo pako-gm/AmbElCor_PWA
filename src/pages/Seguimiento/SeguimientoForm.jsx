@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { sanitizers } from '@/utils/validators'
 
 export default function SeguimientoForm() {
   const [codigo, setCodigo] = useState('')
@@ -36,12 +37,12 @@ export default function SeguimientoForm() {
           <input
             type="text"
             value={codigo}
-            onChange={e => setCodigo(e.target.value)}
+            onChange={e => { setCodigo(sanitizers.codigo(e.target.value)); if (error) setError('') }}
             placeholder="AMB-XXXX"
             maxLength={8}
-            className="w-full text-center text-lg tracking-widest uppercase border border-[--border] rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+            className={`w-full text-center text-lg tracking-widest uppercase border rounded-md px-4 py-3 focus:outline-none focus:ring-2 ${error ? 'border-red-400 focus:ring-red-400' : 'border-[--border] focus:ring-primary'}`}
           />
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-sm text-red-500">{error}</p>}
           <button
             type="submit"
             disabled={loading || codigo.length < 8}

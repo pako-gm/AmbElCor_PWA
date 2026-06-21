@@ -3,6 +3,7 @@ import { X, Trash2, Edit2 } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { fetchClientes } from '@/hooks/useClientes'
+import { sanitizers } from '@/utils/validators'
 import { TIPOS_CITA, HORA_INICIO_MIN, HORA_FIN_MIN, toHHMM } from './citasUtils'
 
 function formatearHora(date) {
@@ -208,7 +209,7 @@ export default function CitaSheet({ cita, modo, onClose, onSave, onEdit, onDelet
                 type="text"
                 value={filtroClientes || form.cliente_nombre}
                 onChange={e => {
-                  setFiltroClientes(e.target.value)
+                  setFiltroClientes(sanitizers.texto(e.target.value))
                   setMostrarListaClientes(true)
                 }}
                 onFocus={() => setMostrarListaClientes(true)}
@@ -333,7 +334,7 @@ export default function CitaSheet({ cita, modo, onClose, onSave, onEdit, onDelet
               <label className={labelCls}>Nota</label>
               <textarea
                 value={form.notas}
-                onChange={e => updateForm('notas', e.target.value)}
+                onChange={e => updateForm('notas', sanitizers.texto(e.target.value))}
                 className="w-full px-3 py-2.5 bg-[--bg-gray] border border-[--border] rounded-xl focus:outline-none focus:ring-2 focus:ring-primary resize-none text-[15px]"
                 placeholder="Opcional…"
                 rows={2}

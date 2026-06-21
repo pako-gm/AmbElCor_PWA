@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { escaparBusqueda } from '@/utils/validators'
 
 export async function fetchClientes(query = '') {
   let q = supabase
@@ -7,7 +8,8 @@ export async function fetchClientes(query = '') {
     .order('nombre', { ascending: true })
 
   if (query.trim()) {
-    q = q.or(`nombre.ilike.%${query}%,apellidos.ilike.%${query}%`)
+    const term = escaparBusqueda(query)
+    q = q.or(`nombre.ilike.%${term}%,apellidos.ilike.%${term}%`)
   }
 
   const { data, error } = await q

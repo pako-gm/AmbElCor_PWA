@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageWrapper from '@/components/layout/PageWrapper'
-import { Icon, Btn, Field } from '@/components/inventario/InventarioUI'
+import { Icon, Btn, Field, Input, TextareaInput } from '@/components/inventario/InventarioUI'
 import { useInventario } from '@/hooks/useInventario'
 import { useToast } from '@/hooks/useToast'
-import { validarNumeroPositivo } from '@/utils/validators'
+import { validarNumeroPositivo, sanitizers } from '@/utils/validators'
 
 const formVacio = {
   codigo: '', nombre: '', descripcion: '', unidad_gestion: 'unidad',
@@ -18,6 +18,7 @@ export default function NuevoMaterial() {
   const [form, setForm] = useState(formVacio)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
+  const [errs, setErrs] = useState({})
   const [categorias, setCategorias] = useState([])
   const [unidades, setUnidades] = useState([])
 
@@ -29,16 +30,22 @@ export default function NuevoMaterial() {
     })
   }, [])
 
-  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
+  const set = (k) => (e) => {
+    setForm(f => ({ ...f, [k]: e.target.value }))
+    if (errs[k]) setErrs(prev => ({ ...prev, [k]: undefined }))
+  }
 
   const prefijoActual = categorias.find(c => c.nombre === form.categoria)?.prefijo || 'S/C'
 
   const handleGuardar = async () => {
-    if (!form.nombre.trim()) return setError('El nombre es obligatorio.')
+    const nuevosErrs = {}
+    if (!form.nombre.trim()) nuevosErrs.nombre = 'El nombre es obligatorio.'
     if (form.stock_minimo !== '' && !validarNumeroPositivo(form.stock_minimo))
-      return setError('El stock mínimo debe ser un número igual o mayor que 0.')
+      nuevosErrs.stock_minimo = 'Debe ser un número igual o mayor que 0.'
     if (form.precio_referencia !== '' && !validarNumeroPositivo(form.precio_referencia))
-      return setError('El precio de referencia debe ser un número igual o mayor que 0.')
+      nuevosErrs.precio_referencia = 'Debe ser un número igual o mayor que 0.'
+    if (Object.keys(nuevosErrs).length > 0) { setErrs(nuevosErrs); return }
+    setErrs({})
     setError('')
     setGuardando(true)
     try {
@@ -89,11 +96,12 @@ export default function NuevoMaterial() {
 
         <div className="card-form">
           {/* Nombre + Categoría */}
-          <Field label="NOMBRE *" htmlFor="nm-nombre">
-            <input
+          <Field label="NOMBRE *" htmlFor="nm-nombre" error={errs.nombre}>
+            <Input
               id="nm-nombre"
               className="input"
               value={form.nombre}
+              sanitize={sanitizers.texto}
               onChange={set('nombre')}
               placeholder="Ej: Espolín seda natural"
               autoFocus
@@ -127,20 +135,20 @@ export default function NuevoMaterial() {
               hint={`Si lo dejas vacío, se genera automáticamente (${prefijoActual}-NNN).`}
               htmlFor="nm-codigo"
             >
-              <input
+              <Input
                 id="nm-codigo"
-                className="input"
                 value={form.codigo}
+                sanitize={sanitizers.codigo}
                 onChange={set('codigo')}
                 placeholder={`${prefijoActual}-001`}
               />
             </Field>
 
             <Field label="DESCRIPCIÓN" htmlFor="nm-desc">
-              <input
+              <Input
                 id="nm-desc"
-                className="input"
                 value={form.descripcion}
+                sanitize={sanitizers.texto}
                 onChange={set('descripcion')}
                 placeholder="Descripción detallada…"
               />
@@ -148,26 +156,30 @@ export default function NuevoMaterial() {
           </div>
 
           <div className="grid-2">
-            <Field label="STOCK MÍNIMO (alerta)" htmlFor="nm-min">
-              <input
+            <Field label="STOCK MÍNIMO (alerta)" htmlFor="nm-min" error={errs.stock_minimo}>
+              <Input
                 id="nm-min"
                 className="input"
                 type="number"
                 min="0"
                 step="1"
+                inputMode="decimal"
                 value={form.stock_minimo}
+                sanitize={sanitizers.decimal}
                 onChange={set('stock_minimo')}
               />
             </Field>
 
-            <Field label="PRECIO DE REFERENCIA (€)" htmlFor="nm-precio">
-              <input
+            <Field label="PRECIO DE REFERENCIA (€)" htmlFor="nm-precio" error={errs.precio_referencia}>
+              <Input
                 id="nm-precio"
                 className="input"
                 type="number"
                 min="0"
                 step="0.50"
+                inputMode="decimal"
                 value={form.precio_referencia}
+                sanitize={sanitizers.decimal}
                 onChange={set('precio_referencia')}
                 placeholder="Precio por unidad/metro…"
               />
@@ -175,10 +187,10 @@ export default function NuevoMaterial() {
           </div>
 
           <Field label="NOTAS" htmlFor="nm-notas">
-            <textarea
+            <TextareaInput
               id="nm-notas"
-              className="input textarea"
               value={form.notas}
+              sanitize={sanitizers.texto}
               onChange={set('notas')}
               placeholder="Observaciones, proveedor habitual, referencias cruzadas…"
             />

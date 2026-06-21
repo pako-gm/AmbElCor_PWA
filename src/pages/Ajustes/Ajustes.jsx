@@ -17,6 +17,7 @@ import { useInventario } from '@/hooks/useInventario'
 import { useConfiguracion } from '@/hooks/useConfiguracion'
 import { TIPOS_NOTIFICACION, CONFIG_KEY_NOTIFICACIONES, parsePreferencias } from '@/lib/notificaciones'
 import { useDatosFiscales } from '@/hooks/useDatosFiscales'
+import { sanitizers } from '@/utils/validators'
 import { useAuth } from '@/hooks/useAuth'
 import { USUARIOS } from '@/lib/usuarios'
 import { UsuarioForm } from '@/pages/Acceso/panels'
@@ -61,6 +62,7 @@ function SeccionCategorias({ categorias, loading, onAdd, onEdit, onDelete }) {
   const [prefijoTocado, setPrefijoTocado] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
+  const [errNombre, setErrNombre] = useState('')
   const [aBorrar, setABorrar] = useState(null)
   const [borrando, setBorrando] = useState(false)
   const [aEditar, setAEditar] = useState(null)
@@ -68,11 +70,13 @@ function SeccionCategorias({ categorias, loading, onAdd, onEdit, onDelete }) {
   const handleNombre = (e) => {
     const v = e.target.value
     setNombre(v)
+    if (errNombre) setErrNombre('')
     if (!prefijoTocado) setPrefijo(prefijoPorDefecto(v))
   }
 
   const handleAdd = async () => {
-    if (!nombre.trim()) return setError('El nombre es obligatorio.')
+    if (!nombre.trim()) return setErrNombre('El nombre es obligatorio.')
+    setErrNombre('')
     setError('')
     setGuardando(true)
     try {
@@ -150,10 +154,11 @@ function SeccionCategorias({ categorias, loading, onAdd, onEdit, onDelete }) {
       <div className="border-t border-[--border] pt-4 space-y-2">
         <p className="text-[11px] font-bold tracking-wider text-[--text-light]">NUEVA CATEGORÍA</p>
         <div className="flex flex-wrap items-end gap-2">
-          <Field label="Nombre" className="flex-1 min-w-[140px]">
+          <Field label="Nombre" className="flex-1 min-w-[140px]" error={errNombre}>
             <Input
               placeholder="Nombre…"
               value={nombre}
+              sanitize={sanitizers.texto}
               onChange={handleNombre}
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
             />
@@ -203,6 +208,7 @@ function EditarCategoriaModal({ categoria, onClose, onGuardar }) {
   const [prefijo, setPrefijo] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
+  const [errNombre, setErrNombre] = useState('')
 
   useEffect(() => {
     if (categoria) {
@@ -210,11 +216,13 @@ function EditarCategoriaModal({ categoria, onClose, onGuardar }) {
       setIcono(categoria.icono || 'box')
       setPrefijo(categoria.prefijo || '')
       setError('')
+      setErrNombre('')
     }
   }, [categoria])
 
   const handleGuardar = async () => {
-    if (!nombre.trim()) return setError('El nombre es obligatorio.')
+    if (!nombre.trim()) return setErrNombre('El nombre es obligatorio.')
+    setErrNombre('')
     setError('')
     setGuardando(true)
     try {
@@ -232,8 +240,8 @@ function EditarCategoriaModal({ categoria, onClose, onGuardar }) {
       <div className="space-y-4 pt-2">
         <h3 className="font-display text-lg text-[--text-dark]">Editar categoría</h3>
         <div className="space-y-3">
-          <Field label="Nombre">
-            <Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre…" />
+          <Field label="Nombre" error={errNombre}>
+            <Input value={nombre} sanitize={sanitizers.texto} onChange={e => { setNombre(e.target.value); if (errNombre) setErrNombre('') }} placeholder="Nombre…" />
           </Field>
           <Field label="Prefijo (código)">
             <Input value={prefijo} onChange={e => setPrefijo(normalizarPrefijo(e.target.value))} placeholder="TEL" />
@@ -261,12 +269,20 @@ function SeccionUnidades({ unidades, loading, onAdd, onDelete }) {
   const [abreviatura, setAbreviatura] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
+  const [errs, setErrs] = useState({})
   const [aBorrar, setABorrar] = useState(null)
   const [borrando, setBorrando] = useState(false)
 
+  const limpiar = (k) => { if (errs[k]) setErrs(prev => ({ ...prev, [k]: undefined })) }
+
   const handleAdd = async () => {
-    if (!clave.trim() || !etiqueta.trim() || !abreviatura.trim()) return setError('Todos los campos son obligatorios.')
-    if (!/^[a-z_]+$/.test(clave.trim())) return setError('La clave solo puede tener letras minúsculas y guiones bajos.')
+    const nuevosErrs = {}
+    if (!clave.trim()) nuevosErrs.clave = 'Obligatorio.'
+    else if (!/^[a-z_]+$/.test(clave.trim())) nuevosErrs.clave = 'Solo minúsculas y guiones bajos.'
+    if (!etiqueta.trim()) nuevosErrs.etiqueta = 'Obligatorio.'
+    if (!abreviatura.trim()) nuevosErrs.abreviatura = 'Obligatorio.'
+    if (Object.keys(nuevosErrs).length > 0) { setErrs(nuevosErrs); return }
+    setErrs({})
     setError('')
     setGuardando(true)
     try {
@@ -327,18 +343,18 @@ function SeccionUnidades({ unidades, loading, onAdd, onDelete }) {
       <div className="border-t border-[--border] pt-4 space-y-2">
         <p className="text-[11px] font-bold tracking-wider text-[--text-light]">NUEVA UNIDAD</p>
         <div className="flex flex-wrap items-end gap-2">
-          <Field label="Clave" className="flex-1 min-w-[120px]">
+          <Field label="Clave" className="flex-1 min-w-[120px]" error={errs.clave}>
             <Input
               placeholder="ej: gramo"
               value={clave}
-              onChange={e => setClave(e.target.value.toLowerCase().replace(/[^a-z_]/g, ''))}
+              onChange={e => { setClave(e.target.value.toLowerCase().replace(/[^a-z_]/g, '')); limpiar('clave') }}
             />
           </Field>
-          <Field label="Etiqueta" className="flex-1 min-w-[130px]">
-            <Input placeholder="ej: Gramo" value={etiqueta} onChange={e => setEtiqueta(e.target.value)} />
+          <Field label="Etiqueta" className="flex-1 min-w-[130px]" error={errs.etiqueta}>
+            <Input placeholder="ej: Gramo" value={etiqueta} sanitize={sanitizers.texto} onChange={e => { setEtiqueta(e.target.value); limpiar('etiqueta') }} />
           </Field>
-          <Field label="Abrev." className="w-24">
-            <Input placeholder="ej: g" value={abreviatura} onChange={e => setAbreviatura(e.target.value)} />
+          <Field label="Abrev." className="w-24" error={errs.abreviatura}>
+            <Input placeholder="ej: g" value={abreviatura} sanitize={sanitizers.texto} onChange={e => { setAbreviatura(e.target.value); limpiar('abreviatura') }} />
           </Field>
           <Button onClick={handleAdd} loading={guardando}>
             <Plus size={15} /> Añadir
@@ -417,7 +433,9 @@ function SeccionIncremento({ valorActual, loading, onGuardar, onAplicar }) {
                 type="number"
                 step="0.1"
                 min="0"
+                inputMode="decimal"
                 value={pct}
+                sanitize={sanitizers.decimal}
                 onChange={e => setPct(e.target.value)}
               />
             </Field>
@@ -507,22 +525,22 @@ function SeccionDatosFacturacion({ datos, loading, onGuardar }) {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Nombre" className="sm:col-span-2">
-              <Input value={form.nombre} onChange={set('nombre')} placeholder="Nombre y apellidos" />
+              <Input value={form.nombre} sanitize={sanitizers.texto} onChange={set('nombre')} placeholder="Nombre y apellidos" />
             </Field>
             <Field label="DNI / NIF">
-              <Input value={form.nif} onChange={set('nif')} placeholder="00000000X" />
+              <Input value={form.nif} sanitize={sanitizers.nif} onChange={set('nif')} placeholder="00000000X" />
             </Field>
             <Field label="Teléfono">
-              <Input type="tel" value={form.telefono} onChange={set('telefono')} placeholder="600000000" />
+              <Input type="tel" inputMode="numeric" value={form.telefono} sanitize={sanitizers.telefono} onChange={set('telefono')} placeholder="600000000" />
             </Field>
             <Field label="Dirección" className="sm:col-span-2">
-              <Textarea value={form.direccion} onChange={set('direccion')} placeholder="Calle, nº - CP Localidad, Provincia" />
+              <Textarea value={form.direccion} sanitize={sanitizers.texto} onChange={set('direccion')} placeholder="Calle, nº - CP Localidad, Provincia" />
             </Field>
             <Field label="Email">
-              <Input type="email" value={form.email} onChange={set('email')} placeholder="correo@ejemplo.com" />
+              <Input type="email" value={form.email} sanitize={sanitizers.email} onChange={set('email')} placeholder="correo@ejemplo.com" />
             </Field>
             <Field label="IBAN">
-              <Input value={form.iban} onChange={set('iban')} placeholder="ES00 0000 0000 0000 0000 0000" />
+              <Input value={form.iban} sanitize={sanitizers.texto} onChange={set('iban')} placeholder="ES00 0000 0000 0000 0000 0000" />
             </Field>
           </div>
 

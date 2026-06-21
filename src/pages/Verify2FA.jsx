@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { sanitizers } from '@/utils/validators'
 
 export default function Verify2FA() {
   const [code, setCode] = useState('')
@@ -53,12 +54,12 @@ export default function Verify2FA() {
             pattern="[0-9]{6}"
             maxLength={6}
             value={code}
-            onChange={e => setCode(e.target.value)}
+            onChange={e => { setCode(sanitizers.otp(e.target.value)); if (error) setError('') }}
             placeholder="000000"
-            className="w-full text-center text-2xl tracking-widest border border-[--border] rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+            className={`w-full text-center text-2xl tracking-widest border rounded-md px-4 py-3 focus:outline-none focus:ring-2 ${error ? 'border-red-400 focus:ring-red-400' : 'border-[--border] focus:ring-primary'}`}
             autoFocus
           />
-          {error && <p className="text-sm text-destructive text-center">{error}</p>}
+          {error && <p className="text-sm text-red-500 text-center">{error}</p>}
           <button
             type="submit"
             disabled={loading || code.length !== 6}

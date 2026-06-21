@@ -17,6 +17,7 @@ import {
   ESTADO_LABELS,
   TIPO_PAGO_LABELS, FORMA_PAGO_LABELS
 } from '@/utils/formatters'
+import { sanitizers } from '@/utils/validators'
 
 // Datos fiscales del emisor (fila única) usados en presupuestos y facturas.
 const cargarFiscal = async () => {
@@ -533,7 +534,7 @@ export default function EncargoDetalle() {
                     <input
                       type="text" inputMode="decimal"
                       value={datosPagoEdicion.importe}
-                      onChange={e => setDatosPagoEdicion(v => ({ ...v, importe: e.target.value.replace(',', '.') }))}
+                      onChange={e => setDatosPagoEdicion(v => ({ ...v, importe: sanitizers.decimal(e.target.value).replace(',', '.') }))}
                       placeholder="Importe (€)"
                       aria-label="Importe del pago"
                       className="flex-1 border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
@@ -583,7 +584,7 @@ export default function EncargoDetalle() {
                   </div>
                   <input
                     value={datosPagoEdicion.referencia}
-                    onChange={e => setDatosPagoEdicion(v => ({ ...v, referencia: e.target.value }))}
+                    onChange={e => setDatosPagoEdicion(v => ({ ...v, referencia: sanitizers.texto(e.target.value) }))}
                     placeholder="Referencia (opcional)"
                     aria-label="Referencia del pago"
                     className="w-full border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
@@ -671,7 +672,7 @@ export default function EncargoDetalle() {
                   <input
                     type="text" inputMode="decimal"
                     value={pago.importe}
-                    onChange={e => { setPago(v => ({ ...v, importe: e.target.value.replace(',', '.') })); setErrorPago('') }}
+                    onChange={e => { setPago(v => ({ ...v, importe: sanitizers.decimal(e.target.value).replace(',', '.') })); setErrorPago('') }}
                     className={`w-full border rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${errorPago ? 'border-red-400' : 'border-[--border]'}`}
                     placeholder="0,00"
                     aria-label="Importe del pago"
@@ -712,7 +713,7 @@ export default function EncargoDetalle() {
               </div>
               <input
                 value={pago.referencia}
-                onChange={e => setPago(v => ({ ...v, referencia: e.target.value }))}
+                onChange={e => setPago(v => ({ ...v, referencia: sanitizers.texto(e.target.value) }))}
                 placeholder="Referencia (opcional)"
                 aria-label="Referencia del pago"
                 className="w-full border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
@@ -859,7 +860,7 @@ export default function EncargoDetalle() {
                           <input
                             type="number" min="1"
                             value={datosEdicion.cantidad}
-                            onChange={e => updateDatosEdicion('cantidad', e.target.value)}
+                            onChange={e => updateDatosEdicion('cantidad', sanitizers.entero(e.target.value))}
                             className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                           />
                         </div>
@@ -868,7 +869,7 @@ export default function EncargoDetalle() {
                           <input
                             type="text" inputMode="decimal"
                             value={datosEdicion.precio_unitario}
-                            onChange={e => updateDatosEdicion('precio_unitario', e.target.value.replace(',', '.'))}
+                            onChange={e => updateDatosEdicion('precio_unitario', sanitizers.decimal(e.target.value).replace(',', '.'))}
                             placeholder="0,00"
                             className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                           />
@@ -884,7 +885,7 @@ export default function EncargoDetalle() {
                         <label className="block text-xs text-[--text-light] mb-1">Notas de esta prenda</label>
                         <input
                           value={datosEdicion.notas}
-                          onChange={e => updateDatosEdicion('notas', e.target.value)}
+                          onChange={e => updateDatosEdicion('notas', sanitizers.texto(e.target.value))}
                           placeholder="Observaciones específicas…"
                           className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         />
@@ -965,7 +966,7 @@ export default function EncargoDetalle() {
                       <input
                         type="number" min="1"
                         value={nuevaLinea.cantidad}
-                        onChange={e => updateNuevaLinea('cantidad', e.target.value)}
+                        onChange={e => updateNuevaLinea('cantidad', sanitizers.entero(e.target.value))}
                         className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
@@ -974,7 +975,7 @@ export default function EncargoDetalle() {
                       <input
                         type="text" inputMode="decimal"
                         value={nuevaLinea.precio_unitario}
-                        onChange={e => updateNuevaLinea('precio_unitario', e.target.value.replace(',', '.'))}
+                        onChange={e => updateNuevaLinea('precio_unitario', sanitizers.decimal(e.target.value).replace(',', '.'))}
                         placeholder="0,00"
                         className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
@@ -990,7 +991,7 @@ export default function EncargoDetalle() {
                     <label className="block text-xs text-[--text-light] mb-1">Notas de esta prenda</label>
                     <input
                       value={nuevaLinea.notas}
-                      onChange={e => updateNuevaLinea('notas', e.target.value)}
+                      onChange={e => updateNuevaLinea('notas', sanitizers.texto(e.target.value))}
                       placeholder="Observaciones específicas…"
                       className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     />
