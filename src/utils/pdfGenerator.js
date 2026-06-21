@@ -32,7 +32,7 @@ function addHeader(doc, titulo, rightLines, logoData) {
   doc.setFontSize(7.5)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(100, 100, 100)
-  doc.text('Taller de Costura Artesanal', textX, 18)
+  doc.text('Taller de Indumentaria Artesanal', textX, 18)
 
   // Derecha: etiqueta del documento + líneas de info
   doc.setTextColor(120, 120, 120)
@@ -69,6 +69,46 @@ function addInfo(doc, y, label, value) {
   doc.setFont('helvetica', 'normal')
   doc.text(value ?? '—', 14 + labelWidth + 3, y)
   return y + 6
+}
+
+// Dos columnas: Cliente a la izquierda, datos del taller (emisor) a la derecha.
+// Devuelve la y por debajo del bloque más alto.
+function addEmisorCliente(doc, y, encargo, datosFiscales) {
+  const top = y
+  let yL = top
+  let yR = top
+
+  // Cliente (izquierda)
+  doc.setTextColor(40, 40, 40)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.text('Cliente', 14, yL)
+  yL += 6
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  const nombreCliente = encargo.clientes
+    ? `${encargo.clientes.nombre} ${encargo.clientes.apellidos ?? ''}`.trim()
+    : '—'
+  doc.text(nombreCliente, 14, yL)
+  if (encargo.clientes?.telefono) { yL += 5; doc.text(encargo.clientes.telefono, 14, yL) }
+
+  // Datos del taller (derecha, alineado a la derecha en x=196)
+  if (datosFiscales) {
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.text(datosFiscales.nombre ?? '', 196, yR, { align: 'right' })
+    doc.setFont('helvetica', 'normal')
+    if (datosFiscales.nif) { yR += 5; doc.text('NIF: ' + datosFiscales.nif, 196, yR, { align: 'right' }) }
+    if (datosFiscales.direccion) {
+      doc.splitTextToSize(datosFiscales.direccion, 90).forEach(ln => {
+        yR += 5; doc.text(ln, 196, yR, { align: 'right' })
+      })
+    }
+    if (datosFiscales.telefono) { yR += 5; doc.text(datosFiscales.telefono, 196, yR, { align: 'right' }) }
+    if (datosFiscales.email) { yR += 5; doc.text(datosFiscales.email, 196, yR, { align: 'right' }) }
+  }
+
+  return Math.max(yL, yR) + 12
 }
 
 function addLineasTable(doc, lineas, y) {
@@ -114,32 +154,8 @@ export async function generarPresupuestoPDF(encargo, datosFiscales) {
   ]
   let y = addHeader(doc, 'PRESUPUESTO', rightLines, logoData)
 
-  // Datos emisor (Carmen)
-  if (datosFiscales) {
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(9)
-    doc.text(datosFiscales.nombre ?? '', 14, y)
-    doc.setFont('helvetica', 'normal')
-    if (datosFiscales.nif) { y += 5; doc.text('NIF: ' + datosFiscales.nif, 14, y) }
-    if (datosFiscales.direccion) { y += 5; doc.text(datosFiscales.direccion, 14, y) }
-    if (datosFiscales.telefono) { y += 5; doc.text(datosFiscales.telefono, 14, y) }
-    if (datosFiscales.email) { y += 5; doc.text(datosFiscales.email, 14, y) }
-    y += 8
-  }
-
-  // Datos cliente
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10)
-  doc.text('Cliente', 14, y)
-  y += 6
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  const nombreCliente = encargo.clientes
-    ? `${encargo.clientes.nombre} ${encargo.clientes.apellidos ?? ''}`.trim()
-    : '—'
-  doc.text(nombreCliente, 14, y)
-  if (encargo.clientes?.telefono) { y += 5; doc.text(encargo.clientes.telefono, 14, y) }
-  y += 10
+  // Dos columnas: Cliente (izquierda) + datos del taller (derecha)
+  y = addEmisorCliente(doc, y, encargo, datosFiscales)
 
   // Líneas
   doc.setFont('helvetica', 'bold')
@@ -172,7 +188,7 @@ export async function generarPresupuestoPDF(encargo, datosFiscales) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   doc.setTextColor(150, 150, 150)
-  doc.text('Presupuesto válido por 30 días. Todos los precios son con IVA incluido. AmbElCor — Taller de Costura artesanal.', 14, 285)
+  doc.text('Presupuesto válido por 30 dias. Todos los precios son con IVA incluido. AmbElCor - Taller de Indumentaria Artesanal.', 105, 285, { align: 'center' })
 
   const nombreFichero = `presupuesto-${(encargo.numero ?? 'encargo').replace('/', '-')}.pdf`
   doc.save(nombreFichero)
@@ -188,31 +204,8 @@ export async function generarFacturaPDF(encargo, datosFiscales) {
   ]
   let y = addHeader(doc, 'FACTURA', rightLines, logoData)
 
-  // Datos emisor (Carmen)
-  if (datosFiscales) {
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(9)
-    doc.text(datosFiscales.nombre ?? '', 14, y)
-    doc.setFont('helvetica', 'normal')
-    if (datosFiscales.nif) { y += 5; doc.text('NIF: ' + datosFiscales.nif, 14, y) }
-    if (datosFiscales.direccion) { y += 5; doc.text(datosFiscales.direccion, 14, y) }
-    if (datosFiscales.telefono) { y += 5; doc.text(datosFiscales.telefono, 14, y) }
-    if (datosFiscales.email) { y += 5; doc.text(datosFiscales.email, 14, y) }
-    y += 8
-  }
-
-  // Cliente
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10)
-  doc.text('Cliente', 14, y)
-  y += 6
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  const nombreCliente = encargo.clientes
-    ? `${encargo.clientes.nombre} ${encargo.clientes.apellidos ?? ''}`.trim()
-    : '—'
-  doc.text(nombreCliente, 14, y)
-  y += 10
+  // Dos columnas: Cliente (izquierda) + datos del taller (derecha)
+  y = addEmisorCliente(doc, y, encargo, datosFiscales)
 
   // Líneas
   doc.setFont('helvetica', 'bold')
@@ -275,7 +268,7 @@ export async function generarFacturaPDF(encargo, datosFiscales) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   doc.setTextColor(150, 150, 150)
-  doc.text('Todos los precios son con IVA incluido. AmbElCor — Taller de Costura artesanal. Gracias por su confianza.', 14, 285)
+  doc.text('Todos los precios son con IVA incluido. AmbElCor - Taller de Indumentaria Artesanal. Gracias por su confianza.', 105, 285, { align: 'center' })
 
   const nombreFichero = `factura-${(encargo.numero ?? 'encargo').replace('/', '-')}.pdf`
   doc.save(nombreFichero)

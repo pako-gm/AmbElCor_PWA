@@ -48,7 +48,7 @@ const formVacio = {
   proveedor_id: '', fecha: new Date().toISOString().slice(0, 10),
   concepto: '', importe: '', forma_pago: 'efectivo', referencia: '',
   categoria: 'material', base_imponible: '', iva_porcentaje: 21, iva_importe: '',
-  desglosarIva: false,
+  desglosarIva: false, estado: 'pagado',
 }
 
 // ─── Componentes compartidos ──────────────────────────────────────────────────
@@ -574,6 +574,7 @@ function PagosPanel({ año }) {
         base_imponible: form.base_imponible !== '' ? parseFloat(form.base_imponible) : null,
         iva_porcentaje: form.desglosarIva ? parseFloat(form.iva_porcentaje) : null,
         iva_importe: form.iva_importe !== '' ? parseFloat(form.iva_importe) : null,
+        estado: form.estado || 'pagado',
       })
       setForm(formVacio)
       setMostrarForm(false)
@@ -765,6 +766,14 @@ function PagosPanel({ año }) {
               <input type="text" value={form.referencia} onChange={e => setForm(f => ({ ...f, referencia: e.target.value }))}
                 placeholder="Nº factura, albarán…"
                 className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs text-[--text-light] mb-1">Estado</label>
+              <select value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))}
+                className="w-full border border-[--border] rounded-md px-3 py-2 text-sm bg-white">
+                <option value="pagado">Pagado</option>
+                <option value="pendiente">Pendiente de pago</option>
+              </select>
             </div>
           </div>
           {errForm && <p className="text-xs text-red-500">{errForm}</p>}

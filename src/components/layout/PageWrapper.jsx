@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useState, useEffect, useRef } from 'react'
+import NotificacionesBell from '@/components/layout/NotificacionesBell'
 
 const navItems = [
   { to: '/encargos', icon: Home, label: 'Encargos', permiso: 'encargos' },
@@ -58,21 +59,24 @@ export default function PageWrapper({ children, title }) {
   return (
     <div className="min-h-screen bg-[--bg-gray] flex flex-col">
       {/* Header fijo */}
-      <header className="fixed top-0 left-0 right-0 h-14 bg-[--bg-gray] border-b border-[--border] flex items-center px-4 z-30">
-        <button
-          onClick={() => { cancelarCierre(); setDrawerOpen(true) }}
-          onMouseEnter={() => { cancelarCierre(); setDrawerOpen(true) }}
-          onMouseLeave={programarCierre}
-          className="p-1 text-[--text-medium] hover:text-primary transition-colors"
-          aria-label="Abrir menú"
-        >
-          <Menu size={24} />
-        </button>
-        <div className="flex items-center gap-2 ml-3">
-          <img src={logoAmbelcor} alt="AmbElCor" className="h-8 w-auto object-contain [mix-blend-mode:multiply]" />
-          <span className="font-display text-base font-semibold text-primary leading-tight">
-            Amb el Cor <span className="text-xs font-bold text-[--text-medium] tracking-wide">CRM</span>
-          </span>
+      <header className="fixed top-0 left-0 right-0 h-14 bg-[--bg-gray] z-30">
+        <div className="max-w-7xl mx-auto w-full h-full flex items-center px-4 md:px-8 border-b border-[--border]">
+          <button
+            onClick={() => { cancelarCierre(); setDrawerOpen(true) }}
+            onMouseEnter={() => { cancelarCierre(); setDrawerOpen(true) }}
+            onMouseLeave={programarCierre}
+            className="p-1 text-[--text-medium] hover:text-primary transition-colors"
+            aria-label="Abrir menú"
+          >
+            <Menu size={24} />
+          </button>
+          <div className="flex items-center gap-2 ml-3">
+            <img src={logoAmbelcor} alt="AmbElCor" className="h-8 w-auto object-contain [mix-blend-mode:multiply]" />
+            <span className="font-display text-base font-semibold text-primary leading-tight">
+              Amb el Cor <span className="text-xs font-bold text-[--text-medium] tracking-wide">CRM</span>
+            </span>
+          </div>
+          <NotificacionesBell />
         </div>
       </header>
 

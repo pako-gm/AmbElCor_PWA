@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   Tags, Ruler, TrendingUp, UserCog, Plus, Trash2, Pencil,
   Shirt, Layers, Gem, Scissors, Circle, Box, Boxes, Heart,
-  Mail, ShieldCheck, ShieldAlert, ReceiptText,
+  Mail, ShieldCheck, ShieldAlert, ReceiptText, Bell,
 } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import PageHeader from '@/components/ui/PageHeader'
@@ -15,6 +15,7 @@ import LoadingState from '@/components/ui/LoadingState'
 import { useToast } from '@/hooks/useToast'
 import { useInventario } from '@/hooks/useInventario'
 import { useConfiguracion } from '@/hooks/useConfiguracion'
+import { TIPOS_NOTIFICACION, CONFIG_KEY_NOTIFICACIONES, parsePreferencias } from '@/lib/notificaciones'
 import { useDatosFiscales } from '@/hooks/useDatosFiscales'
 import { useAuth } from '@/hooks/useAuth'
 import { USUARIOS } from '@/lib/usuarios'
@@ -41,26 +42,45 @@ const SECCIONES = [
   { id: 'unidades',    label: 'Unidades de gestión', icon: Ruler },
   { id: 'incremento',  label: 'Incremento de precios', icon: TrendingUp },
   { id: 'facturacion', label: 'Datos de facturación', icon: ReceiptText },
+  { id: 'notificaciones', label: 'Notificaciones',   icon: Bell },
   { id: 'usuarios',    label: 'Usuarios CRM',        icon: UserCog },
 ]
 
+// Prefijo por defecto: 3 primeras letras del nombre (solo letras), en mayúscula
+const prefijoPorDefecto = (nombre) =>
+  nombre.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ]/g, '').slice(0, 3).toUpperCase()
+
+const normalizarPrefijo = (v) =>
+  v.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ/]/g, '').slice(0, 3).toUpperCase()
+
 // ── Sección: Categorías ───────────────────────────────────────────────────────
-function SeccionCategorias({ categorias, loading, onAdd, onDelete }) {
+function SeccionCategorias({ categorias, loading, onAdd, onEdit, onDelete }) {
   const [nombre, setNombre] = useState('')
   const [icono, setIcono] = useState('box')
+  const [prefijo, setPrefijo] = useState('')
+  const [prefijoTocado, setPrefijoTocado] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
   const [aBorrar, setABorrar] = useState(null)
   const [borrando, setBorrando] = useState(false)
+  const [aEditar, setAEditar] = useState(null)
+
+  const handleNombre = (e) => {
+    const v = e.target.value
+    setNombre(v)
+    if (!prefijoTocado) setPrefijo(prefijoPorDefecto(v))
+  }
 
   const handleAdd = async () => {
     if (!nombre.trim()) return setError('El nombre es obligatorio.')
     setError('')
     setGuardando(true)
     try {
-      await onAdd({ nombre: nombre.trim(), icono })
+      await onAdd({ nombre: nombre.trim(), icono, prefijo })
       setNombre('')
       setIcono('box')
+      setPrefijo('')
+      setPrefijoTocado(false)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -82,7 +102,7 @@ function SeccionCategorias({ categorias, loading, onAdd, onDelete }) {
     <section className="bg-white rounded-lg border border-[--border] p-5 space-y-4">
       <div>
         <h2 className="font-display text-xl text-[--text-dark]">Categorías</h2>
-        <p className="text-xs text-[--text-light]">Categorías de materiales del inventario.</p>
+        <p className="text-xs text-[--text-light]">Categorías de materiales del inventario. El prefijo se usa para autogenerar el código de cada material (ej. TEL-001).</p>
       </div>
 
       {loading ? (
@@ -101,14 +121,26 @@ function SeccionCategorias({ categorias, loading, onAdd, onDelete }) {
                 <div className="flex items-center gap-2.5">
                   <IconCat size={16} className="text-[--text-light]" />
                   <span className="text-sm font-medium text-[--text-dark]">{cat.nombre}</span>
+                  {cat.prefijo && (
+                    <code className="text-xs font-mono px-1.5 py-0.5 rounded bg-white border border-[--border] text-[--text-light]">{cat.prefijo}</code>
+                  )}
                 </div>
-                <button
-                  onClick={() => setABorrar(cat)}
-                  aria-label={`Eliminar categoría ${cat.nombre}`}
-                  className="p-1.5 rounded-md text-[--text-light] hover:text-danger hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 size={15} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setAEditar(cat)}
+                    aria-label={`Editar categoría ${cat.nombre}`}
+                    className="p-1.5 rounded-md text-[--text-light] hover:text-primary hover:bg-primary-light/50 transition-colors"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    onClick={() => setABorrar(cat)}
+                    aria-label={`Eliminar categoría ${cat.nombre}`}
+                    className="p-1.5 rounded-md text-[--text-light] hover:text-danger hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </li>
             )
           })}
@@ -122,7 +154,15 @@ function SeccionCategorias({ categorias, loading, onAdd, onDelete }) {
             <Input
               placeholder="Nombre…"
               value={nombre}
-              onChange={e => setNombre(e.target.value)}
+              onChange={handleNombre}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            />
+          </Field>
+          <Field label="Prefijo" className="w-24">
+            <Input
+              placeholder="TEL"
+              value={prefijo}
+              onChange={e => { setPrefijoTocado(true); setPrefijo(normalizarPrefijo(e.target.value)) }}
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
             />
           </Field>
@@ -138,6 +178,12 @@ function SeccionCategorias({ categorias, loading, onAdd, onDelete }) {
         {error && <p className="text-xs text-red-500">{error}</p>}
       </div>
 
+      <EditarCategoriaModal
+        categoria={aEditar}
+        onClose={() => setAEditar(null)}
+        onGuardar={onEdit}
+      />
+
       <ConfirmDialog
         open={!!aBorrar}
         title="Eliminar categoría"
@@ -147,6 +193,64 @@ function SeccionCategorias({ categorias, loading, onAdd, onDelete }) {
         onCancel={() => setABorrar(null)}
       />
     </section>
+  )
+}
+
+// ── Modal: Editar categoría ───────────────────────────────────────────────────
+function EditarCategoriaModal({ categoria, onClose, onGuardar }) {
+  const [nombre, setNombre] = useState('')
+  const [icono, setIcono] = useState('box')
+  const [prefijo, setPrefijo] = useState('')
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (categoria) {
+      setNombre(categoria.nombre || '')
+      setIcono(categoria.icono || 'box')
+      setPrefijo(categoria.prefijo || '')
+      setError('')
+    }
+  }, [categoria])
+
+  const handleGuardar = async () => {
+    if (!nombre.trim()) return setError('El nombre es obligatorio.')
+    setError('')
+    setGuardando(true)
+    try {
+      await onGuardar(categoria.id, { nombre: nombre.trim(), icono, prefijo })
+      onClose()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  return (
+    <Modal open={!!categoria} onClose={onClose} maxWidth="max-w-md">
+      <div className="space-y-4 pt-2">
+        <h3 className="font-display text-lg text-[--text-dark]">Editar categoría</h3>
+        <div className="space-y-3">
+          <Field label="Nombre">
+            <Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre…" />
+          </Field>
+          <Field label="Prefijo (código)">
+            <Input value={prefijo} onChange={e => setPrefijo(normalizarPrefijo(e.target.value))} placeholder="TEL" />
+          </Field>
+          <Field label="Icono">
+            <Select value={icono} onChange={e => setIcono(e.target.value)}>
+              {ICONOS_DISPONIBLES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
+            </Select>
+          </Field>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-[--border] pt-4">
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button onClick={handleGuardar} loading={guardando}>Guardar</Button>
+        </div>
+      </div>
+    </Modal>
   )
 }
 
@@ -433,6 +537,78 @@ function SeccionDatosFacturacion({ datos, loading, onGuardar }) {
   )
 }
 
+// ── Sección: Notificaciones ───────────────────────────────────────────────────
+function Toggle({ activo, onChange, label }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={activo}
+      aria-label={label}
+      onClick={() => onChange(!activo)}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${activo ? 'bg-primary' : 'bg-gray-300'}`}
+    >
+      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${activo ? 'translate-x-6' : 'translate-x-1'}`} />
+    </button>
+  )
+}
+
+function SeccionNotificaciones({ prefs, loading, onGuardar }) {
+  const [local, setLocal] = useState(prefs)
+  const [guardando, setGuardando] = useState(false)
+  const toast = useToast()
+
+  useEffect(() => { setLocal(prefs) }, [prefs])
+
+  const toggle = async (clave, valor) => {
+    const next = { ...local, [clave]: valor }
+    setLocal(next)
+    setGuardando(true)
+    try {
+      await onGuardar(next)
+    } catch (e) {
+      setLocal(local) // revertir
+      toast.error('No se pudo guardar: ' + e.message)
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  return (
+    <section className="bg-white rounded-lg border border-[--border] p-5 space-y-4">
+      <div>
+        <h2 className="font-display text-xl text-[--text-dark]">Notificaciones</h2>
+        <p className="text-xs text-[--text-light]">
+          Activa o desactiva los avisos que aparecen en la campana de la cabecera.
+        </p>
+      </div>
+
+      {loading ? (
+        <LoadingState />
+      ) : (
+        <ul className="space-y-2">
+          {TIPOS_NOTIFICACION.map(t => (
+            <li
+              key={t.clave}
+              className="flex items-center justify-between gap-4 px-3 py-2.5 bg-[--bg-gray] rounded-lg border border-[--border]"
+            >
+              <div className="min-w-0">
+                <span className="text-sm font-medium text-[--text-dark]">{t.label}</span>
+                <p className="text-xs text-[--text-light]">{t.descripcion}</p>
+              </div>
+              <Toggle
+                activo={local[t.clave] !== false}
+                onChange={(v) => !guardando && toggle(t.clave, v)}
+                label={`Activar avisos de ${t.label}`}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
 // ── Sección: Usuarios CRM ─────────────────────────────────────────────────────
 function SeccionUsuarios() {
   const { user, mfaVerified } = useAuth()
@@ -518,7 +694,7 @@ function SeccionUsuarios() {
 // ── Página ────────────────────────────────────────────────────────────────────
 export default function Ajustes() {
   const {
-    fetchCategorias, crearCategoria, eliminarCategoria,
+    fetchCategorias, crearCategoria, actualizarCategoria, eliminarCategoria,
     fetchUnidades, crearUnidad, eliminarUnidad,
   } = useInventario()
   const { fetchConfig, guardarConfig, aplicarIncrementoCatalogo } = useConfiguracion()
@@ -528,12 +704,16 @@ export default function Ajustes() {
   const [categorias, setCategorias] = useState([])
   const [unidades, setUnidades] = useState([])
   const [incremento, setIncremento] = useState(null)
+  const [notifPrefs, setNotifPrefs] = useState(() => parsePreferencias(null))
   const [datosFiscales, setDatosFiscales] = useState(null)
   const [cargando, setCargando] = useState(true)
 
   const cargarCategorias = () => fetchCategorias().then(setCategorias)
   const cargarUnidades = () => fetchUnidades().then(setUnidades)
-  const cargarConfig = () => fetchConfig().then(c => setIncremento(Number(c.incremento_precios_anual) || 0))
+  const cargarConfig = () => fetchConfig().then(c => {
+    setIncremento(Number(c.incremento_precios_anual) || 0)
+    setNotifPrefs(parsePreferencias(c[CONFIG_KEY_NOTIFICACIONES]))
+  })
   const cargarFiscales = () => fetchDatosFiscales().then(setDatosFiscales)
 
   useEffect(() => {
@@ -578,6 +758,7 @@ export default function Ajustes() {
                 categorias={categorias}
                 loading={cargando}
                 onAdd={async (datos) => { await crearCategoria(datos); await cargarCategorias() }}
+                onEdit={async (id, datos) => { await actualizarCategoria(id, datos); await cargarCategorias() }}
                 onDelete={async (id) => { await eliminarCategoria(id); await cargarCategorias() }}
               />
             )}
@@ -602,6 +783,16 @@ export default function Ajustes() {
                 datos={datosFiscales}
                 loading={cargando}
                 onGuardar={async (d) => { await guardarDatosFiscales(d); await cargarFiscales() }}
+              />
+            )}
+            {seccion === 'notificaciones' && (
+              <SeccionNotificaciones
+                prefs={notifPrefs}
+                loading={cargando}
+                onGuardar={async (next) => {
+                  await guardarConfig(CONFIG_KEY_NOTIFICACIONES, JSON.stringify(next))
+                  setNotifPrefs(next)
+                }}
               />
             )}
             {seccion === 'usuarios' && <SeccionUsuarios />}

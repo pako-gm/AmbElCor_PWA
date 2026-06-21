@@ -15,6 +15,14 @@ function rangoTrimestre(año, trimestre) {
   return { desde, hasta }
 }
 
+// Estado efectivo de un cobro: un cobro 'pendiente' cuyo vencimiento ya pasó
+// se considera 'vencido' (derivado en lectura, no se almacena).
+function estadoCobroEfectivo(estado, fechaVencimiento) {
+  const hoy = new Date().toISOString().slice(0, 10)
+  if (estado === 'pendiente' && fechaVencimiento && fechaVencimiento < hoy) return 'vencido'
+  return estado ?? 'cobrado'
+}
+
 export function useContabilidad() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -45,7 +53,10 @@ export function useContabilidad() {
 
       const { data, error: err } = await q
       if (err) throw err
-      return data ?? []
+      return (data ?? []).map(c => ({
+        ...c,
+        estado: estadoCobroEfectivo(c.estado, c.fecha_vencimiento),
+      }))
     } catch (e) {
       setError(e.message)
       return []
@@ -154,7 +165,7 @@ export function useContabilidad() {
       const [{ data: cobros, error: e1 }, { data: pagos, error: e2 }] = await Promise.all([
         supabase
           .from('pagos')
-          .select('id, fecha, importe, tipo, forma_pago, referencia, estado, encargos(id, numero, clientes(nombre, apellidos))')
+          .select('id, fecha, importe, tipo, forma_pago, referencia, estado, fecha_vencimiento, encargos(id, numero, clientes(nombre, apellidos))')
           .gte('fecha', desde)
           .lte('fecha', hasta),
         supabase
@@ -181,7 +192,7 @@ export function useContabilidad() {
           iva: null,
           total: parseFloat(c.importe) || 0,
           forma_pago: c.forma_pago,
-          estado: c.estado ?? 'cobrado',
+          estado: estadoCobroEfectivo(c.estado, c.fecha_vencimiento),
         }
       })
 

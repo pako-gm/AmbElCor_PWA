@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon, Btn, Field } from './InventarioUI'
-import { fetchProveedores, fetchProveedor, crearProveedor, actualizarProveedor } from '@/hooks/useProveedores'
+import { fetchProveedores, fetchProveedor, crearProveedor, actualizarProveedor, eliminarProveedor } from '@/hooks/useProveedores'
 import { formatImporte, formatCantidad, formatTelefono } from '@/utils/formatters'
 import { validarTelefono, validarEmail, normalizarTelefono } from '@/utils/validators'
 
@@ -44,8 +44,47 @@ function ProviderItem({ proveedor, active, onClick }) {
   )
 }
 
+/* ---------- Confirmación de borrado ---------- */
+function ConfirmEliminarProveedorModal({ nombre, onClose, onConfirm }) {
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const confirm = async () => {
+    setSaving(true)
+    setError('')
+    try {
+      await onConfirm()
+    } catch (e) {
+      setError(e.message || 'No se pudo eliminar el proveedor.')
+      setSaving(false)
+    }
+  }
+  return (
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="modal" style={{ maxWidth: 430 }} role="alertdialog" aria-modal="true">
+        <div style={{ padding: '32px 32px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 13 }}>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--danger-soft)', color: 'var(--danger)', display: 'grid', placeItems: 'center' }}>
+            <Icon name="trash" size={26} />
+          </div>
+          <h3 style={{ margin: '2px 0 0', fontSize: 21, fontWeight: 800, letterSpacing: '-.01em' }}>¿Eliminar este proveedor?</h3>
+          <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: 14.5, lineHeight: 1.5 }}>
+            Se eliminará <b style={{ color: 'var(--ink)' }}>{nombre}</b> de forma permanente.
+            Esta acción es <b style={{ color: 'var(--danger)' }}>irreversible</b>.
+          </p>
+          {error && (
+            <p style={{ margin: 0, color: 'var(--danger)', fontSize: 13.5, fontWeight: 600 }}>{error}</p>
+          )}
+        </div>
+        <div className="modal__foot" style={{ justifyContent: 'center' }}>
+          <Btn kind="muted" onClick={onClose}>Cancelar</Btn>
+          <Btn kind="danger" onClick={confirm} disabled={saving}>{saving ? 'Eliminando…' : 'Sí, eliminar'}</Btn>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ---------- Detalle del proveedor ---------- */
-function ProviderDetail({ proveedorId, onEdit, onReload }) {
+function ProviderDetail({ proveedorId, onEdit, onDelete, onReload }) {
   const [proveedor, setProveedor] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -68,7 +107,10 @@ function ProviderDetail({ proveedorId, onEdit, onReload }) {
       <div className="panel">
         <div className="prov-detail__head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
           <h2 className="prov-name" style={{ margin: 0 }}>{proveedor.nombre}</h2>
-          <Btn kind="ghost" icon="pencil" onClick={onEdit}>Editar</Btn>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Btn kind="ghost" icon="pencil" onClick={onEdit}>Editar</Btn>
+            <Btn kind="ghost" icon="trash" onClick={() => onDelete(proveedor)} style={{ color: 'var(--danger)' }} aria-label="Eliminar proveedor" />
+          </div>
         </div>
 
         {/* Datos de contacto */}
@@ -261,6 +303,7 @@ export default function ProveedoresPanel({ topNav = null }) {
   const [mode, setMode] = useState('view') // 'view' | 'create' | 'edit'
   const [query, setQuery] = useState('')
   const [reload, setReload] = useState(0)
+  const [aEliminar, setAEliminar] = useState(null)
 
   useEffect(() => {
     fetchProveedores().then((data) => {
@@ -286,6 +329,13 @@ export default function ProveedoresPanel({ topNav = null }) {
   }
 
   const handleReload = () => setReload(r => r + 1)
+
+  const handleDelete = async () => {
+    await eliminarProveedor(aEliminar.id)
+    setAEliminar(null)
+    setSelectedId(null)
+    setReload(r => r + 1)
+  }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>Cargando proveedores…</div>
 
@@ -351,12 +401,21 @@ export default function ProveedoresPanel({ topNav = null }) {
           <ProviderDetail
             proveedorId={selectedId}
             onEdit={() => setMode('edit')}
+            onDelete={(p) => setAEliminar(p)}
             onReload={handleReload}
           />
         ) : (
           <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>Selecciona un proveedor de la lista.</div>
         )}
       </div>
+
+      {aEliminar && (
+        <ConfirmEliminarProveedorModal
+          nombre={aEliminar.nombre}
+          onClose={() => setAEliminar(null)}
+          onConfirm={handleDelete}
+        />
+      )}
     </div>
   )
 }

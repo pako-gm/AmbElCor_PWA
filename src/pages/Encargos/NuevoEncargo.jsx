@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Plus, Trash2, UserPlus, X } from 'lucide-react'
 import PageHeader from '@/components/ui/PageHeader'
 import Button from '@/components/ui/Button'
 import PageWrapper from '@/components/layout/PageWrapper'
 import {
-  crearEncargo, fetchTodosClientes, crearClienteRapido, fetchCatalogo
+  crearEncargo, fetchTodosClientes, fetchCatalogo
 } from '@/hooks/useEncargos'
 import { formatImporte } from '@/utils/formatters'
-import { validarTelefono, validarEmail } from '@/utils/validators'
 import { useToast } from '@/hooks/useToast'
 
 function lineaVacia() {
@@ -17,6 +16,7 @@ function lineaVacia() {
 
 export default function NuevoEncargo() {
   const navigate = useNavigate()
+  const location = useLocation()
   const toast = useToast()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -27,9 +27,6 @@ export default function NuevoEncargo() {
   const [todosClientes, setTodosClientes] = useState([])
   const [mostrarDropdown, setMostrarDropdown] = useState(false)
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null)
-  const [mostrarFormCliente, setMostrarFormCliente] = useState(false)
-  const [nuevoCliente, setNuevoCliente] = useState({ nombre: '', apellidos: '', telefono: '', email: '' })
-  const [erroresCliente, setErroresCliente] = useState({})
   const sugerenciasRef = useRef(null)
 
   // Catálogo
@@ -42,6 +39,30 @@ export default function NuevoEncargo() {
 
   useEffect(() => {
     fetchCatalogo().then(setCatalogo).catch(console.error)
+  }, [])
+
+  // Restaurar borrador, cliente o prenda recién creados al volver de Clientes/Catálogo
+  useEffect(() => {
+    const st = location.state
+    if (!st) return
+    let base = null
+    if (st.draft) {
+      if (st.draft.fechaEntrega != null) setFechaEntrega(st.draft.fechaEntrega)
+      if (st.draft.notas != null) setNotas(st.draft.notas)
+      if (Array.isArray(st.draft.lineas) && st.draft.lineas.length) base = st.draft.lineas
+    }
+    if (st.nuevaPrenda) {
+      setCatalogo(prev => prev.some(p => p.id === st.nuevaPrenda.id) ? prev : [...prev, st.nuevaPrenda])
+      const precio = st.nuevaPrenda.precio_base * (1 - (st.nuevaPrenda.descuento ?? 0) / 100)
+      base = (base ?? lineas).map(x => x._id === st.lineaId
+        ? { ...x, prenda_id: st.nuevaPrenda.id, descripcion: st.nuevaPrenda.nombre, precio_unitario: precio.toFixed(2) }
+        : x)
+    }
+    if (base) setLineas(base)
+    if (st.nuevoCliente) seleccionarCliente(st.nuevoCliente)
+    // Limpiar el state para que no se reaplique al recargar
+    navigate(location.pathname, { replace: true, state: {} })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const clientesFiltrados = mostrarDropdown && !clienteSeleccionado
@@ -71,30 +92,6 @@ export default function NuevoEncargo() {
     setClienteQuery(`${c.nombre} ${c.apellidos ?? ''}`.trim())
     setMostrarDropdown(false)
     setErroresForm(prev => ({ ...prev, cliente: false }))
-  }
-
-  const validarCliente = () => {
-    const errs = {}
-    if (!nuevoCliente.telefono || !validarTelefono(nuevoCliente.telefono))
-      errs.telefono = 'El teléfono debe tener exactamente 9 dígitos'
-    if (nuevoCliente.email && !validarEmail(nuevoCliente.email))
-      errs.email = 'Correo electrónico no válido'
-    setErroresCliente(errs)
-    return Object.keys(errs).length === 0
-  }
-
-  const crearCliente = async () => {
-    if (!nuevoCliente.nombre.trim()) return
-    if (!validarCliente()) return
-    try {
-      const c = await crearClienteRapido(nuevoCliente)
-      seleccionarCliente(c)
-      setMostrarFormCliente(false)
-      setNuevoCliente({ nombre: '', apellidos: '', telefono: '', email: '' })
-      setErroresCliente({})
-    } catch (e) {
-      setError('Error al crear cliente: ' + e.message)
-    }
   }
 
   // Líneas
@@ -212,70 +209,14 @@ export default function NuevoEncargo() {
           </div>
           <button
             type="button"
-            onClick={() => setMostrarFormCliente(v => !v)}
+            onClick={() => navigate('/clientes/nuevo', {
+              state: { from: 'nuevo-encargo', draft: { fechaEntrega, notas, lineas } },
+            })}
             className="flex items-center gap-1.5 text-xs text-[--text-medium] hover:text-primary"
           >
             <UserPlus size={13} />
             Crear nuevo cliente
           </button>
-          {mostrarFormCliente && (
-            <div className="border border-[--border] rounded-md p-3 space-y-2 bg-[--bg-alt]">
-              <input
-                placeholder="Nombre *"
-                aria-label="Nombre del cliente"
-                value={nuevoCliente.nombre}
-                onChange={e => setNuevoCliente(v => ({ ...v, nombre: e.target.value }))}
-                className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              <input
-                placeholder="Apellidos"
-                aria-label="Apellidos del cliente"
-                value={nuevoCliente.apellidos}
-                onChange={e => setNuevoCliente(v => ({ ...v, apellidos: e.target.value }))}
-                className="w-full border border-[--border] rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              <div>
-                <input
-                  placeholder="Teléfono *"
-                  aria-label="Teléfono del cliente"
-                  value={nuevoCliente.telefono}
-                  onChange={e => {
-                    const val = e.target.value.replace(/\D/g, '').slice(0, 9)
-                    setNuevoCliente(v => ({ ...v, telefono: val }))
-                    setErroresCliente(prev => ({ ...prev, telefono: undefined }))
-                  }}
-                  className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${erroresCliente.telefono ? 'border-red-400' : 'border-[--border]'}`}
-                />
-                {erroresCliente.telefono && <p className="text-xs text-red-500 mt-0.5">{erroresCliente.telefono}</p>}
-              </div>
-              <div>
-                <input
-                  type="email"
-                  placeholder="Correo electrónico"
-                  aria-label="Correo electrónico del cliente"
-                  value={nuevoCliente.email}
-                  onChange={e => {
-                    setNuevoCliente(v => ({ ...v, email: e.target.value }))
-                    setErroresCliente(prev => ({ ...prev, email: undefined }))
-                  }}
-                  className={`w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${erroresCliente.email ? 'border-red-400' : 'border-[--border]'}`}
-                />
-                {erroresCliente.email && <p className="text-xs text-red-500 mt-0.5">{erroresCliente.email}</p>}
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={crearCliente}>
-                  Guardar cliente
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => { setMostrarFormCliente(false); setNuevoCliente({ nombre: '', apellidos: '', telefono: '', email: '' }); setErroresCliente({}) }}
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          )}
         </section>
 
         {/* Detalles */}
@@ -339,7 +280,9 @@ export default function NuevoEncargo() {
                 </select>
                 <button
                   type="button"
-                  onClick={() => navigate('/catalogo/nueva')}
+                  onClick={() => navigate('/catalogo/nueva', {
+                    state: { from: 'nuevo-encargo', draft: { fechaEntrega, notas, lineas }, lineaId: l._id },
+                  })}
                   className="flex items-center gap-1 text-xs text-[--text-light] hover:text-primary mt-1"
                 >
                   <Plus size={11} />
@@ -361,12 +304,11 @@ export default function NuevoEncargo() {
                 <div className="flex-1">
                   <label className="block text-xs text-[--text-light] mb-1">Precio unitario (€)</label>
                   <input
-                    type="number"
-                    step="0.50"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     value={l.precio_unitario}
-                    onChange={e => updateLinea(l._id, 'precio_unitario', e.target.value)}
-                    placeholder="0.00"
+                    onChange={e => updateLinea(l._id, 'precio_unitario', e.target.value.replace(',', '.'))}
+                    placeholder="0,00"
                     className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>

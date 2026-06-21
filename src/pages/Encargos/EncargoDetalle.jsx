@@ -63,6 +63,9 @@ export default function EncargoDetalle() {
   // Modal reserva pendiente
   const [modalSenal, setModalSenal] = useState(false)
 
+  // Modal aviso de cobro pendiente al entregar
+  const [modalCobroPendiente, setModalCobroPendiente] = useState(false)
+
   // Timeline hover
   const [hoveredEstado, setHoveredEstado] = useState(null)
 
@@ -90,7 +93,7 @@ export default function EncargoDetalle() {
 
   // Formulario pago
   const [mostrarFormPago, setMostrarFormPago] = useState(false)
-  const [pago, setPago] = useState({ fecha: new Date().toISOString().split('T')[0], importe: '', tipo: 'reserva', forma_pago: 'efectivo', referencia: '', notas: '' })
+  const [pago, setPago] = useState({ fecha: new Date().toISOString().split('T')[0], importe: '', tipo: 'reserva', forma_pago: 'efectivo', referencia: '', notas: '', estado: 'cobrado', fecha_vencimiento: '' })
   const [guardandoPago, setGuardandoPago] = useState(false)
   const [errorPago, setErrorPago] = useState('')
 
@@ -145,6 +148,20 @@ export default function EncargoDetalle() {
     })
   }
 
+  const updateDatosEdicion = (campo, valor) => {
+    setDatosEdicion(prev => {
+      const updated = { ...prev, [campo]: valor }
+      if (campo === 'prenda_id' && valor) {
+        const prenda = catalogo.find(p => p.id === valor)
+        if (prenda) {
+          updated.descripcion = prenda.nombre
+          updated.precio_unitario = (prenda.precio_base * (1 - (prenda.descuento ?? 0) / 100)).toFixed(2)
+        }
+      }
+      return updated
+    })
+  }
+
   useEffect(cargar, [id])
 
   if (loading) return <PageWrapper><LoadingState /></PageWrapper>
@@ -179,6 +196,20 @@ export default function EncargoDetalle() {
       }
     }
 
+    // Avisar si se entrega con cantidad pendiente sin cobrar
+    if (nuevoIndex > estadoActual && nuevoEstado === 'entregado') {
+      const cobrado = (encargo.pagos ?? []).filter(p => p.tipo !== 'devolucion').reduce((s, p) => s + parseFloat(p.importe), 0)
+      const pend = Math.max(0, (encargo.precio_total ?? 0) - cobrado)
+      if (Math.round(pend * 100) > 0) {
+        setModalCobroPendiente(true)
+        return
+      }
+    }
+
+    await procederCambioEstado(nuevoEstado, nuevoIndex)
+  }
+
+  const procederCambioEstado = async (nuevoEstado, nuevoIndex) => {
     setAvanzando(true)
     try {
       await avanzarEstado(id, encargo.estado, nuevoEstado)
@@ -243,7 +274,8 @@ export default function EncargoDetalle() {
 
   const handleRegistrarPago = async () => {
     if (!pago.importe || parseFloat(pago.importe) <= 0) { setErrorPago('Indica un importe mayor que 0.'); return }
-    if (pago.tipo !== 'devolucion' && parseFloat(pago.importe) > pendiente) {
+    // Comparar en céntimos para evitar falsos positivos por coma flotante
+    if (pago.tipo !== 'devolucion' && Math.round(parseFloat(pago.importe) * 100) > Math.round(pendiente * 100)) {
       setErrorPago(`El importe supera el pendiente (${formatImporte(pendiente)})`)
       return
     }
@@ -251,7 +283,7 @@ export default function EncargoDetalle() {
     setGuardandoPago(true)
     try {
       await registrarPago({ ...pago, encargo_id: id })
-      setPago({ fecha: new Date().toISOString().split('T')[0], importe: '', tipo: 'reserva', forma_pago: 'efectivo', referencia: '', notas: '' })
+      setPago({ fecha: new Date().toISOString().split('T')[0], importe: '', tipo: 'reserva', forma_pago: 'efectivo', referencia: '', notas: '', estado: 'cobrado', fecha_vencimiento: '' })
       setMostrarFormPago(false)
       toast.success('Pago registrado.')
       cargar()
@@ -267,7 +299,7 @@ export default function EncargoDetalle() {
     setConfirmDelete({ tipo: 'pago', pagoId })
   }
 
-  const totalCobrado = (encargo.pagos ?? []).filter(p => p.tipo !== 'devolucion').reduce((s, p) => s + parseFloat(p.importe), 0)
+  const totalCobrado = (encargo.pagos ?? []).filter(p => p.tipo !== 'devolucion' && p.estado !== 'pendiente').reduce((s, p) => s + parseFloat(p.importe), 0)
   const totalDevuelto = (encargo.pagos ?? []).filter(p => p.tipo === 'devolucion').reduce((s, p) => s + parseFloat(p.importe), 0)
   const totalPagado = totalCobrado - totalDevuelto  // neto mostrado en "Cobrado"
   const pendiente = Math.max(0, (encargo.precio_total ?? 0) - totalCobrado)  // el cliente debe lo que no haya pagado
@@ -499,9 +531,9 @@ export default function EncargoDetalle() {
                 <div className="py-2 space-y-2">
                   <div className="flex gap-2">
                     <input
-                      type="number" step="0.50" min="0"
+                      type="text" inputMode="decimal"
                       value={datosPagoEdicion.importe}
-                      onChange={e => setDatosPagoEdicion(v => ({ ...v, importe: e.target.value }))}
+                      onChange={e => setDatosPagoEdicion(v => ({ ...v, importe: e.target.value.replace(',', '.') }))}
                       placeholder="Importe (€)"
                       aria-label="Importe del pago"
                       className="flex-1 border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
@@ -528,6 +560,26 @@ export default function EncargoDetalle() {
                     >
                       {FORMAS_PAGO.map(f => <option key={f} value={f}>{FORMA_PAGO_LABELS[f]}</option>)}
                     </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={datosPagoEdicion.estado}
+                      onChange={e => setDatosPagoEdicion(v => ({ ...v, estado: e.target.value }))}
+                      aria-label="Estado del cobro"
+                      className="flex-1 border border-[--border] rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      <option value="cobrado">Cobrado</option>
+                      <option value="pendiente">Pendiente de cobro</option>
+                    </select>
+                    {datosPagoEdicion.estado === 'pendiente' && (
+                      <input
+                        type="date"
+                        value={datosPagoEdicion.fecha_vencimiento}
+                        onChange={e => setDatosPagoEdicion(v => ({ ...v, fecha_vencimiento: e.target.value }))}
+                        aria-label="Fecha de vencimiento"
+                        className="flex-1 border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    )}
                   </div>
                   <input
                     value={datosPagoEdicion.referencia}
@@ -564,17 +616,29 @@ export default function EncargoDetalle() {
               ) : (
               <div className="flex items-center justify-between py-1.5 gap-3">
               <div>
-                <p className="text-sm text-[--text-dark]">
+                <p className="text-sm text-[--text-dark] flex items-center gap-1.5">
                   {TIPO_PAGO_LABELS[p.tipo] ?? p.tipo} · {FORMA_PAGO_LABELS[p.forma_pago] ?? p.forma_pago}
+                  {p.estado === 'pendiente' && (() => {
+                    const hoy = new Date().toISOString().slice(0, 10)
+                    const vencido = p.fecha_vencimiento && p.fecha_vencimiento < hoy
+                    return (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${vencido ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-700'}`}>
+                        {vencido ? 'Vencido' : 'Pendiente'}
+                      </span>
+                    )
+                  })()}
                 </p>
-                <p className="text-xs text-[--text-light]">{formatFecha(p.fecha)}{p.referencia && ` · ${p.referencia}`}</p>
+                <p className="text-xs text-[--text-light]">
+                  {formatFecha(p.fecha)}{p.referencia && ` · ${p.referencia}`}
+                  {p.estado === 'pendiente' && p.fecha_vencimiento && ` · vence ${formatFecha(p.fecha_vencimiento)}`}
+                </p>
               </div>
               <div className="flex items-center gap-3">
                 <span className={`text-sm font-medium ${p.tipo === 'devolucion' ? 'text-red-500' : 'text-[--text-dark]'}`}>
                   {p.tipo === 'devolucion' ? `-${formatImporte(p.importe)}` : formatImporte(p.importe)}
                 </span>
                 <button
-                  onClick={() => { setPagoEditando(p.id); setDatosPagoEdicion({ importe: p.importe, fecha: p.fecha, tipo: p.tipo, forma_pago: p.forma_pago, referencia: p.referencia || '' }) }}
+                  onClick={() => { setPagoEditando(p.id); setDatosPagoEdicion({ importe: p.importe, fecha: p.fecha, tipo: p.tipo, forma_pago: p.forma_pago, referencia: p.referencia || '', estado: p.estado || 'cobrado', fecha_vencimiento: p.fecha_vencimiento || '' }) }}
                   aria-label="Editar pago"
                   className="text-[--text-light] hover:text-primary transition-colors"
                 >
@@ -605,11 +669,11 @@ export default function EncargoDetalle() {
                     )}
                   </label>
                   <input
-                    type="number" step="0.50" min="0"
+                    type="text" inputMode="decimal"
                     value={pago.importe}
-                    onChange={e => { setPago(v => ({ ...v, importe: e.target.value })); setErrorPago('') }}
+                    onChange={e => { setPago(v => ({ ...v, importe: e.target.value.replace(',', '.') })); setErrorPago('') }}
                     className={`w-full border rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary ${errorPago ? 'border-red-400' : 'border-[--border]'}`}
-                    placeholder="0.00"
+                    placeholder="0,00"
                     aria-label="Importe del pago"
                   />
                   {errorPago && <p className="text-xs text-red-500 mt-0.5">{errorPago}</p>}
@@ -653,6 +717,30 @@ export default function EncargoDetalle() {
                 aria-label="Referencia del pago"
                 className="w-full border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
               />
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="block text-xs text-[--text-light] mb-1">Estado</label>
+                  <select
+                    value={pago.estado}
+                    onChange={e => setPago(v => ({ ...v, estado: e.target.value }))}
+                    className="w-full border border-[--border] rounded px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="cobrado">Cobrado</option>
+                    <option value="pendiente">Pendiente de cobro</option>
+                  </select>
+                </div>
+                {pago.estado === 'pendiente' && (
+                  <div className="flex-1">
+                    <label className="block text-xs text-[--text-light] mb-1">Vencimiento</label>
+                    <input
+                      type="date"
+                      value={pago.fecha_vencimiento}
+                      onChange={e => setPago(v => ({ ...v, fecha_vencimiento: e.target.value }))}
+                      className="w-full border border-[--border] rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2">
                 <button
                   onClick={handleRegistrarPago}
@@ -711,38 +799,97 @@ export default function EncargoDetalle() {
               <button onClick={() => setModalLineas(false)} className="text-[--text-light] hover:text-[--text-dark]">✕</button>
             </div>
 
-            <div className="overflow-y-auto flex-1 p-5 space-y-2">
-              {/* Líneas existentes */}
-              {encargo.encargo_lineas?.map(l => (
-                <div key={l.id} className="border-b border-[--border] last:border-0">
+            <div className="overflow-y-auto flex-1 p-5 space-y-3">
+              {/* Líneas existentes — una ficha por prenda */}
+              {encargo.encargo_lineas?.map((l, idx) => (
+                <div key={l.id} className="bg-white rounded-lg border border-[--border] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[--text-light]">Prenda {idx + 1}</span>
+                    <div className="flex items-center gap-3">
+                      {lineaEditando !== l.id && (
+                        <button
+                          onClick={() => {
+                            setLineaEditando(l.id)
+                            setDatosEdicion({
+                              prenda_id: l.prendas_catalogo?.id || '',
+                              descripcion: l.descripcion || l.prendas_catalogo?.nombre || '',
+                              cantidad: l.cantidad,
+                              precio_unitario: l.precio_unitario,
+                              notas: l.notas || '',
+                            })
+                          }}
+                          aria-label={`Editar prenda ${idx + 1}`}
+                          className="text-[--text-light] hover:text-primary transition-colors"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleEliminarLinea(l.id, l.descripcion || l.prendas_catalogo?.nombre)}
+                        aria-label={`Eliminar prenda ${idx + 1}`}
+                        className="text-[--text-light] hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+
                   {lineaEditando === l.id ? (
-                    <div className="py-3 space-y-2">
-                      <p className="text-xs font-semibold text-[--text-medium] truncate">{l.descripcion || l.prendas_catalogo?.nombre || '—'}</p>
-                      <div className="flex gap-2">
+                    <>
+                      {/* Selector catálogo */}
+                      <div>
+                        <label className="block text-xs text-[--text-light] mb-1">Prenda *</label>
+                        <select
+                          value={datosEdicion.prenda_id}
+                          onChange={e => updateDatosEdicion('prenda_id', e.target.value)}
+                          className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                        >
+                          <option value="">— Seleccionar prenda —</option>
+                          {catalogo.map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.nombre} ({formatImporte(p.precio_base * (1 - (p.descuento ?? 0) / 100))})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <div className="w-24">
+                          <label className="block text-xs text-[--text-light] mb-1">Cantidad</label>
+                          <input
+                            type="number" min="1"
+                            value={datosEdicion.cantidad}
+                            onChange={e => updateDatosEdicion('cantidad', e.target.value)}
+                            className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-xs text-[--text-light] mb-1">Precio unitario (€)</label>
+                          <input
+                            type="text" inputMode="decimal"
+                            value={datosEdicion.precio_unitario}
+                            onChange={e => updateDatosEdicion('precio_unitario', e.target.value.replace(',', '.'))}
+                            placeholder="0,00"
+                            className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
+                        </div>
+                        <div className="flex-1 flex items-end">
+                          <p className="text-sm font-medium text-[--text-medium] pb-2">
+                            = {formatImporte((parseFloat(datosEdicion.precio_unitario) || 0) * (parseInt(datosEdicion.cantidad) || 1))}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-[--text-light] mb-1">Notas de esta prenda</label>
                         <input
-                          type="number" min="1"
-                          value={datosEdicion.cantidad}
-                          onChange={e => setDatosEdicion(v => ({ ...v, cantidad: e.target.value }))}
-                          placeholder="Cant."
-                        aria-label="Cantidad"
-                          className="w-20 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                        <input
-                          type="number" step="0.50" min="0"
-                          value={datosEdicion.precio_unitario}
-                          onChange={e => setDatosEdicion(v => ({ ...v, precio_unitario: e.target.value }))}
-                          placeholder="Precio (€)"
-                        aria-label="Precio unitario"
-                          className="flex-1 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          value={datosEdicion.notas}
+                          onChange={e => updateDatosEdicion('notas', e.target.value)}
+                          placeholder="Observaciones específicas…"
+                          className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
-                      <input
-                        value={datosEdicion.notas}
-                        onChange={e => setDatosEdicion(v => ({ ...v, notas: e.target.value }))}
-                        placeholder="Notas de esta prenda"
-                      aria-label="Notas de la prenda"
-                        className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
+
                       <div className="flex gap-2 pt-1">
                         <button
                           onClick={async () => {
@@ -755,68 +902,49 @@ export default function EncargoDetalle() {
                             } catch (e) { console.error(e); toast.error('No se pudo actualizar la línea.') }
                             finally { setGuardandoEdicion(false) }
                           }}
-                          disabled={guardandoEdicion}
-                          className="flex-1 bg-primary text-white text-xs px-3 py-1.5 rounded-md hover:bg-primary-dark disabled:opacity-50 transition-colors"
+                          disabled={guardandoEdicion || !datosEdicion.prenda_id}
+                          className="flex-1 bg-primary text-white text-sm px-3 py-2 rounded-md hover:bg-primary-dark disabled:opacity-50 transition-colors"
                         >
                           {guardandoEdicion ? 'Guardando…' : 'Guardar'}
                         </button>
                         <button
                           onClick={() => setLineaEditando(null)}
-                          className="flex-1 border border-[--border] text-xs px-3 py-1.5 rounded-md text-[--text-medium] hover:bg-[--bg-alt] transition-colors"
+                          className="flex-1 border border-[--border] text-sm px-3 py-2 rounded-md text-[--text-medium] hover:bg-[--bg-alt] transition-colors"
                         >
                           Cancelar
                         </button>
                       </div>
-                    </div>
+                    </>
                   ) : (
-                    <div className="flex items-center justify-between py-2 gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-[--text-dark] truncate">
-                          {l.descripcion || l.prendas_catalogo?.nombre || '—'}
-                          {l.cantidad > 1 && <span className="text-[--text-light] ml-1">×{l.cantidad}</span>}
-                        </p>
-                        <p className="text-xs text-[--text-light]">{formatImporte((parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1))}</p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setLineaEditando(l.id)
-                          setDatosEdicion({
-                            cantidad: l.cantidad,
-                            precio_unitario: l.precio_unitario,
-                            notas: l.notas || '',
-                          })
-                        }}
-                        aria-label="Editar línea"
-                        className="text-[--text-light] hover:text-primary transition-colors flex-shrink-0"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleEliminarLinea(l.id, l.descripcion || l.prendas_catalogo?.nombre)}
-                        aria-label="Eliminar línea"
-                        className="text-[--text-light] hover:text-red-500 transition-colors flex-shrink-0"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm text-[--text-dark] truncate">
+                        {l.descripcion || l.prendas_catalogo?.nombre || '—'}
+                        {l.cantidad > 1 && <span className="text-[--text-light] ml-1">×{l.cantidad}</span>}
+                      </p>
+                      <p className="text-sm font-medium text-[--text-medium] whitespace-nowrap">
+                        {formatImporte((parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1))}
+                      </p>
                     </div>
                   )}
                 </div>
               ))}
 
-              {/* Formulario nueva línea */}
-              <div className="pt-3">
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => setMostrarFormLinea(v => !v)}
-                    className="flex items-center gap-1 text-xs text-primary hover:opacity-75 transition-opacity"
-                  >
-                    <Plus size={13} />
-                    Añadir prenda
-                  </button>
-                </div>
+              {/* Añadir nueva prenda */}
+              {mostrarFormLinea ? (
+                <div className="bg-white rounded-lg border border-[--border] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[--text-light]">Nueva prenda</span>
+                    <button
+                      onClick={() => setMostrarFormLinea(false)}
+                      aria-label="Cancelar nueva prenda"
+                      className="text-[--text-light] hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
 
-                {mostrarFormLinea && (
-                  <div className="mt-3 space-y-2">
+                  <div>
+                    <label className="block text-xs text-[--text-light] mb-1">Prenda *</label>
                     <select
                       value={nuevaLinea.prenda_id}
                       onChange={e => updateNuevaLinea('prenda_id', e.target.value)}
@@ -829,45 +957,63 @@ export default function EncargoDetalle() {
                         </option>
                       ))}
                     </select>
+                  </div>
 
-                    <div className="flex gap-2">
+                  <div className="flex gap-3">
+                    <div className="w-24">
+                      <label className="block text-xs text-[--text-light] mb-1">Cantidad</label>
                       <input
                         type="number" min="1"
                         value={nuevaLinea.cantidad}
                         onChange={e => updateNuevaLinea('cantidad', e.target.value)}
-                        placeholder="Cant."
-                        aria-label="Cantidad"
-                        className="w-20 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                      <input
-                        type="number" step="0.50" min="0"
-                        value={nuevaLinea.precio_unitario}
-                        onChange={e => updateNuevaLinea('precio_unitario', e.target.value)}
-                        placeholder="Precio (€)"
-                        aria-label="Precio unitario"
-                        className="flex-1 border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-[--text-light] mb-1">Precio unitario (€)</label>
+                      <input
+                        type="text" inputMode="decimal"
+                        value={nuevaLinea.precio_unitario}
+                        onChange={e => updateNuevaLinea('precio_unitario', e.target.value.replace(',', '.'))}
+                        placeholder="0,00"
+                        className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    <div className="flex-1 flex items-end">
+                      <p className="text-sm font-medium text-[--text-medium] pb-2">
+                        = {formatImporte((parseFloat(nuevaLinea.precio_unitario) || 0) * (parseInt(nuevaLinea.cantidad) || 1))}
+                      </p>
+                    </div>
+                  </div>
 
+                  <div>
+                    <label className="block text-xs text-[--text-light] mb-1">Notas de esta prenda</label>
                     <input
                       value={nuevaLinea.notas}
                       onChange={e => updateNuevaLinea('notas', e.target.value)}
-                      placeholder="Notas de esta prenda"
-                      aria-label="Notas de la prenda"
+                      placeholder="Observaciones específicas…"
                       className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     />
-
-                    <button
-                      onClick={handleAgregarLinea}
-                      disabled={guardandoLinea || !nuevaLinea.prenda_id}
-                      className="w-full flex items-center justify-center gap-2 bg-primary text-white text-sm px-4 py-2 rounded-md hover:bg-primary-dark disabled:opacity-50 transition-colors"
-                    >
-                      <Plus size={14} />
-                      {guardandoLinea ? 'Guardando…' : 'Añadir prenda'}
-                    </button>
                   </div>
-                )}
-              </div>
+
+                  <button
+                    onClick={handleAgregarLinea}
+                    disabled={guardandoLinea || !nuevaLinea.prenda_id}
+                    className="w-full flex items-center justify-center gap-2 bg-primary text-white text-sm px-4 py-2 rounded-md hover:bg-primary-dark disabled:opacity-50 transition-colors"
+                  >
+                    <Plus size={14} />
+                    {guardandoLinea ? 'Guardando…' : 'Añadir prenda'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setMostrarFormLinea(true)}
+                  className="w-full flex items-center justify-center gap-2 border border-dashed border-[--border] rounded-lg py-3 text-sm text-[--text-light] hover:border-primary hover:text-primary transition-colors"
+                >
+                  <Plus size={15} />
+                  Añadir otra prenda
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -995,6 +1141,51 @@ export default function EncargoDetalle() {
             >
               Entendido
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal aviso de cobro pendiente al entregar */}
+      {modalCobroPendiente && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setModalCobroPendiente(false)}
+        >
+          <div
+            className="bg-white rounded-xl w-full max-w-sm p-6 space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                <AlertCircle size={18} className="text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-display text-base text-[--text-dark]">Cobro pendiente</h3>
+                <p className="text-xs text-[--text-light] mt-0.5">
+                  Este encargo tiene una cantidad pendiente de cobro. Si lo entregas igualmente, recuerda gestionar el cobro.
+                </p>
+                <p className="text-xs text-[--text-dark] font-semibold mt-1">
+                  Pendiente: {formatImporte(pendiente)}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setModalCobroPendiente(false)
+                  procederCambioEstado('entregado', ESTADOS.indexOf('entregado'))
+                }}
+                className="flex-1 text-sm bg-[--primary] text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
+              >
+                Aceptar
+              </button>
+              <button
+                onClick={() => setModalCobroPendiente(false)}
+                className="flex-1 text-sm border border-[--border] text-[--text-medium] px-4 py-2 rounded-md hover:bg-[--bg-alt] transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}

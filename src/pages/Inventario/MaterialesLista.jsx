@@ -125,7 +125,7 @@ function MaterialCard({ material, iconoCategoria = 'box', onOpen, onMove }) {
 }
 
 // Dashboard (KPI: valor de stock, ranking, alertas)
-function Dashboard({ materiales }) {
+function Dashboard({ materiales, salidas }) {
   const k = calcularKpis(materiales)
 
   // Valor por categoría
@@ -147,6 +147,17 @@ function Dashboard({ materiales }) {
   const topValor = [...materiales]
     .sort((a, b) => (parseFloat(b.stock_actual || 0) * parseFloat(b.precio_referencia || 0)) - (parseFloat(a.stock_actual || 0) * parseFloat(a.precio_referencia || 0)))
     .slice(0, 5)
+
+  // Materiales con mayor rotación (cantidad consumida en salidas, últimos 12 meses)
+  const rotacion = {}
+  salidas.forEach(mov => {
+    const mat = mov.materiales
+    if (!mat) return
+    const r = rotacion[mat.id] ?? { ...mat, total: 0 }
+    r.total += parseFloat(mov.cantidad || 0)
+    rotacion[mat.id] = r
+  })
+  const topRotacion = Object.values(rotacion).sort((a, b) => b.total - a.total).slice(0, 5)
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -212,6 +223,26 @@ function Dashboard({ materiales }) {
             )}
           </ul>
         </section>
+
+        <section className="bg-white border border-line rounded-lg p-4">
+          <h3 className="font-display font-bold text-ink mb-4">Materiales con mayor rotación</h3>
+          <ul className="space-y-2">
+            {topRotacion.length > 0 ? topRotacion.map((m) => {
+              const unit = UNIT_DISPLAY[m.unidad_gestion] || m.unidad_gestion || 'ud.'
+              return (
+                <li key={m.id} className="flex items-center justify-between text-sm">
+                  <div>
+                    <span className="font-bold text-ink">{formatCodigo(m.codigo)}</span>
+                    <span className="text-muted ml-2">{m.nombre}</span>
+                  </div>
+                  <b className="text-ink">{formatCantidad(m.total)} {unit}</b>
+                </li>
+              )
+            }) : (
+              <li className="text-sm text-muted">Sin consumo registrado en los últimos 12 meses.</li>
+            )}
+          </ul>
+        </section>
       </div>
     </div>
   )
@@ -241,16 +272,21 @@ export default function MaterialesLista() {
   const [proveedores, setProveedores] = useState([])
   const [encargos, setEncargos] = useState([])
   const [movimientosMes, setMovimientosMes] = useState([])
+  const [salidas12m, setSalidas12m] = useState([])
 
   const hoy = new Date()
   const desdeInicioMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`
+  const hace12meses = new Date(hoy.getFullYear() - 1, hoy.getMonth(), hoy.getDate())
+    .toISOString().slice(0, 10)
 
   const cargar = () => fetchMateriales({ soloActivos: false }).then(setMateriales)
   const cargarMovs = () => fetchMovimientos({ desde: desdeInicioMes }).then(setMovimientosMes)
+  const cargarSalidas = () => fetchMovimientos({ desde: hace12meses, tipo: 'salida' }).then(setSalidas12m)
 
   useEffect(() => {
     cargar()
     cargarMovs()
+    cargarSalidas()
     fetchProveedores().then(setProveedores)
     fetchEncargosActivos().then(setEncargos)
     fetchCategorias().then(setCategoriasDB)
@@ -288,6 +324,7 @@ export default function MaterialesLista() {
     setModal(null)
     cargar()
     cargarMovs()
+    cargarSalidas()
   }
 
   const activos = materiales.filter(m => m.activo)
@@ -392,6 +429,16 @@ export default function MaterialesLista() {
 
         {/* Buscador + filtros */}
         <div className="mb-6 space-y-4">
+          <div className="flex items-center gap-3 bg-white border border-line rounded-xl px-4 py-3 w-1/2">
+            <Icon name="search" size={16} className="shrink-0 text-muted" />
+            <input
+              type="text"
+              placeholder="Buscar en el taller…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="flex-1 text-sm text-ink placeholder:text-faint focus:outline-none bg-transparent"
+            />
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
             {categorias.map((c) => (
               <button
@@ -420,21 +467,11 @@ export default function MaterialesLista() {
               Inactivos
             </button>
           </div>
-          <div className="flex items-center gap-3 bg-white border border-line rounded-xl px-4 py-3 w-1/2">
-            <Icon name="search" size={16} className="shrink-0 text-muted" />
-            <input
-              type="text"
-              placeholder="Buscar en el taller…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="flex-1 text-sm text-ink placeholder:text-faint focus:outline-none bg-transparent"
-            />
-          </div>
         </div>
 
         {/* Contenido según KPI */}
         {kpiMode === 'dashboard' ? (
-          <Dashboard materiales={materiales} />
+          <Dashboard materiales={materiales} salidas={salidas12m} />
         ) : kpiMode === 'movs' ? (
           <div className="bg-white border border-line rounded-lg overflow-hidden">
             <div className="px-4 py-3 border-b border-line">

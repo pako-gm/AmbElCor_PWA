@@ -14,7 +14,7 @@ const formVacio = {
 export default function NuevoMaterial() {
   const navigate = useNavigate()
   const toast = useToast()
-  const { crearMaterial, fetchCategorias, fetchUnidades } = useInventario()
+  const { crearMaterial, fetchCategorias, fetchUnidades, generarCodigoMaterial } = useInventario()
   const [form, setForm] = useState(formVacio)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
@@ -30,6 +30,8 @@ export default function NuevoMaterial() {
   }, [])
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const prefijoActual = categorias.find(c => c.nombre === form.categoria)?.prefijo || 'S/C'
 
   const handleGuardar = async () => {
     if (!form.nombre.trim()) return setError('El nombre es obligatorio.')
@@ -49,7 +51,12 @@ export default function NuevoMaterial() {
         precio_referencia: form.precio_referencia !== '' ? parseFloat(form.precio_referencia) : null,
         notas: form.notas.trim() || null,
       }
-      if (form.codigo.trim()) payload.codigo = form.codigo.trim()
+      if (form.codigo.trim()) {
+        payload.codigo = form.codigo.trim()
+      } else {
+        const cat = categorias.find(c => c.nombre === form.categoria)
+        payload.codigo = await generarCodigoMaterial(cat?.prefijo || 'S/C')
+      }
       const material = await crearMaterial(payload)
       toast.success('Material creado correctamente.')
       navigate(`/inventario/${material.id}`)
@@ -115,13 +122,17 @@ export default function NuevoMaterial() {
           </div>
 
           <div className="grid-2">
-            <Field label="CÓDIGO (opcional)" hint="Si lo dejas vacío, se genera automáticamente." htmlFor="nm-codigo">
+            <Field
+              label="CÓDIGO (opcional)"
+              hint={`Si lo dejas vacío, se genera automáticamente (${prefijoActual}-NNN).`}
+              htmlFor="nm-codigo"
+            >
               <input
                 id="nm-codigo"
                 className="input"
                 value={form.codigo}
                 onChange={set('codigo')}
-                placeholder="TEL-001"
+                placeholder={`${prefijoActual}-001`}
               />
             </Field>
 
@@ -143,7 +154,7 @@ export default function NuevoMaterial() {
                 className="input"
                 type="number"
                 min="0"
-                step="0.01"
+                step="1"
                 value={form.stock_minimo}
                 onChange={set('stock_minimo')}
               />

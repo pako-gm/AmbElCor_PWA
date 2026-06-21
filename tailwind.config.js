@@ -103,6 +103,16 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      keyframes: {
+        'bell-swing': {
+          '0%, 50%, 100%': { transform: 'rotate(0deg)' },
+          '10%, 30%': { transform: 'rotate(14deg)' },
+          '20%, 40%': { transform: 'rotate(-14deg)' },
+        },
+      },
+      animation: {
+        'bell-swing': 'bell-swing 1.6s ease-in-out infinite',
+      },
     },
   },
   plugins: [require('tailwindcss-animate')],

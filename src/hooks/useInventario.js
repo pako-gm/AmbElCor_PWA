@@ -261,13 +261,12 @@ export function useInventario() {
     const { data, error: err } = await supabase
       .from('categorias_inventario')
       .select('*')
-      .order('orden')
       .order('nombre')
     if (err) throw err
     return data ?? []
   }, [])
 
-  const crearCategoria = useCallback(async ({ nombre, icono = 'box' }) => {
+  const crearCategoria = useCallback(async ({ nombre, icono = 'box', prefijo = null }) => {
     const maxOrden = await supabase
       .from('categorias_inventario')
       .select('orden')
@@ -277,11 +276,38 @@ export function useInventario() {
     const orden = (maxOrden.data?.orden ?? 0) + 1
     const { data, error: err } = await supabase
       .from('categorias_inventario')
-      .insert({ nombre, icono, orden })
+      .insert({ nombre, icono, orden, prefijo: prefijo?.trim().toUpperCase() || null })
       .select()
       .single()
     if (err) throw err
     return data
+  }, [])
+
+  const actualizarCategoria = useCallback(async (id, { nombre, icono, prefijo }) => {
+    const { data, error: err } = await supabase
+      .from('categorias_inventario')
+      .update({ nombre, icono, prefijo: prefijo?.trim().toUpperCase() || null })
+      .eq('id', id)
+      .select()
+      .single()
+    if (err) throw err
+    return data
+  }, [])
+
+  // Genera el siguiente código correlativo para un prefijo: PREFIJO-001, PREFIJO-002…
+  const generarCodigoMaterial = useCallback(async (prefijo) => {
+    const pref = (prefijo || 'S/C').trim().toUpperCase()
+    const { data, error: err } = await supabase
+      .from('materiales')
+      .select('codigo')
+      .ilike('codigo', `${pref}-%`)
+    if (err) throw err
+    let max = 0
+    for (const row of data ?? []) {
+      const m = row.codigo?.match(/-(\d+)\s*$/)
+      if (m) max = Math.max(max, parseInt(m[1], 10))
+    }
+    return `${pref}-${String(max + 1).padStart(3, '0')}`
   }, [])
 
   const eliminarCategoria = useCallback(async (id) => {
@@ -298,7 +324,7 @@ export function useInventario() {
     const { data, error: err } = await supabase
       .from('unidades_inventario')
       .select('*')
-      .order('orden')
+      .order('etiqueta')
     if (err) throw err
     return data ?? []
   }, [])
@@ -347,6 +373,8 @@ export function useInventario() {
     actualizarMovimiento,
     fetchCategorias,
     crearCategoria,
+    actualizarCategoria,
+    generarCodigoMaterial,
     eliminarCategoria,
     fetchUnidades,
     crearUnidad,

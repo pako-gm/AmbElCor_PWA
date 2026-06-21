@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import PageWrapper from '@/components/layout/PageWrapper'
 import PageHeader from '@/components/ui/PageHeader'
 import Button from '@/components/ui/Button'
@@ -13,8 +13,12 @@ const VACIO = { nombre: '', descripcion: '', precio_base: '', descuento: '0', ac
 export default function CatalogoForm() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const toast = useToast()
   const esNueva = !id
+  const fromEncargo = location.state?.from === 'nuevo-encargo'
+  const draft = location.state?.draft
+  const lineaId = location.state?.lineaId
   const [form, setForm] = useState(VACIO)
   const [loading, setLoading] = useState(!esNueva)
   const [saving, setSaving] = useState(false)
@@ -53,13 +57,18 @@ export default function CatalogoForm() {
         descuento,
         activo: form.activo,
       }
+      let prenda = null
       if (esNueva) {
-        await crearPrenda(payload)
+        prenda = await crearPrenda(payload)
       } else {
         await actualizarPrenda(id, payload)
       }
       toast.success(esNueva ? 'Prenda creada.' : 'Prenda actualizada.')
-      navigate('/encargos?tab=catalogo')
+      if (fromEncargo && prenda) {
+        navigate('/encargos/nuevo', { state: { nuevaPrenda: prenda, lineaId, draft } })
+      } else {
+        navigate('/encargos?tab=catalogo')
+      }
     } catch (e) {
       setError('Error al guardar: ' + e.message)
       setSaving(false)
@@ -72,7 +81,11 @@ export default function CatalogoForm() {
     <PageWrapper>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
         {/* Cabecera */}
-        <PageHeader titulo={esNueva ? 'Nueva prenda' : 'Editar prenda'} backTo="/encargos?tab=catalogo" />
+        <PageHeader
+          titulo={esNueva ? 'Nueva prenda' : 'Editar prenda'}
+          backTo={fromEncargo ? '/encargos/nuevo' : '/encargos?tab=catalogo'}
+          backState={fromEncargo ? { draft } : undefined}
+        />
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-4 py-2">
@@ -152,7 +165,13 @@ export default function CatalogoForm() {
           <Button size="lg" onClick={handleGuardar} loading={saving}>
             {saving ? 'Guardando…' : 'Guardar'}
           </Button>
-          <Button size="lg" variant="secondary" onClick={() => navigate('/encargos?tab=catalogo')}>
+          <Button
+            size="lg"
+            variant="secondary"
+            onClick={() => fromEncargo
+              ? navigate('/encargos/nuevo', { state: { draft } })
+              : navigate('/encargos?tab=catalogo')}
+          >
             Cancelar
           </Button>
         </div>

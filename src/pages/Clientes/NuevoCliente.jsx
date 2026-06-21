@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { crearCliente } from '@/hooks/useClientes'
 import { validarTelefono, validarEmail } from '@/utils/validators'
@@ -10,7 +10,10 @@ import { Field, Input, Textarea } from '@/components/ui/Field'
 
 export default function NuevoCliente() {
   const navigate = useNavigate()
+  const location = useLocation()
   const toast = useToast()
+  const fromEncargo = location.state?.from === 'nuevo-encargo'
+  const draft = location.state?.draft
   const [form, setForm] = useState({
     nombre: '', apellidos: '', alias: '', telefono: '', email: '', notas: '',
   })
@@ -37,7 +40,11 @@ export default function NuevoCliente() {
     try {
       const cliente = await crearCliente({ ...form })
       toast.success('Cliente creado.')
-      navigate(`/clientes/${cliente.id}`)
+      if (fromEncargo) {
+        navigate('/encargos/nuevo', { state: { nuevoCliente: cliente, draft } })
+      } else {
+        navigate(`/clientes/${cliente.id}`)
+      }
     } catch (e) {
       console.error(e)
       toast.error('No se pudo guardar el cliente.')
@@ -50,7 +57,11 @@ export default function NuevoCliente() {
     <PageWrapper>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
         {/* Cabecera */}
-        <PageHeader titulo="Nuevo cliente" backTo="/encargos?tab=clientes" />
+        <PageHeader
+          titulo="Nuevo cliente"
+          backTo={fromEncargo ? '/encargos/nuevo' : '/encargos?tab=clientes'}
+          backState={fromEncargo ? { draft } : undefined}
+        />
 
         {/* Datos personales */}
         <section className="bg-white rounded-lg border border-[--border] p-4 space-y-3">
@@ -117,7 +128,13 @@ export default function NuevoCliente() {
           <Button size="lg" className="flex-1" onClick={handleGuardar} loading={guardando}>
             {guardando ? 'Guardando…' : 'Guardar cliente'}
           </Button>
-          <Button size="lg" variant="secondary" onClick={() => navigate('/encargos?tab=clientes')}>
+          <Button
+            size="lg"
+            variant="secondary"
+            onClick={() => fromEncargo
+              ? navigate('/encargos/nuevo', { state: { draft } })
+              : navigate('/encargos?tab=clientes')}
+          >
             Cancelar
           </Button>
         </div>

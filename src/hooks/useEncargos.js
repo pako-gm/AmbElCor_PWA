@@ -36,7 +36,7 @@ export async function fetchEncargo(id) {
         prendas_catalogo (id, nombre)
       ),
       historial_encargo (id, fecha, descripcion),
-      pagos (id, fecha, importe, tipo, forma_pago, referencia, notas)
+      pagos (id, fecha, importe, tipo, forma_pago, referencia, notas, estado, fecha_vencimiento)
     `)
     .eq('id', id)
     .single()
@@ -95,10 +95,15 @@ export async function avanzarEstado(id, estadoAnterior, estadoNuevo) {
 }
 
 // Registrar pago de un encargo
-export async function registrarPago({ encargo_id, fecha, importe, tipo, forma_pago, referencia, notas }) {
+export async function registrarPago({ encargo_id, fecha, importe, tipo, forma_pago, referencia, notas, estado, fecha_vencimiento }) {
   const { data, error } = await supabase
     .from('pagos')
-    .insert({ encargo_id, fecha, importe: parseFloat(importe), tipo, forma_pago, referencia: referencia || null, notas: notas || null })
+    .insert({
+      encargo_id, fecha, importe: parseFloat(importe), tipo, forma_pago,
+      referencia: referencia || null, notas: notas || null,
+      estado: estado || 'cobrado',
+      fecha_vencimiento: estado === 'pendiente' ? (fecha_vencimiento || null) : null,
+    })
     .select()
     .single()
   if (error) throw error
@@ -116,6 +121,8 @@ export async function actualizarPago(id, cambios) {
     tipo: cambios.tipo,
     forma_pago: cambios.forma_pago,
     referencia: cambios.referencia || null,
+    estado: cambios.estado || 'cobrado',
+    fecha_vencimiento: cambios.estado === 'pendiente' ? (cambios.fecha_vencimiento || null) : null,
   }).eq('id', id)
   if (error) throw error
 }
@@ -183,12 +190,15 @@ export async function eliminarLinea(lineaId, encargoId, descripcion) {
 
 // Actualizar línea de encargo y recalcular total
 export async function actualizarLinea(lineaId, encargoId, cambios) {
-  const { error } = await supabase.from('encargo_lineas').update({
+  const update = {
     cantidad: parseInt(cambios.cantidad) || 1,
     precio_unitario: parseFloat(cambios.precio_unitario) || 0,
     medidas_ajuste: cambios.medidas_ajuste ? { notas: cambios.medidas_ajuste } : {},
     notas: cambios.notas || null,
-  }).eq('id', lineaId)
+  }
+  if (cambios.prenda_id !== undefined) update.prenda_id = cambios.prenda_id || null
+  if (cambios.descripcion !== undefined) update.descripcion = cambios.descripcion
+  const { error } = await supabase.from('encargo_lineas').update(update).eq('id', lineaId)
   if (error) throw error
   const { data: lineas } = await supabase.from('encargo_lineas').select('cantidad, precio_unitario').eq('encargo_id', encargoId)
   const total = (lineas || []).reduce((s, l) => s + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1), 0)
