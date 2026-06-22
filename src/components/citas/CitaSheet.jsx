@@ -213,9 +213,22 @@ export default function CitaSheet({ cita, modo, onClose, onSave, onEdit, onDelet
                   setMostrarListaClientes(true)
                 }}
                 onFocus={() => setMostrarListaClientes(true)}
-                className={`w-full px-3 py-2.5 bg-[--bg-gray] border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-[15px] ${errorCliente ? 'border-red-400' : 'border-[--border]'}`}
+                className={`w-full px-3 py-2.5 pr-10 bg-[--bg-gray] border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-[15px] ${errorCliente ? 'border-red-400' : 'border-[--border]'}`}
                 placeholder="Nombre de la clienta…"
               />
+              {(filtroClientes || form.cliente_nombre) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFiltroClientes('')
+                    setForm(prev => ({ ...prev, cliente_id: null, cliente_nombre: '' }))
+                  }}
+                  aria-label="Limpiar selección"
+                  className="absolute right-3 top-[34px] text-[--text-light] hover:text-[--text-dark]"
+                >
+                  <X size={16} />
+                </button>
+              )}
               {errorCliente && <p role="alert" className="text-xs text-red-500 mt-1">{errorCliente}</p>}
               {mostrarListaClientes && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[--border] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
@@ -241,9 +254,10 @@ export default function CitaSheet({ cita, modo, onClose, onSave, onEdit, onDelet
                         }}
                         className="w-full text-left px-3 py-2 hover:bg-gray-100 transition border-b border-gray-100 last:border-b-0 text-sm text-[--text-dark]"
                       >
-                        <div className="font-medium">{cliente.nombre}</div>
-                        {cliente.apellidos && <div className="text-xs text-[--text-light]">{cliente.apellidos}</div>}
-                        {cliente.telefono && <div className="text-xs text-[--text-light]">{cliente.telefono}</div>}
+                        <div className="font-medium">
+                          {cliente.nombre}{cliente.apellidos ? ` ${cliente.apellidos}` : ''}
+                          {cliente.telefono && <span className="font-normal text-[--text-light]"> - {cliente.telefono}</span>}
+                        </div>
                       </button>
                     ))}
                   {clientes.filter(c => {

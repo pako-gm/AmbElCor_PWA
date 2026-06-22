@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { Icon, Btn, StatusPill, KpiCard } from '@/components/inventario/InventarioUI'
+import SearchInput from '@/components/ui/SearchInput'
 import { MovementModal } from '@/components/inventario/InventarioModals'
 import ProveedoresPanel from '@/components/inventario/ProveedoresPanel'
 import { useInventario } from '@/hooks/useInventario'
@@ -430,16 +431,12 @@ export default function MaterialesLista() {
 
         {/* Buscador + filtros */}
         <div className="mb-6 space-y-4">
-          <div className="flex items-center gap-3 bg-white border border-line rounded-xl px-4 py-3 w-1/2">
-            <Icon name="search" size={16} className="shrink-0 text-muted" />
-            <input
-              type="text"
-              placeholder="Buscar en el taller…"
-              value={query}
-              onChange={(e) => setQuery(sanitizers.texto(e.target.value))}
-              className="flex-1 text-sm text-ink placeholder:text-faint focus:outline-none bg-transparent"
-            />
-          </div>
+          <SearchInput
+            value={query}
+            onChange={(v) => setQuery(sanitizers.texto(v))}
+            placeholder="Buscar en el taller…"
+            className="w-1/2"
+          />
           <div className="flex items-center gap-2 flex-wrap">
             {categorias.map((c) => (
               <button

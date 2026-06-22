@@ -57,8 +57,9 @@ export const sanitizers = {
   // Solo dígitos, máximo 9 (teléfono español)
   telefono: (v) => (v ?? '').replace(/\D/g, '').slice(0, 9),
 
-  // Juego de caracteres válido en un email (sin espacios)
-  email: (v) => (v ?? '').replace(/[^a-zA-Z0-9@._+\-]/g, ''),
+  // Juego de caracteres válido en un email (sin espacios). Admite
+  // letras Unicode (ñ, acentos…) además de los símbolos estructurales.
+  email: (v) => (v ?? '').replace(/[^\p{L}\p{N}@._+\-]/gu, ''),
 
   // Solo dígitos
   entero: (v) => (v ?? '').replace(/\D/g, ''),

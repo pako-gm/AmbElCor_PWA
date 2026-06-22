@@ -139,3 +139,14 @@ npm run preview   # preview del build
 ## Lecciones aprendidas
 Se ha eliminado estas referencia a claude/LECCIONES.md
 **Claude code no consultará ese archivo al inicio de cada tarea.**
+
+# Cost Optimisation
+
+- Default model should be Sonnet.
+- Use Opus only for architecture decisions, large refactors and complex debugging.
+- Never spawn subagents for simple file searches.
+- Prefer Read, Grep and Glob before creating agents.
+- Use at most one subagent unless explicitly requested.
+- Prefer sequential investigation over parallel exploration.
+- Run /compact after finishing a feature.
+- Avoid loading MCP results unless required.

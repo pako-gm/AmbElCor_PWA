@@ -33,7 +33,7 @@ export async function fetchEncargo(id) {
       token_publico, codigo_corto, notas,
       clientes (id, nombre, apellidos, telefono, email),
       encargo_lineas (
-        id, descripcion, cantidad, precio_unitario, medidas_ajuste, notas,
+        id, descripcion, cantidad, precio_unitario, precio_base, medidas_ajuste, notas,
         prendas_catalogo (id, nombre)
       ),
       historial_encargo (id, fecha, descripcion),
@@ -52,12 +52,23 @@ export async function crearEncargo({ cliente_id, fecha_entrega_estimada, notas, 
     0
   )
 
-  const { data: encargo, error } = await supabase
-    .from('encargos')
-    .insert({ cliente_id, fecha_entrega_estimada: fecha_entrega_estimada || null, notas, precio_total })
-    .select()
-    .single()
-  if (error) throw error
+  // El numero (YY/NNN) lo asigna un trigger en la BD con advisory lock por año,
+  // así que en uso concurrente no hay colisiones. Aun así reintentamos ante una
+  // posible violacion de unicidad (codigo Postgres 23505) como red de seguridad.
+  let encargo
+  for (let intento = 0; ; intento++) {
+    const { data, error } = await supabase
+      .from('encargos')
+      .insert({ cliente_id, fecha_entrega_estimada: fecha_entrega_estimada || null, notas, precio_total })
+      .select()
+      .single()
+    if (!error) {
+      encargo = data
+      break
+    }
+    if (error.code === '23505' && intento < 2) continue
+    throw error
+  }
 
   if (lineas.length > 0) {
     const lineasData = lineas.map(l => ({
@@ -66,6 +77,7 @@ export async function crearEncargo({ cliente_id, fecha_entrega_estimada, notas, 
       descripcion: l.descripcion,
       cantidad: parseInt(l.cantidad) || 1,
       precio_unitario: parseFloat(l.precio_unitario) || 0,
+      precio_base: parseFloat(l.precio_base) || null,
       medidas_ajuste: l.medidas_ajuste ? { notas: l.medidas_ajuste } : {},
       notas: l.notas || null,
     }))
@@ -197,6 +209,7 @@ export async function actualizarLinea(lineaId, encargoId, cambios) {
     medidas_ajuste: cambios.medidas_ajuste ? { notas: cambios.medidas_ajuste } : {},
     notas: cambios.notas || null,
   }
+  if (cambios.precio_base !== undefined) update.precio_base = parseFloat(cambios.precio_base) || null
   if (cambios.prenda_id !== undefined) update.prenda_id = cambios.prenda_id || null
   if (cambios.descripcion !== undefined) update.descripcion = cambios.descripcion
   const { error } = await supabase.from('encargo_lineas').update(update).eq('id', lineaId)
@@ -214,6 +227,7 @@ export async function agregarLinea(encargoId, linea) {
     descripcion: linea.descripcion,
     cantidad: parseInt(linea.cantidad) || 1,
     precio_unitario: parseFloat(linea.precio_unitario) || 0,
+    precio_base: parseFloat(linea.precio_base) || null,
     medidas_ajuste: linea.medidas_ajuste ? { notas: linea.medidas_ajuste } : {},
     notas: linea.notas || null,
   })

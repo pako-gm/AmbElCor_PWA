@@ -26,7 +26,7 @@ export default function ClientesPanel() {
     if (!busqueda) return true
     const q = busqueda.toLowerCase()
     const nombre = `${c.nombre ?? ''} ${c.apellidos ?? ''}`.toLowerCase()
-    return nombre.includes(q) || (c.telefono ?? '').includes(q) || (c.email ?? '').toLowerCase().includes(q)
+    return nombre.includes(q) || (c.telefono ?? '').includes(q) || (c.email ?? '').toLowerCase().includes(q) || (c.alias ?? '').toLowerCase().includes(q)
   })
 
   return (
@@ -65,6 +65,9 @@ export default function ClientesPanel() {
                   <p className="font-medium text-[--text-dark] text-sm">
                     {`${c.nombre} ${c.apellidos ?? ''}`.trim()}
                   </p>
+                  {c.alias && (
+                    <p className="text-xs font-medium text-primary mt-0.5">{c.alias}</p>
+                  )}
                   <p className="text-xs text-[--text-light] mt-0.5">
                     {[formatTelefono(c.telefono), c.email].filter(Boolean).join(' · ') || 'Sin datos de contacto'}
                   </p>

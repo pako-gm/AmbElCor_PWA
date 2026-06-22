@@ -49,7 +49,7 @@ export default function EncargoDetalle() {
   const [modalLineas, setModalLineas] = useState(false)
   const [mostrarFormLinea, setMostrarFormLinea] = useState(false)
   const [catalogo, setCatalogo] = useState([])
-  const [nuevaLinea, setNuevaLinea] = useState({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', notas: '' })
+  const [nuevaLinea, setNuevaLinea] = useState({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', precio_base: '', notas: '' })
   const [guardandoLinea, setGuardandoLinea] = useState(false)
   const [lineaEditando, setLineaEditando] = useState(null) // id de la línea en edición
   const [datosEdicion, setDatosEdicion] = useState({})
@@ -105,7 +105,7 @@ export default function EncargoDetalle() {
 
   const abrirModalLineas = () => {
     fetchCatalogo().then(setCatalogo).catch(console.error)
-    setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', notas: '' })
+    setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', precio_base: '', notas: '' })
     setModalLineas(true)
   }
 
@@ -124,7 +124,7 @@ export default function EncargoDetalle() {
     setGuardandoLinea(true)
     try {
       await agregarLinea(id, nuevaLinea)
-      setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', notas: '' })
+      setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', precio_base: '', notas: '' })
       setMostrarFormLinea(false)
       cargar()
     } catch (e) {
@@ -143,6 +143,7 @@ export default function EncargoDetalle() {
         if (prenda) {
           updated.descripcion = prenda.nombre
           updated.precio_unitario = (prenda.precio_base * (1 - (prenda.descuento ?? 0) / 100)).toFixed(2)
+          updated.precio_base = prenda.precio_base
         }
       }
       return updated
@@ -157,6 +158,7 @@ export default function EncargoDetalle() {
         if (prenda) {
           updated.descripcion = prenda.nombre
           updated.precio_unitario = (prenda.precio_base * (1 - (prenda.descuento ?? 0) / 100)).toFixed(2)
+          updated.precio_base = prenda.precio_base
         }
       }
       return updated
@@ -816,6 +818,7 @@ export default function EncargoDetalle() {
                               descripcion: l.descripcion || l.prendas_catalogo?.nombre || '',
                               cantidad: l.cantidad,
                               precio_unitario: l.precio_unitario,
+                              precio_base: l.precio_base ?? '',
                               notas: l.notas || '',
                             })
                           }}

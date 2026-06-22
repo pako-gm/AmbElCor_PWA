@@ -287,9 +287,7 @@ export function Modal({ tone = 'green', eyebrow, title, titleNote, onClose, chil
 // Campo de formulario
 export function Field({ label, hint, error, children, htmlFor }) {
   const child = error && isValidElement(children)
-    ? cloneElement(children, {
-        className: [children.props.className, 'input--error'].filter(Boolean).join(' '),
-      })
+    ? cloneElement(children, { error: true })
     : children;
   return (
     <label className="field" htmlFor={htmlFor}>
@@ -313,16 +311,18 @@ function withSanitize(sanitize, onChange) {
 }
 
 // Input del design system de Inventario (className="input") con prop `sanitize`.
-export const Input = forwardRef(function Input({ className = 'input', sanitize, onChange, ...props }, ref) {
+export const Input = forwardRef(function Input({ className = 'input', error, sanitize, onChange, ...props }, ref) {
+  const cls = error ? `${className} input--error` : className;
   return (
-    <input ref={ref} className={className} onChange={withSanitize(sanitize, onChange)} {...props} />
+    <input ref={ref} className={cls} onChange={withSanitize(sanitize, onChange)} {...props} />
   );
 });
 
 // Textarea del design system de Inventario con prop `sanitize`.
-export const TextareaInput = forwardRef(function TextareaInput({ className = 'input textarea', sanitize, onChange, ...props }, ref) {
+export const TextareaInput = forwardRef(function TextareaInput({ className = 'input textarea', error, sanitize, onChange, ...props }, ref) {
+  const cls = error ? `${className} input--error` : className;
   return (
-    <textarea ref={ref} className={className} onChange={withSanitize(sanitize, onChange)} {...props} />
+    <textarea ref={ref} className={cls} onChange={withSanitize(sanitize, onChange)} {...props} />
   );
 });
 

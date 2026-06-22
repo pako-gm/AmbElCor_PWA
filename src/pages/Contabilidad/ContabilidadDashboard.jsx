@@ -86,15 +86,15 @@ function EstadoPill({ estado, map }) {
   )
 }
 
-function SearchInput({ value, onChange, placeholder }) {
+function SearchInput({ value, onChange, placeholder, full }) {
   return (
-    <div className="relative">
+    <div className={`relative ${full ? 'w-full' : ''}`}>
       <input
         value={value}
         onChange={e => onChange(sanitizers.texto(e.target.value))}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="border border-[--border] rounded-lg pl-7 pr-3 py-1.5 text-xs w-40"
+        className={`border border-[--border] rounded-lg pl-7 pr-3 py-1.5 text-xs ${full ? 'w-full' : 'w-40'}`}
       />
       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[--text-light]">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -179,20 +179,20 @@ function SubNav({ tab, setTab }) {
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 
-function DashboardPanel({ año }) {
+function DashboardPanel({ año, trimestre }) {
   const { fetchCobros, fetchPagosProveedor, loading } = useContabilidad()
   const [cobros, setCobros] = useState([])
   const [pagos, setPagos] = useState([])
 
   useEffect(() => {
     Promise.all([
-      fetchCobros({ año }),
-      fetchPagosProveedor({ año }),
+      fetchCobros({ año, trimestre: trimestre || undefined }),
+      fetchPagosProveedor({ año, trimestre: trimestre || undefined }),
     ]).then(([c, p]) => {
       setCobros(c)
       setPagos(p)
     })
-  }, [año])
+  }, [año, trimestre])
 
   const ingresosCobrados = useMemo(() =>
     cobros.filter(c => c.estado === 'cobrado' && c.tipo !== 'devolucion')
@@ -380,13 +380,12 @@ function DashboardPanel({ año }) {
 
 // ─── COBROS ───────────────────────────────────────────────────────────────────
 
-function CobrosPanel({ año }) {
+function CobrosPanel({ año, trimestre }) {
   const toast = useToast()
   const { fetchCobros, marcarEstadoCobro, loading } = useContabilidad()
   const [cobros, setCobros] = useState([])
   const [filtro, setFiltro] = useState('todos')
   const [q, setQ] = useState('')
-  const [trimestre, setTrimestre] = useState(0)
 
   const cargar = () => fetchCobros({ año, trimestre: trimestre || undefined }).then(setCobros)
   useEffect(() => { cargar() }, [año, trimestre])
@@ -425,18 +424,8 @@ function CobrosPanel({ año }) {
           ))}
         </div>
         <div className="ml-auto flex items-center gap-2 flex-wrap">
-          <select
-            value={trimestre}
-            onChange={e => setTrimestre(Number(e.target.value))}
-            className="border border-[--border] rounded-lg px-2.5 py-1.5 text-xs bg-white"
-          >
-            <option value={0}>Anual</option>
-            <option value={1}>T1</option>
-            <option value={2}>T2</option>
-            <option value={3}>T3</option>
-            <option value={4}>T4</option>
-          </select>
-          <SearchInput value={q} onChange={setQ} placeholder="Buscar cliente…" />
+          <span className="text-sm text-[--text-light]">Descargar Informe</span>
+          <ArrowRight size={14} className="text-[--text-light]" />
           <button
             onClick={() => exportarLibroCobros(cobros, { trimestre: trimestre || undefined, año })}
             className="flex items-center gap-1.5 border border-[--border] bg-white text-[--text-medium] px-3 py-1.5 rounded-lg text-xs hover:border-primary hover:text-primary transition-colors"
@@ -451,6 +440,12 @@ function CobrosPanel({ año }) {
         <StatCard label="Cobrado"   value={formatImporte(totalCobrado)}  tone="green" />
         <StatCard label="Pendiente" value={formatImporte(totalPendiente)}tone="amber" />
         <StatCard label="Vencido"   value={formatImporte(totalVencido)}  tone="red" />
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="col-span-2">
+          <SearchInput value={q} onChange={setQ} placeholder="Buscar cliente…" full />
+        </div>
       </div>
 
       {loading ? (
@@ -511,7 +506,7 @@ function CobrosPanel({ año }) {
 
 // ─── PAGOS ────────────────────────────────────────────────────────────────────
 
-function PagosPanel({ año }) {
+function PagosPanel({ año, trimestre }) {
   const toast = useToast()
   const {
     fetchPagosProveedor, registrarPagoProveedor, eliminarPagoProveedor,
@@ -522,7 +517,6 @@ function PagosPanel({ año }) {
   const [proveedores, setProveedores] = useState([])
   const [filtro, setFiltro] = useState('todos')
   const [q, setQ] = useState('')
-  const [trimestre, setTrimestre] = useState(0)
   const [mostrarForm, setMostrarForm] = useState(false)
   const [form, setForm] = useState(formVacio)
   const [guardando, setGuardando] = useState(false)
@@ -647,18 +641,8 @@ function PagosPanel({ año }) {
           ))}
         </div>
         <div className="ml-auto flex items-center gap-2 flex-wrap">
-          <select
-            value={trimestre}
-            onChange={e => setTrimestre(Number(e.target.value))}
-            className="border border-[--border] rounded-lg px-2.5 py-1.5 text-xs bg-white"
-          >
-            <option value={0}>Anual</option>
-            <option value={1}>T1</option>
-            <option value={2}>T2</option>
-            <option value={3}>T3</option>
-            <option value={4}>T4</option>
-          </select>
-          <SearchInput value={q} onChange={setQ} placeholder="Buscar proveedor…" />
+          <span className="text-sm text-[--text-light]">Descargar Informe</span>
+          <ArrowRight size={14} className="text-[--text-light]" />
           <button
             onClick={() => exportarLibroPagos(pagos, { trimestre: trimestre || undefined, año })}
             className="flex items-center gap-1.5 border border-[--border] bg-white text-[--text-medium] px-3 py-1.5 rounded-lg text-xs hover:border-primary hover:text-primary transition-colors"
@@ -678,6 +662,12 @@ function PagosPanel({ año }) {
         <StatCard label="Total"     value={formatImporte(totalAll)}      tone="ink" />
         <StatCard label="Pagado"    value={formatImporte(totalPagado)}   tone="green" />
         <StatCard label="Pendiente" value={formatImporte(totalPendiente)}tone="amber" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div className="col-span-2">
+          <SearchInput value={q} onChange={setQ} placeholder="Buscar proveedor…" full />
+        </div>
       </div>
 
       {/* Formulario inline */}
@@ -982,11 +972,12 @@ export default function ContabilidadDashboard() {
   const tab = searchParams.get('tab') || 'dashboard'
   const setTab = (t) => setSearchParams({ tab: t }, { replace: true })
   const [año, setAño] = useState(AÑO_ACTUAL)
+  const [trimestre, setTrimestre] = useState(0)
 
   return (
     <PageWrapper>
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => (tab !== 'dashboard' ? setTab('dashboard') : navigate('/encargos'))}
@@ -997,24 +988,43 @@ export default function ContabilidadDashboard() {
             </button>
             <h1 className="font-display text-2xl text-[--text-dark]">Contabilidad</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-[--text-light]">Selecciona el año</span>
-            <ArrowRight size={14} className="text-[--text-light]" />
-            <select
-              value={año}
-              onChange={e => setAño(Number(e.target.value))}
-              className="border border-[--border] rounded-md px-3 py-2 text-sm bg-white"
-            >
-              {AÑOS.map(a => <option key={a} value={a}>{a}</option>)}
-            </select>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-[--text-light]">Selecciona el año</span>
+              <ArrowRight size={14} className="text-[--text-light]" />
+              <select
+                value={año}
+                onChange={e => setAño(Number(e.target.value))}
+                className="border border-[--border] rounded-md px-3 py-2 text-sm bg-white"
+              >
+                {AÑOS.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+            {(tab === 'dashboard' || tab === 'cobros' || tab === 'pagos') && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-[--text-light]">Selecciona el Trimestre</span>
+                <ArrowRight size={14} className="text-[--text-light]" />
+                <select
+                  value={trimestre}
+                  onChange={e => setTrimestre(Number(e.target.value))}
+                  className="border border-[--border] rounded-md px-3 py-2 text-sm bg-white"
+                >
+                  <option value={0}>Anual</option>
+                  <option value={1}>T1</option>
+                  <option value={2}>T2</option>
+                  <option value={3}>T3</option>
+                  <option value={4}>T4</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
         <SubNav tab={tab} setTab={setTab} />
 
-        {tab === 'dashboard' && <DashboardPanel año={año} />}
-        {tab === 'cobros'    && <CobrosPanel    año={año} />}
-        {tab === 'pagos'     && <PagosPanel     año={año} />}
+        {tab === 'dashboard' && <DashboardPanel año={año} trimestre={trimestre} />}
+        {tab === 'cobros'    && <CobrosPanel    año={año} trimestre={trimestre} />}
+        {tab === 'pagos'     && <PagosPanel     año={año} trimestre={trimestre} />}
         {tab === 'libro'     && <LibroPanel     año={año} />}
       </div>
     </PageWrapper>

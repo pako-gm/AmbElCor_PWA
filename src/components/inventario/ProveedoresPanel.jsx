@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon, Btn, Field, Input, TextareaInput } from './InventarioUI'
+import SearchInput from '@/components/ui/SearchInput'
 import { fetchProveedores, fetchProveedor, crearProveedor, actualizarProveedor, eliminarProveedor } from '@/hooks/useProveedores'
 import { formatImporte, formatCantidad, formatTelefono } from '@/utils/formatters'
 import { validarTelefono, validarEmail, normalizarTelefono, sanitizers } from '@/utils/validators'
@@ -145,18 +146,17 @@ function ProviderDetail({ proveedorId, onEdit, onDelete, onReload }) {
               <span className="prov-contact__value">{fmtDate(proveedor.created_at)}</span>
             </div>
           </div>
-          <div className="prov-contact__item">
-            <span className="prov-contact__ic"><Icon name="card" size={16} /></span>
-            <div>
-              <span className="prov-contact__label">TOTAL GASTADO</span>
-              <span className="prov-contact__value" style={{ color: 'var(--brand-deep)', fontWeight: 800 }}>{formatImporte(totalGastado)}</span>
-            </div>
-          </div>
         </div>
 
         {proveedor.notas && (
-          <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 10, fontSize: 14, color: 'var(--ink-2)', borderLeft: '3px solid var(--line)' }}>
-            {proveedor.notas}
+          <div className="prov-contact" style={{ marginTop: 18 }}>
+            <div className="prov-contact__item">
+              <span className="prov-contact__ic"><Icon name="info" size={16} /></span>
+              <div>
+                <span className="prov-contact__label">NOTAS</span>
+                <span className="prov-contact__value" style={{ fontWeight: 500, whiteSpace: 'normal' }}>{proveedor.notas}</span>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -201,7 +201,7 @@ function ProviderDetail({ proveedorId, onEdit, onDelete, onReload }) {
           <h3 className="panel__title" style={{ margin: 0 }}>Historial de pagos</h3>
           <div style={{ textAlign: 'right' }}>
             <span style={{ display: 'block', fontSize: 12, color: 'var(--muted)' }}>Total gastado</span>
-            <b style={{ fontSize: 19, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{formatImporte(totalGastado)}</b>
+            <b style={{ fontSize: 19, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: 'var(--brand-deep)' }}>{formatImporte(totalGastado)}</b>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -211,7 +211,7 @@ function ProviderDetail({ proveedorId, onEdit, onDelete, onReload }) {
                 <span className="prov-pay__concept">{p.concepto}</span>
                 <span className="prov-pay__meta">{fmtDate(p.fecha)} · {p.forma_pago || 'Sin método'}{p.referencia ? ` · ${p.referencia}` : ''}</span>
               </div>
-              <b className="prov-pay__amount">{formatImporte(parseFloat(p.importe || 0))}</b>
+              <span className="prov-pay__amount">{formatImporte(parseFloat(p.importe || 0))}</span>
             </div>
           )) : (
             <div style={{ color: 'var(--muted)', fontSize: 13, padding: '8px 0' }}>Sin pagos registrados.</div>
@@ -371,15 +371,12 @@ export default function ProveedoresPanel({ topNav = null }) {
           <div className="prov-list__head">
             PROVEEDORES ({proveedores.length} en total)
           </div>
-          <div className="searchbox searchbox--inlist" style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, padding: '0 14px', height: 40, marginBottom: 10 }}>
-            <Icon name="search" size={16} />
-            <input
-              style={{ border: 'none', outline: 'none', background: 'none', font: 'inherit', color: 'var(--ink)', width: '100%' }}
-              placeholder="Buscar por nombre o contacto…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="Buscar por nombre o contacto…"
+            className="mb-2.5"
+          />
           <div className="prov-list__scroll">
             {filtrados.map((p) => (
               <ProviderItem

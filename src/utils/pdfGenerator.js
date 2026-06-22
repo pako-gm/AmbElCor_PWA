@@ -124,21 +124,46 @@ function addLineasTable(doc, lineas, y) {
   y += 10
 
   doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(30, 30, 30)
   lineas.forEach((l, i) => {
     if (i % 2 === 0) {
       doc.setFillColor(250, 252, 251)
       doc.rect(14, y - 2, 182, 8, 'F')
     }
     const desc = l.descripcion || l.prendas_catalogo?.nombre || '—'
-    const subtotal = (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1)
-    doc.text(doc.splitTextToSize(desc, 100)[0], 16, y + 3.5)
+    const unit = parseFloat(l.precio_unitario) || 0
+    const base = parseFloat(l.precio_base) || 0
+    const cant = parseInt(l.cantidad) || 1
+    // Precio mostrado = precio base íntegro (el descuento se resta en el total)
+    const tieneDto = base > unit
+    const precioMostrado = tieneDto ? base : unit
+    const pct = tieneDto ? Math.round((1 - unit / base) * 100) : 0
+    const etiqueta = tieneDto ? `${desc}  (-${pct}%)` : desc
+    const subtotal = precioMostrado * cant
+    doc.text(doc.splitTextToSize(etiqueta, 100)[0], 16, y + 3.5)
     doc.text(String(l.cantidad ?? 1), 122, y + 3.5, { align: 'right' })
-    doc.text(formatImporte(l.precio_unitario), 154, y + 3.5, { align: 'right' })
+    doc.text(formatImporte(precioMostrado), 154, y + 3.5, { align: 'right' })
     doc.text(formatImporte(subtotal), 196, y + 3.5, { align: 'right' })
     y += 8
   })
 
   return y
+}
+
+// Calcula subtotal bruto (sin descuento), descuento total y total neto de las líneas.
+function calcularTotales(lineas) {
+  let bruto = 0
+  let neto = 0
+  for (const l of lineas) {
+    const unit = parseFloat(l.precio_unitario) || 0
+    const base = parseFloat(l.precio_base) || 0
+    const cant = parseInt(l.cantidad) || 1
+    const precioBase = base > unit ? base : unit
+    bruto += precioBase * cant
+    neto += unit * cant
+  }
+  return { bruto, descuento: bruto - neto, neto }
 }
 
 export async function generarPresupuestoPDF(encargo, datosFiscales) {
@@ -164,6 +189,19 @@ export async function generarPresupuestoPDF(encargo, datosFiscales) {
   y += 6
   y = addLineasTable(doc, encargo.encargo_lineas ?? [], y)
   y += 4
+
+  // Subtotal y descuento (solo si hay descuento aplicado)
+  const totales = calcularTotales(encargo.encargo_lineas ?? [])
+  if (totales.descuento > 0.005) {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(40, 40, 40)
+    doc.text('Subtotal:', 140, y + 4)
+    doc.text(formatImporte(totales.bruto), 195, y + 4, { align: 'right' })
+    doc.text('Descuento:', 140, y + 10)
+    doc.text('-' + formatImporte(totales.descuento), 195, y + 10, { align: 'right' })
+    y += 12
+  }
 
   // Total
   doc.setFillColor(...PRIMARY)
@@ -214,6 +252,19 @@ export async function generarFacturaPDF(encargo, datosFiscales) {
   y += 6
   y = addLineasTable(doc, encargo.encargo_lineas ?? [], y)
   y += 4
+
+  // Subtotal y descuento (solo si hay descuento aplicado)
+  const totalesFactura = calcularTotales(encargo.encargo_lineas ?? [])
+  if (totalesFactura.descuento > 0.005) {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(40, 40, 40)
+    doc.text('Subtotal:', 140, y)
+    doc.text(formatImporte(totalesFactura.bruto), 195, y, { align: 'right' })
+    doc.text('Descuento:', 140, y + 6)
+    doc.text('-' + formatImporte(totalesFactura.descuento), 195, y + 6, { align: 'right' })
+    y += 10
+  }
 
   // Total encargo
   doc.setFont('helvetica', 'bold')

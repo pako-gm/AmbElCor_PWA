@@ -1,12 +1,13 @@
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import logoAmbelcor from '@/public/img/ambelcor-oscuro.png'
 import {
   Home, Package,
-  BarChart2, LogOut, Menu, X, Globe, Settings,
+  BarChart2, Menu, X, Globe, Settings,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useState, useEffect, useRef } from 'react'
 import NotificacionesBell from '@/components/layout/NotificacionesBell'
+import UserMenu from '@/components/layout/UserMenu'
 
 const navItems = [
   { to: '/encargos', icon: Home, label: 'Encargos', permiso: 'encargos' },
@@ -21,8 +22,7 @@ function CopyrightYear() {
 }
 
 export default function PageWrapper({ children, title }) {
-  const { signOut, perfil } = useAuth()
-  const navigate = useNavigate()
+  const { perfil } = useAuth()
 
   // Filtra el menú según los permisos del perfil activo (rol).
   const itemsVisibles = navItems.filter(
@@ -51,11 +51,6 @@ export default function PageWrapper({ children, title }) {
     cerrarDrawer()
   }, [location.pathname])
 
-  const handleSignOut = async () => {
-    await signOut()
-    navigate('/acceso')
-  }
-
   return (
     <div className="min-h-screen bg-[--bg-gray] flex flex-col">
       {/* Header fijo */}
@@ -77,6 +72,7 @@ export default function PageWrapper({ children, title }) {
             </span>
           </div>
           <NotificacionesBell />
+          <UserMenu />
         </div>
       </header>
 
@@ -163,23 +159,6 @@ export default function PageWrapper({ children, title }) {
             Web Pública
           </a>
         </nav>
-
-        {/* Perfil activo */}
-        {perfil && (
-          <div className="px-5 py-3 border-t border-[--border] flex-shrink-0">
-            <div className="text-sm font-medium text-[--text-dark] leading-tight">{perfil.nombre}</div>
-            <div className="text-xs text-[--text-light]">{perfil.rol}</div>
-          </div>
-        )}
-
-        {/* Cerrar sesión */}
-        <button
-          onClick={handleSignOut}
-          className={`flex items-center gap-3 px-5 py-4 text-sm text-[--text-light] hover:text-[--text-medium] transition-colors flex-shrink-0 ${perfil ? '' : 'border-t border-[--border]'}`}
-        >
-          <LogOut size={16} />
-          Cerrar sesión
-        </button>
       </aside>
 
       {/* Contenido principal */}

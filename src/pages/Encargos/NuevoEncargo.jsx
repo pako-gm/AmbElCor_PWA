@@ -12,7 +12,7 @@ import { sanitizers } from '@/utils/validators'
 import { useToast } from '@/hooks/useToast'
 
 function lineaVacia() {
-  return { _id: Date.now() + Math.random(), prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', notas: '' }
+  return { _id: Date.now() + Math.random(), prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', precio_base: '', notas: '' }
 }
 
 export default function NuevoEncargo() {
@@ -56,7 +56,7 @@ export default function NuevoEncargo() {
       setCatalogo(prev => prev.some(p => p.id === st.nuevaPrenda.id) ? prev : [...prev, st.nuevaPrenda])
       const precio = st.nuevaPrenda.precio_base * (1 - (st.nuevaPrenda.descuento ?? 0) / 100)
       base = (base ?? lineas).map(x => x._id === st.lineaId
-        ? { ...x, prenda_id: st.nuevaPrenda.id, descripcion: st.nuevaPrenda.nombre, precio_unitario: precio.toFixed(2) }
+        ? { ...x, prenda_id: st.nuevaPrenda.id, descripcion: st.nuevaPrenda.nombre, precio_unitario: precio.toFixed(2), precio_base: st.nuevaPrenda.precio_base }
         : x)
     }
     if (base) setLineas(base)
@@ -109,6 +109,7 @@ export default function NuevoEncargo() {
           const precio = prenda.precio_base * (1 - (prenda.descuento ?? 0) / 100)
           updated.descripcion = prenda.nombre
           updated.precio_unitario = precio.toFixed(2)
+          updated.precio_base = prenda.precio_base
         }
       }
       return updated
