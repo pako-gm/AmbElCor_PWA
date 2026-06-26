@@ -1,19 +1,16 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { Download, Plus, Trash2, ArrowRight, ChevronLeft } from 'lucide-react'
+import { Download, Plus, Pencil, Trash2, ArrowRight, ChevronLeft } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { useContabilidad } from '@/hooks/useContabilidad'
 import {
   formatFecha, formatImporte,
   FORMA_PAGO_LABELS, CATEGORIA_GASTO_LABELS,
 } from '@/utils/formatters'
-import { validarTelefono, validarEmail, normalizarTelefono, sanitizers } from '@/utils/validators'
+import { sanitizers } from '@/utils/validators'
 import { useToast } from '@/hooks/useToast'
-import Button from '@/components/ui/Button'
 import LoadingState from '@/components/ui/LoadingState'
-import Modal from '@/components/ui/Modal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
-import { Field, Input } from '@/components/ui/Field'
 import { exportarLibroCobros, exportarLibroPagos, exportarLibroDiario } from '@/utils/exportExcel'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -51,6 +48,10 @@ const formVacio = {
   desglosarIva: false, estado: 'pagado',
 }
 
+// Clave de sessionStorage para conservar el gasto en curso mientras se da de
+// alta un proveedor nuevo en la pantalla Proveedores y se vuelve a Registrar gasto.
+const GASTO_BORRADOR_KEY = 'ambelcor:gasto_borrador'
+
 // ─── Componentes compartidos ──────────────────────────────────────────────────
 
 function Chip({ active, onClick, children }) {
@@ -66,12 +67,13 @@ function Chip({ active, onClick, children }) {
   )
 }
 
-function StatCard({ label, value, tone = 'ink' }) {
+function StatCard({ label, value, tone = 'ink', hint }) {
   const tones = { green: 'text-green-600', red: 'text-red-500', amber: 'text-amber-600', ink: 'text-[--text-dark]' }
   return (
     <div className="bg-white border border-[--border] rounded-xl p-4">
       <p className="text-xs text-[--text-light] mb-1">{label}</p>
       <p className={`text-xl font-bold ${tones[tone]}`}>{value}</p>
+      {hint && <p className="text-[10px] text-[--text-light] mt-1">{hint}</p>}
     </div>
   )
 }
@@ -105,14 +107,105 @@ function SearchInput({ value, onChange, placeholder, full }) {
   )
 }
 
+// ─── Escala "bonita" para el eje Y ────────────────────────────────────────────
+
+function escalaEjeY(maxValor) {
+  if (!maxValor || maxValor <= 0) return { max: 100, paso: 20 }
+  const pasos = [10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000]
+  for (const paso of pasos) {
+    const max = Math.ceil(maxValor / paso) * paso
+    if (max / paso <= 8) return { max, paso }
+  }
+  const paso = Math.ceil(maxValor / 8)
+  return { max: paso * 8, paso }
+}
+
+// ─── Gráfico de barras Ingresos vs Gastos (con ejes) ──────────────────────────
+
+const COLOR_ING = '#1FB39A'
+const COLOR_GAS = '#F07979'
+
+function BarChart({ data }) {
+  const [hover, setHover] = useState(null)
+  const maxValor = Math.max(0, ...data.flatMap(d => [d.ing, d.gas]))
+  const { max, paso } = escalaEjeY(maxValor)
+  const ticks = []
+  for (let v = max; v >= 0; v -= paso) ticks.push(v)
+  const H = 220
+
+  return (
+    <div>
+      <div className="flex" style={{ height: H }}>
+        {/* Eje Y */}
+        <div className="flex flex-col justify-between pr-2 text-[9px] text-[--text-light] text-right w-10 shrink-0">
+          {ticks.map(t => (
+            <span key={t} className="leading-none -mt-1">{t}€</span>
+          ))}
+        </div>
+        {/* Zona de barras + rejilla */}
+        <div className="relative flex-1">
+          <div className="absolute inset-0 flex flex-col justify-between">
+            {ticks.map((t, i) => (
+              <div key={t} className={`h-0 border-t ${i === ticks.length - 1 ? 'border-[--text-light]/50' : 'border-[--border]'}`} />
+            ))}
+          </div>
+          <div className="absolute inset-0 flex items-end gap-1.5" onMouseLeave={() => setHover(null)}>
+            {data.map((d, i) => {
+              const onMove = (e, label, value, color) => {
+                const r = e.currentTarget.closest('.relative').getBoundingClientRect()
+                setHover({ x: e.clientX - r.left, y: e.clientY - r.top, label, value, color })
+              }
+              return (
+                <div key={i} className="flex-1 h-full flex items-end justify-center gap-0.5">
+                  <div className="flex-1 rounded-t-sm transition-all cursor-pointer"
+                    onMouseMove={e => onMove(e, `Ingresos ${MESES_LABELS[i]}`, d.ing, COLOR_ING)}
+                    style={{ height: `${(d.ing / max) * 100}%`, background: COLOR_ING }} />
+                  <div className="flex-1 rounded-t-sm transition-all cursor-pointer"
+                    onMouseMove={e => onMove(e, `Gastos ${MESES_LABELS[i]}`, d.gas, COLOR_GAS)}
+                    style={{ height: `${(d.gas / max) * 100}%`, background: COLOR_GAS }} />
+                </div>
+              )
+            })}
+          </div>
+          {hover && (
+            <div className="absolute z-10 pointer-events-none flex items-center gap-2 rounded-md bg-[--text-dark] text-white text-xs px-2.5 py-1.5 shadow-lg whitespace-nowrap"
+              style={{ left: hover.x, top: hover.y, transform: 'translate(-50%, calc(-100% - 8px))' }}>
+              <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: hover.color }} />
+              <span>{hover.label}</span>
+              <span className="font-semibold">{formatImporte(hover.value)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Eje X */}
+      <div className="flex pl-10">
+        {MESES_LABELS.map((m, i) => (
+          <span key={i} className="flex-1 text-center text-[9px] text-[--text-light] mt-1.5">{m}</span>
+        ))}
+      </div>
+      {/* Leyenda */}
+      <div className="flex gap-4 mt-3 pl-10 text-[10px] text-[--text-light]">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLOR_ING }} /> Ingresos
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm" style={{ background: COLOR_GAS }} /> Gastos
+        </span>
+      </div>
+    </div>
+  )
+}
+
 // ─── Gráfico donut SVG ────────────────────────────────────────────────────────
 
 function DonutChart({ data, total }) {
-  const R = 52, SW = 16, Cf = 2 * Math.PI * R
+  const R = 52, SW = 26, Cf = 2 * Math.PI * R
   let acc = 0
+  const [hover, setHover] = useState(null)
   return (
-    <div className="flex flex-col gap-4">
-      <div className="relative w-full max-w-[220px] mx-auto">
+    <div className="flex items-center gap-6 w-full h-full">
+      <div className="w-1/2 flex justify-center shrink-0">
+        <div className="relative w-[200px]" onMouseLeave={() => setHover(null)}>
         <svg viewBox="0 0 140 140" className="w-full h-auto">
           <g transform="rotate(-90 70 70)">
             <circle cx="70" cy="70" r={R} fill="none" stroke="#E5E7EB" strokeWidth={SW} />
@@ -120,31 +213,45 @@ function DonutChart({ data, total }) {
               const len = (d.value / total) * Cf
               const seg = (
                 <circle key={i} cx="70" cy="70" r={R} fill="none" stroke={d.color}
-                  strokeWidth={SW} strokeDasharray={`${len} ${Cf - len}`} strokeDashoffset={-acc} />
+                  strokeWidth={SW} strokeDasharray={`${len} ${Cf - len}`} strokeDashoffset={-acc}
+                  className="cursor-pointer"
+                  onMouseMove={e => {
+                    const r = e.currentTarget.ownerSVGElement.getBoundingClientRect()
+                    setHover({ i, x: e.clientX - r.left, y: e.clientY - r.top })
+                  }} />
               )
               acc += len
               return seg
             })}
           </g>
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-          <span className="text-[9px] text-[--text-light]">Gastos</span>
-          <span className="text-xs font-bold text-[--text-dark]">{formatImporte(total)}</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-[10px] text-[--text-light]">Gastos</span>
+          <span className="text-sm font-bold text-[--text-dark]">{formatImporte(total)}</span>
+        </div>
+        {hover && data[hover.i] && (
+          <div className="absolute z-10 pointer-events-none flex items-center gap-2 rounded-md bg-[--text-dark] text-white text-xs px-2.5 py-1.5 shadow-lg whitespace-nowrap"
+            style={{ left: hover.x, top: hover.y, transform: 'translate(-50%, calc(-100% - 8px))' }}>
+            <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: data[hover.i].color }} />
+            <span>{data[hover.i].label}</span>
+            <span className="font-semibold">{formatImporte(data[hover.i].value)}</span>
+          </div>
+        )}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+      <ul className="w-1/2 min-w-0 space-y-3 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar">
         {data.map((d, i) => (
-          <div key={i} className="flex items-start gap-1.5 min-w-0">
-            <span className="w-2 h-2 rounded-sm shrink-0 mt-0.5" style={{ background: d.color }} />
+          <li key={i} className="flex items-start gap-2 min-w-0">
+            <span className="w-2.5 h-2.5 rounded-full shrink-0 mt-1" style={{ background: d.color }} />
             <div className="min-w-0">
-              <p className="text-[10px] text-[--text-medium] leading-tight truncate">{d.label}</p>
-              <p className="text-[9px] text-[--text-light]">
+              <p className="text-[11px] text-[--text-medium] truncate">{d.label}</p>
+              <p className="text-[10px] text-[--text-light]">
                 {formatImporte(d.value)} · {((d.value / total) * 100).toFixed(1)}%
               </p>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   )
 }
@@ -179,7 +286,7 @@ function SubNav({ tab, setTab }) {
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 
-function DashboardPanel({ año, trimestre }) {
+function DashboardPanel({ año, trimestre, setTab, labelsMap = {}, coloresMap = {} }) {
   const { fetchCobros, fetchPagosProveedor, loading } = useContabilidad()
   const [cobros, setCobros] = useState([])
   const [pagos, setPagos] = useState([])
@@ -240,17 +347,15 @@ function DashboardPanel({ año, trimestre }) {
     })
     return Object.entries(mapa)
       .map(([cat, value]) => ({
-        label: CATEGORIA_GASTO_LABELS[cat] ?? cat,
+        label: labelsMap[cat] ?? CATEGORIA_GASTO_LABELS[cat] ?? cat,
         value,
-        color: CATEGORIA_COLORES[cat] ?? '#9CA3AF',
+        color: coloresMap[cat] ?? CATEGORIA_COLORES[cat] ?? '#9CA3AF',
       }))
       .sort((a, b) => b.value - a.value)
-  }, [pagos])
+  }, [pagos, labelsMap, coloresMap])
 
   const totalGastosCat = categoriaData.reduce((s, d) => s + d.value, 0)
   const resultado = ingresosCobrados - gastosPagados
-  const maxV = Math.max(1, ...mesesData.map(m => Math.max(m.ing, m.gas)))
-  const H = 200
 
   return (
     <div className="space-y-6">
@@ -266,56 +371,32 @@ function DashboardPanel({ año, trimestre }) {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Ingresos cobrados" value={formatImporte(ingresosCobrados)} tone="green" />
-        <StatCard label="Gastos pagados"    value={formatImporte(gastosPagados)}    tone="red" />
-        <StatCard label="Resultado neto"    value={formatImporte(resultado)}        tone={resultado >= 0 ? 'green' : 'red'} />
-        <StatCard label="Por cobrar"        value={formatImporte(porCobrar)}        tone="amber" />
+        <StatCard label="Ingresos cobrados" value={formatImporte(ingresosCobrados)} tone="green" hint="Ejercicio actual" />
+        <StatCard label="Gastos pagados"    value={formatImporte(gastosPagados)}    tone="red"   hint="Ejercicio actual" />
+        <StatCard label="Resultado neto"    value={formatImporte(resultado)}        tone={resultado >= 0 ? 'green' : 'red'} hint="Ingresos − Gastos" />
+        <StatCard label="Por cobrar"        value={formatImporte(porCobrar)}        tone="amber" hint="Pendiente + vencido" />
       </div>
 
       {loading ? (
         <LoadingState />
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-            {/* Barras mensuales */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+            {/* Ingresos vs Gastos */}
             <div className="bg-white border border-[--border] rounded-xl p-5">
-              <p className="text-xs font-semibold text-[--text-medium] mb-4">Evolución mensual</p>
-              <div className="flex items-end gap-1" style={{ height: H + 24 }}>
-                {mesesData.map((d, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center justify-end">
-                    <div className="w-full flex items-end justify-center gap-px" style={{ height: H }}>
-                      <div
-                        className="flex-1 bg-primary/80 rounded-t-sm transition-all"
-                        style={{ height: (d.ing / maxV) * H }}
-                        title={`Ingresos ${MESES_LABELS[i]}: ${formatImporte(d.ing)}`}
-                      />
-                      <div
-                        className="flex-1 bg-amber-400/80 rounded-t-sm transition-all"
-                        style={{ height: (d.gas / maxV) * H }}
-                        title={`Gastos ${MESES_LABELS[i]}: ${formatImporte(d.gas)}`}
-                      />
-                    </div>
-                    <span className="text-[8px] text-[--text-light] mt-1">{MESES_LABELS[i]}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-4 mt-2 text-[10px] text-[--text-light]">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-sm bg-primary/80" /> Ingresos
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-sm bg-amber-400/80" /> Gastos
-                </span>
-              </div>
+              <p className="font-display text-lg text-[--text-dark] mb-4">Ingresos vs Gastos</p>
+              <BarChart data={mesesData} />
             </div>
 
-            {/* Donut */}
-            <div className="bg-white border border-[--border] rounded-xl p-5">
-              <p className="text-xs font-semibold text-[--text-medium] mb-4">Gastos por categoría</p>
+            {/* Distribución de gastos */}
+            <div className="bg-white border border-[--border] rounded-xl p-5 flex flex-col">
+              <p className="font-display text-lg text-[--text-dark] mb-4">Distribución de gastos</p>
               {categoriaData.length === 0 ? (
                 <p className="text-xs text-[--text-light]">Sin gastos registrados.</p>
               ) : (
-                <DonutChart data={categoriaData} total={totalGastosCat} />
+                <div className="flex-1 flex items-center">
+                  <DonutChart data={categoriaData} total={totalGastosCat} />
+                </div>
               )}
             </div>
           </div>
@@ -323,7 +404,15 @@ function DashboardPanel({ año, trimestre }) {
           {/* Listas pendientes */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-white border border-[--border] rounded-xl p-5">
-              <p className="text-xs font-semibold text-[--text-medium] mb-3">Cobros pendientes</p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-[--text-medium]">Cobros pendientes</p>
+                <button
+                  onClick={() => setTab('cobros')}
+                  className="text-xs border border-[--border] bg-white text-[--text-medium] px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors"
+                >
+                  Ver todos
+                </button>
+              </div>
               {cobrosPend.length === 0 ? (
                 <p className="text-xs text-[--text-light]">Sin cobros pendientes.</p>
               ) : (
@@ -354,7 +443,15 @@ function DashboardPanel({ año, trimestre }) {
             </div>
 
             <div className="bg-white border border-[--border] rounded-xl p-5">
-              <p className="text-xs font-semibold text-[--text-medium] mb-3">Pagos pendientes</p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-[--text-medium]">Pagos pendientes</p>
+                <button
+                  onClick={() => setTab('pagos')}
+                  className="text-xs border border-[--border] bg-white text-[--text-medium] px-3 py-1.5 rounded-lg hover:border-primary hover:text-primary transition-colors"
+                >
+                  Ver todos
+                </button>
+              </div>
               {pagosPend.length === 0 ? (
                 <p className="text-xs text-[--text-light]">Sin pagos pendientes.</p>
               ) : (
@@ -386,6 +483,7 @@ function CobrosPanel({ año, trimestre }) {
   const [cobros, setCobros] = useState([])
   const [filtro, setFiltro] = useState('todos')
   const [q, setQ] = useState('')
+  const [modalCobrar, setModalCobrar] = useState(null)
 
   const cargar = () => fetchCobros({ año, trimestre: trimestre || undefined }).then(setCobros)
   useEffect(() => { cargar() }, [año, trimestre])
@@ -404,15 +502,17 @@ function CobrosPanel({ año, trimestre }) {
   const totalPendiente= cobros.filter(c => c.estado === 'pendiente').reduce((s, c) => s + parseFloat(c.importe || 0), 0)
   const totalVencido  = cobros.filter(c => c.estado === 'vencido').reduce((s, c) => s + parseFloat(c.importe || 0), 0)
 
-  const handleMarcar = async (id) => {
+  const handleMarcar = async () => {
+    if (!modalCobrar) return
     try {
-      await marcarEstadoCobro(id, 'cobrado')
+      await marcarEstadoCobro(modalCobrar.id, 'cobrado')
       toast.success('Cobro marcado como cobrado.')
       cargar()
     } catch (e) {
       console.error(e)
       toast.error('No se pudo actualizar el cobro.')
     }
+    setModalCobrar(null)
   }
 
   return (
@@ -436,10 +536,10 @@ function CobrosPanel({ año, trimestre }) {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Total"     value={formatImporte(totalAll)}      tone="ink" />
-        <StatCard label="Cobrado"   value={formatImporte(totalCobrado)}  tone="green" />
-        <StatCard label="Pendiente" value={formatImporte(totalPendiente)}tone="amber" />
-        <StatCard label="Vencido"   value={formatImporte(totalVencido)}  tone="red" />
+        <StatCard label="Total"     value={formatImporte(totalAll)}      tone="ink"   hint="Cobrado + pendiente" />
+        <StatCard label="Cobrado"   value={formatImporte(totalCobrado)}  tone="green" hint="Ya ingresado" />
+        <StatCard label="Pendiente" value={formatImporte(totalPendiente)}tone="amber" hint="En plazo" />
+        <StatCard label="Vencido"   value={formatImporte(totalVencido)}  tone="red"   hint="Fuera de plazo" />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -452,7 +552,7 @@ function CobrosPanel({ año, trimestre }) {
         <LoadingState />
       ) : (
         <div className="bg-white border border-[--border] rounded-xl overflow-hidden">
-          <div className="hidden md:grid grid-cols-[1fr_110px_90px_100px_80px_90px_110px] gap-3 px-4 py-2.5 bg-gray-50 border-b border-[--border] text-[10px] font-semibold uppercase tracking-wide text-[--text-light]">
+          <div className="hidden md:grid grid-cols-[minmax(150px,1.5fr)_110px_90px_100px_80px_90px_110px] gap-3 px-4 py-2.5 bg-gray-50 border-b border-[--border] text-[10px] font-semibold uppercase tracking-wide text-[--text-light]">
             <span>Cliente</span><span>Nº Encargo</span><span>Fecha</span>
             <span>Vencimiento</span><span>Forma</span><span className="text-right">Importe</span>
             <span>Estado</span>
@@ -466,7 +566,7 @@ function CobrosPanel({ año, trimestre }) {
             return (
               <div
                 key={c.id}
-                className={`grid md:grid-cols-[1fr_110px_90px_100px_80px_90px_110px] gap-1 md:gap-3 px-4 py-3 text-sm border-b border-[--border] last:border-0 items-center ${i % 2 ? 'bg-gray-50/40' : ''}`}
+                className={`grid md:grid-cols-[minmax(150px,1.5fr)_110px_90px_100px_80px_90px_110px] gap-1 md:gap-3 px-4 py-3 text-sm border-b border-[--border] last:border-0 items-center ${i % 2 ? 'bg-gray-50/40' : ''}`}
               >
                 <span className="font-medium text-[--text] truncate">{cliente}</span>
                 <span>
@@ -488,7 +588,12 @@ function CobrosPanel({ año, trimestre }) {
                   <EstadoPill estado={c.estado} map={ESTADO_COBRO} />
                   {c.estado !== 'cobrado' && (
                     <button
-                      onClick={() => handleMarcar(c.id)}
+                      onClick={() => setModalCobrar({
+                        id: c.id,
+                        cliente,
+                        numero: c.encargos?.numero,
+                        importe: c.importe,
+                      })}
                       className="text-[10px] text-green-600 hover:underline whitespace-nowrap"
                     >
                       ✓ Cobrar
@@ -500,17 +605,32 @@ function CobrosPanel({ año, trimestre }) {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!modalCobrar}
+        title="Confirmar cobro"
+        description={modalCobrar
+          ? `Marcar como cobrado: ${modalCobrar.cliente}${modalCobrar.numero ? ` · ${modalCobrar.numero}` : ''} · ${formatImporte(modalCobrar.importe)}`
+          : ''}
+        confirmLabel="Cobrar"
+        cancelLabel="Cancelar"
+        tone="primary"
+        onConfirm={handleMarcar}
+        onCancel={() => setModalCobrar(null)}
+      />
     </div>
   )
 }
 
 // ─── PAGOS ────────────────────────────────────────────────────────────────────
 
-function PagosPanel({ año, trimestre }) {
+function PagosPanel({ año, trimestre, categorias = [], labelsMap = {} }) {
   const toast = useToast()
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const {
-    fetchPagosProveedor, registrarPagoProveedor, eliminarPagoProveedor,
-    marcarEstadoPago, fetchProveedores, crearProveedor, loading,
+    fetchPagosProveedor, registrarPagoProveedor, actualizarPagoProveedor,
+    eliminarPagoProveedor, marcarEstadoPago, fetchProveedores, loading,
   } = useContabilidad()
 
   const [pagos, setPagos] = useState([])
@@ -523,15 +643,36 @@ function PagosPanel({ año, trimestre }) {
   const [errForm, setErrForm] = useState('')
   const [errCampos, setErrCampos] = useState({})
   const [modalEliminar, setModalEliminar] = useState(null)
-  const [modalProveedor, setModalProveedor] = useState(false)
-  const [nuevoProveedor, setNuevoProveedor] = useState({ nombre: '', telefono: '', email: '' })
-  const [guardandoProv, setGuardandoProv] = useState(false)
-  const [errProveedor, setErrProveedor] = useState('')
-  const [errProvCampos, setErrProvCampos] = useState({})
+  const [modalPagar, setModalPagar] = useState(null)
+  const [editando, setEditando] = useState(null)
 
   const cargar = () => fetchPagosProveedor({ año, trimestre: trimestre || undefined }).then(setPagos)
   useEffect(() => { cargar() }, [año, trimestre])
   useEffect(() => { fetchProveedores().then(setProveedores) }, [])
+
+  // Al volver de dar de alta un proveedor: recupera el gasto en curso y, si se
+  // creó un proveedor, lo deja seleccionado en el formulario.
+  useEffect(() => {
+    const creado = searchParams.get('proveedorCreado')
+    const volver = searchParams.get('volverGasto')
+    if (!creado && !volver) return
+    const raw = sessionStorage.getItem(GASTO_BORRADOR_KEY)
+    if (raw) {
+      try {
+        const borrador = JSON.parse(raw)
+        setForm({ ...formVacio, ...borrador, ...(creado ? { proveedor_id: creado } : {}) })
+        setMostrarForm(true)
+      } catch { /* borrador corrupto: se ignora */ }
+    }
+    sessionStorage.removeItem(GASTO_BORRADOR_KEY)
+    setSearchParams({ tab: 'pagos' }, { replace: true })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Guarda el gasto en curso y navega a Proveedores para dar de alta uno nuevo.
+  const irANuevoProveedor = () => {
+    sessionStorage.setItem(GASTO_BORRADOR_KEY, JSON.stringify(form))
+    navigate('/inventario?tab=proveedores&nuevo=gasto')
+  }
 
   const rows = pagos.filter(p =>
     (filtro === 'todos' || p.estado === filtro) &&
@@ -556,6 +697,26 @@ function PagosPanel({ año, trimestre }) {
     })
   }
 
+  const iniciarEdicion = (p) => {
+    setForm({
+      proveedor_id: p.proveedores?.id ?? '',
+      fecha: p.fecha,
+      concepto: p.concepto ?? '',
+      importe: p.importe != null ? String(p.importe) : '',
+      forma_pago: p.forma_pago ?? 'efectivo',
+      referencia: p.referencia ?? '',
+      categoria: p.categoria ?? 'material',
+      base_imponible: p.base_imponible != null ? String(p.base_imponible) : '',
+      iva_porcentaje: p.iva_porcentaje != null ? p.iva_porcentaje : 21,
+      iva_importe: p.iva_importe != null ? String(p.iva_importe) : '',
+      desglosarIva: p.iva_porcentaje != null && p.base_imponible != null,
+      estado: p.estado ?? 'pagado',
+    })
+    setEditando(p.id)
+    setMostrarForm(true)
+    setErrForm(''); setErrCampos({})
+  }
+
   const handleGuardar = async () => {
     const nuevosErrs = {}
     if (!form.concepto.trim()) nuevosErrs.concepto = 'El concepto es obligatorio.'
@@ -565,7 +726,7 @@ function PagosPanel({ año, trimestre }) {
     setErrForm('')
     setGuardando(true)
     try {
-      await registrarPagoProveedor({
+      const payload = {
         proveedor_id: form.proveedor_id || null,
         fecha: form.fecha, concepto: form.concepto,
         importe: parseFloat(form.importe), forma_pago: form.forma_pago,
@@ -574,10 +735,17 @@ function PagosPanel({ año, trimestre }) {
         iva_porcentaje: form.desglosarIva ? parseFloat(form.iva_porcentaje) : null,
         iva_importe: form.iva_importe !== '' ? parseFloat(form.iva_importe) : null,
         estado: form.estado || 'pagado',
-      })
+      }
+      if (editando) {
+        await actualizarPagoProveedor(editando, payload)
+        toast.success('Gasto actualizado.')
+      } else {
+        await registrarPagoProveedor(payload)
+        toast.success('Gasto registrado.')
+      }
       setForm(formVacio)
       setMostrarForm(false)
-      toast.success('Gasto registrado.')
+      setEditando(null)
       await cargar()
     } catch (e) { setErrForm(e.message) }
     finally { setGuardando(false) }
@@ -596,40 +764,18 @@ function PagosPanel({ año, trimestre }) {
     setModalEliminar(null)
   }
 
-  const handleCrearProveedor = async () => {
-    if (!nuevoProveedor.nombre.trim()) return
-    const nuevosErrs = {}
-    if (nuevoProveedor.telefono && !validarTelefono(nuevoProveedor.telefono))
-      nuevosErrs.telefono = 'El teléfono debe tener 9 dígitos.'
-    if (nuevoProveedor.email && !validarEmail(nuevoProveedor.email))
-      nuevosErrs.email = 'El email no es válido.'
-    if (Object.keys(nuevosErrs).length > 0) { setErrProvCampos(nuevosErrs); return }
-    setErrProvCampos({})
-    setErrProveedor('')
-    setGuardandoProv(true)
-    try {
-      const prov = await crearProveedor({
-        ...nuevoProveedor,
-        telefono: nuevoProveedor.telefono ? normalizarTelefono(nuevoProveedor.telefono) : nuevoProveedor.telefono,
-      })
-      setProveedores(prev => [...prev, prov].sort((a, b) => a.nombre.localeCompare(b.nombre)))
-      setForm(f => ({ ...f, proveedor_id: prov.id }))
-      setModalProveedor(false)
-      setNuevoProveedor({ nombre: '', telefono: '', email: '' })
-    } catch (e) {
-      setErrProveedor(e.message || 'Error al crear el proveedor.')
-    } finally { setGuardandoProv(false) }
-  }
 
-  const handleMarcarPagado = async (id) => {
+  const handleMarcarPagado = async () => {
+    if (!modalPagar) return
     try {
-      await marcarEstadoPago(id, 'pagado')
+      await marcarEstadoPago(modalPagar.id, 'pagado')
       toast.success('Gasto marcado como pagado.')
       cargar()
     } catch (e) {
       console.error(e)
       toast.error('No se pudo actualizar el gasto.')
     }
+    setModalPagar(null)
   }
 
   return (
@@ -644,13 +790,17 @@ function PagosPanel({ año, trimestre }) {
           <span className="text-sm text-[--text-light]">Descargar Informe</span>
           <ArrowRight size={14} className="text-[--text-light]" />
           <button
-            onClick={() => exportarLibroPagos(pagos, { trimestre: trimestre || undefined, año })}
+            onClick={() => exportarLibroPagos(pagos, { trimestre: trimestre || undefined, año, categoriaLabels: labelsMap })}
             className="flex items-center gap-1.5 border border-[--border] bg-white text-[--text-medium] px-3 py-1.5 rounded-lg text-xs hover:border-primary hover:text-primary transition-colors"
           >
             <Download size={13} /> Excel
           </button>
           <button
-            onClick={() => setMostrarForm(v => !v)}
+            onClick={() => setMostrarForm(v => {
+              const next = !v
+              if (next) { setForm(formVacio); setEditando(null); setErrForm(''); setErrCampos({}) }
+              return next
+            })}
             className="flex items-center gap-1.5 bg-primary text-white px-3 py-1.5 rounded-lg text-xs hover:bg-primary-dark transition-colors"
           >
             <Plus size={13} /> Registrar gasto
@@ -659,9 +809,9 @@ function PagosPanel({ año, trimestre }) {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Total"     value={formatImporte(totalAll)}      tone="ink" />
-        <StatCard label="Pagado"    value={formatImporte(totalPagado)}   tone="green" />
-        <StatCard label="Pendiente" value={formatImporte(totalPendiente)}tone="amber" />
+        <StatCard label="Total"     value={formatImporte(totalAll)}      tone="ink"   hint="Pagado + pendiente" />
+        <StatCard label="Pagado"    value={formatImporte(totalPagado)}   tone="green" hint="Ya abonado" />
+        <StatCard label="Pendiente" value={formatImporte(totalPendiente)}tone="amber" hint="Sin pagar" />
       </div>
 
       <div className="grid grid-cols-3 gap-3">
@@ -673,7 +823,7 @@ function PagosPanel({ año, trimestre }) {
       {/* Formulario inline */}
       {mostrarForm && (
         <div className="bg-white border border-[--border] rounded-xl p-5 space-y-4">
-          <h3 className="font-semibold text-[--text] text-sm">Nuevo gasto</h3>
+          <h3 className="font-semibold text-[--text] text-sm">{editando ? 'Editar gasto' : 'Nuevo gasto'}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-[--text-light] mb-1">Proveedor (opcional)</label>
@@ -683,7 +833,8 @@ function PagosPanel({ año, trimestre }) {
                   <option value="">— Sin proveedor —</option>
                   {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                 </select>
-                <button onClick={() => setModalProveedor(true)}
+                <button onClick={irANuevoProveedor}
+                  title="Dar de alta un proveedor nuevo"
                   className="text-xs border border-dashed border-[--border] px-2 rounded-md text-[--text-light] hover:border-primary hover:text-primary transition-colors">
                   ＋
                 </button>
@@ -698,7 +849,10 @@ function PagosPanel({ año, trimestre }) {
               <label className="block text-xs text-[--text-light] mb-1">Categoría *</label>
               <select value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}
                 className="w-full border border-[--border] rounded-md px-3 py-2 text-sm bg-white">
-                {Object.entries(CATEGORIA_GASTO_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {(categorias.length
+                  ? categorias.map(c => [c.clave, c.etiqueta])
+                  : Object.entries(CATEGORIA_GASTO_LABELS)
+                ).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
             <div>
@@ -775,7 +929,7 @@ function PagosPanel({ año, trimestre }) {
           </div>
           {errForm && <p className="text-xs text-red-500">{errForm}</p>}
           <div className="flex gap-2 justify-end">
-            <button onClick={() => { setMostrarForm(false); setForm(formVacio); setErrForm(''); setErrCampos({}) }}
+            <button onClick={() => { setMostrarForm(false); setForm(formVacio); setEditando(null); setErrForm(''); setErrCampos({}) }}
               className="px-4 py-2 text-sm rounded-md border border-[--border] text-[--text-medium] hover:bg-gray-50 transition-colors">
               Cancelar
             </button>
@@ -791,7 +945,7 @@ function PagosPanel({ año, trimestre }) {
         <LoadingState />
       ) : (
         <div className="bg-white border border-[--border] rounded-xl overflow-hidden">
-          <div className="hidden md:grid grid-cols-[90px_130px_120px_1fr_70px_55px_90px_80px_36px] gap-2 px-4 py-2.5 bg-gray-50 border-b border-[--border] text-[10px] font-semibold uppercase tracking-wide text-[--text-light]">
+          <div className="hidden md:grid grid-cols-[88px_minmax(120px,1.5fr)_120px_minmax(150px,1.7fr)_66px_52px_86px_80px_60px] gap-2 px-4 py-2.5 bg-gray-50 border-b border-[--border] text-[10px] font-semibold uppercase tracking-wide text-[--text-light]">
             <span>Fecha</span><span>Proveedor</span><span>Categoría</span><span>Concepto</span>
             <span className="text-right">Base</span><span className="text-right">IVA%</span>
             <span className="text-right">Total</span><span>Estado</span><span />
@@ -800,13 +954,13 @@ function PagosPanel({ año, trimestre }) {
             <p className="text-sm text-[--text-light] text-center py-10">Sin gastos que coincidan.</p>
           ) : rows.map((p, i) => (
             <div key={p.id}
-              className={`grid md:grid-cols-[90px_130px_120px_1fr_70px_55px_90px_80px_36px] gap-1 md:gap-2 px-4 py-3 text-sm border-b border-[--border] last:border-0 items-center ${i % 2 ? 'bg-gray-50/40' : ''}`}
+              className={`grid md:grid-cols-[88px_minmax(120px,1.5fr)_120px_minmax(150px,1.7fr)_66px_52px_86px_80px_60px] gap-1 md:gap-2 px-4 py-3 text-sm border-b border-[--border] last:border-0 items-center ${i % 2 ? 'bg-gray-50/40' : ''}`}
             >
               <span className="text-xs text-[--text-light]">{formatFecha(p.fecha)}</span>
               <span className="text-[--text] truncate">{p.proveedores?.nombre ?? <em className="text-[--text-light] not-italic text-xs">—</em>}</span>
               <span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-[--text-light]">
-                  {CATEGORIA_GASTO_LABELS[p.categoria] ?? p.categoria ?? '—'}
+                  {labelsMap[p.categoria] ?? CATEGORIA_GASTO_LABELS[p.categoria] ?? p.categoria ?? '—'}
                 </span>
               </span>
               <span className="text-[--text-medium] truncate">{p.concepto}</span>
@@ -820,17 +974,24 @@ function PagosPanel({ año, trimestre }) {
               <div className="flex items-center gap-1.5">
                 <EstadoPill estado={p.estado} map={ESTADO_PAGO} />
                 {p.estado === 'pendiente' && (
-                  <button onClick={() => handleMarcarPagado(p.id)}
+                  <button onClick={() => setModalPagar({ id: p.id, concepto: p.concepto, importe: p.importe })}
                     className="text-[10px] text-green-600 hover:underline whitespace-nowrap">
                     ✓ Pagar
                   </button>
                 )}
               </div>
-              <button onClick={() => setModalEliminar({ id: p.id, concepto: p.concepto })}
-                aria-label={`Eliminar gasto ${p.concepto}`}
-                className="text-gray-300 hover:text-red-400 transition-colors justify-self-end">
-                <Trash2 size={14} />
-              </button>
+              <div className="flex items-center gap-2 justify-self-end">
+                <button onClick={() => iniciarEdicion(p)}
+                  aria-label={`Editar gasto ${p.concepto}`}
+                  className="text-gray-300 hover:text-primary transition-colors">
+                  <Pencil size={14} />
+                </button>
+                <button onClick={() => setModalEliminar({ id: p.id, concepto: p.concepto })}
+                  aria-label={`Eliminar gasto ${p.concepto}`}
+                  className="text-gray-300 hover:text-red-400 transition-colors">
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -844,37 +1005,18 @@ function PagosPanel({ año, trimestre }) {
         onCancel={() => setModalEliminar(null)}
       />
 
-      <Modal
-        open={modalProveedor}
-        onClose={() => setModalProveedor(false)}
-        title="Nuevo proveedor"
-        maxWidth="max-w-sm"
-      >
-        <div className="space-y-3">
-          <Field label="Nombre" required>
-            <Input type="text" placeholder="Nombre" value={nuevoProveedor.nombre} sanitize={sanitizers.texto}
-              onChange={e => setNuevoProveedor(p => ({ ...p, nombre: e.target.value }))} />
-          </Field>
-          <Field label="Teléfono" error={errProvCampos.telefono}>
-            <Input type="tel" inputMode="numeric" placeholder="Teléfono" value={nuevoProveedor.telefono} sanitize={sanitizers.telefono}
-              onChange={e => { setNuevoProveedor(p => ({ ...p, telefono: e.target.value })); if (errProvCampos.telefono) setErrProvCampos(p => ({ ...p, telefono: undefined })) }} />
-          </Field>
-          <Field label="Email" error={errProvCampos.email}>
-            <Input type="email" placeholder="Email" value={nuevoProveedor.email} sanitize={sanitizers.email}
-              onChange={e => { setNuevoProveedor(p => ({ ...p, email: e.target.value })); if (errProvCampos.email) setErrProvCampos(p => ({ ...p, email: undefined })) }} />
-          </Field>
-          {errProveedor && <p role="alert" className="text-xs text-red-500">{errProveedor}</p>}
-        </div>
-        <div className="flex gap-3 mt-5">
-          <Button variant="secondary" full onClick={() => setModalProveedor(false)}>
-            Cancelar
-          </Button>
-          <Button full onClick={handleCrearProveedor}
-            loading={guardandoProv} disabled={!nuevoProveedor.nombre.trim()}>
-            {guardandoProv ? 'Guardando…' : 'Crear'}
-          </Button>
-        </div>
-      </Modal>
+      <ConfirmDialog
+        open={!!modalPagar}
+        title="Confirmar pago"
+        description={modalPagar
+          ? `Marcar como pagado: ${modalPagar.concepto} · ${formatImporte(modalPagar.importe)}`
+          : ''}
+        confirmLabel="Pagar"
+        cancelLabel="Cancelar"
+        tone="primary"
+        onConfirm={handleMarcarPagado}
+        onCancel={() => setModalPagar(null)}
+      />
     </div>
   )
 }
@@ -926,7 +1068,7 @@ function LibroPanel({ año }) {
         <LoadingState />
       ) : (
         <div className="bg-white border border-[--border] rounded-xl overflow-hidden">
-          <div className="hidden md:grid grid-cols-[90px_70px_1fr_100px_80px_50px_90px_90px_80px] gap-2 px-4 py-2.5 bg-gray-50 border-b border-[--border] text-[10px] font-semibold uppercase tracking-wide text-[--text-light]">
+          <div className="hidden md:grid grid-cols-[90px_70px_minmax(160px,1.8fr)_100px_80px_50px_90px_90px_80px] gap-2 px-4 py-2.5 bg-gray-50 border-b border-[--border] text-[10px] font-semibold uppercase tracking-wide text-[--text-light]">
             <span>Fecha</span><span>Tipo</span><span>Descripción</span><span>Ref.</span>
             <span className="text-right">Base</span><span className="text-right">IVA%</span>
             <span className="text-right">Total</span><span>Forma</span><span>Estado</span>
@@ -935,7 +1077,7 @@ function LibroPanel({ año }) {
             <p className="text-sm text-[--text-light] text-center py-10">Sin asientos que coincidan.</p>
           ) : rows.map((e, i) => (
             <div key={e.id}
-              className={`grid md:grid-cols-[90px_70px_1fr_100px_80px_50px_90px_90px_80px] gap-1 md:gap-2 px-4 py-3 text-sm border-b border-[--border] last:border-0 items-center ${i % 2 ? 'bg-gray-50/40' : ''}`}
+              className={`grid md:grid-cols-[90px_70px_minmax(160px,1.8fr)_100px_80px_50px_90px_90px_80px] gap-1 md:gap-2 px-4 py-3 text-sm border-b border-[--border] last:border-0 items-center ${i % 2 ? 'bg-gray-50/40' : ''}`}
             >
               <span className="text-xs text-[--text-light]">{formatFecha(e.fecha)}</span>
               <span>
@@ -968,11 +1110,26 @@ function LibroPanel({ año }) {
 
 export default function ContabilidadDashboard() {
   const navigate = useNavigate()
+  const { fetchCategoriasGasto } = useContabilidad()
   const [searchParams, setSearchParams] = useSearchParams()
   const tab = searchParams.get('tab') || 'dashboard'
   const setTab = (t) => setSearchParams({ tab: t }, { replace: true })
   const [año, setAño] = useState(AÑO_ACTUAL)
   const [trimestre, setTrimestre] = useState(0)
+  const [categorias, setCategorias] = useState([])
+
+  // Categorías de gasto gestionadas desde Ajustes. Si la tabla aún no existe,
+  // los paneles caen al fallback estático (CATEGORIA_GASTO_LABELS/COLORES).
+  useEffect(() => { fetchCategoriasGasto().then(setCategorias).catch(() => {}) }, [fetchCategoriasGasto])
+
+  const labelsMap = useMemo(
+    () => Object.fromEntries(categorias.map(c => [c.clave, c.etiqueta])),
+    [categorias],
+  )
+  const coloresMap = useMemo(
+    () => Object.fromEntries(categorias.map(c => [c.clave, c.color])),
+    [categorias],
+  )
 
   return (
     <PageWrapper>
@@ -1022,9 +1179,9 @@ export default function ContabilidadDashboard() {
 
         <SubNav tab={tab} setTab={setTab} />
 
-        {tab === 'dashboard' && <DashboardPanel año={año} trimestre={trimestre} />}
+        {tab === 'dashboard' && <DashboardPanel año={año} trimestre={trimestre} setTab={setTab} labelsMap={labelsMap} coloresMap={coloresMap} />}
         {tab === 'cobros'    && <CobrosPanel    año={año} trimestre={trimestre} />}
-        {tab === 'pagos'     && <PagosPanel     año={año} trimestre={trimestre} />}
+        {tab === 'pagos'     && <PagosPanel     año={año} trimestre={trimestre} categorias={categorias} labelsMap={labelsMap} />}
         {tab === 'libro'     && <LibroPanel     año={año} />}
       </div>
     </PageWrapper>

@@ -16,6 +16,8 @@ const navItems = [
   { to: '/ajustes', icon: Settings, label: 'Ajustes', end: true, permiso: 'ajustes' },
 ]
 
+const APP_VERSION = 'v1.0.0'
+
 function CopyrightYear() {
   const year = new Date().getFullYear()
   return year > 2026 ? `2026-${year}` : '2026'
@@ -172,8 +174,11 @@ export default function PageWrapper({ children, title }) {
       </main>
 
       {/* Footer */}
-      <footer className="py-4 px-4 text-center text-xs text-[--text-light] border-t border-[--border]">
+      <footer className="relative py-4 px-4 text-center text-xs text-[--text-light] border-t border-[--border]">
         © <CopyrightYear /> · Amb el Cor · Todos los derechos reservados
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[--text-light]/70">
+          {APP_VERSION}
+        </span>
       </footer>
     </div>
   )

@@ -49,12 +49,13 @@ export const exportarLibroCobros = (cobros, { trimestre, año } = {}) => {
   XLSX.writeFile(wb, `cobros_${año ?? 'todos'}.xlsx`)
 }
 
-export const exportarLibroPagos = (pagos, { trimestre, año } = {}) => {
+export const exportarLibroPagos = (pagos, { trimestre, año, categoriaLabels } = {}) => {
+  const labels = { ...CATEGORIA_GASTO_LABELS, ...(categoriaLabels ?? {}) }
   const datos = trimestre ? filtrarPorTrimestre(pagos, trimestre, año) : pagos
   const filas = datos.map(p => ({
     Fecha: p.fecha,
     Proveedor: p.proveedores?.nombre ?? '',
-    Categoría: CATEGORIA_GASTO_LABELS[p.categoria] ?? p.categoria ?? '',
+    Categoría: labels[p.categoria] ?? p.categoria ?? '',
     Concepto: p.concepto,
     'Base imponible': p.base_imponible != null ? p.base_imponible : '',
     '% IVA': p.iva_porcentaje != null && p.base_imponible != null ? p.iva_porcentaje : '',
@@ -69,7 +70,8 @@ export const exportarLibroPagos = (pagos, { trimestre, año } = {}) => {
   XLSX.writeFile(wb, `pagos_${año ?? 'todos'}.xlsx`)
 }
 
-export const exportarBalanceTrimestral = (cobros, pagos, { trimestre, año } = {}) => {
+export const exportarBalanceTrimestral = (cobros, pagos, { trimestre, año, categoriaLabels } = {}) => {
+  const labels = { ...CATEGORIA_GASTO_LABELS, ...(categoriaLabels ?? {}) }
   const cobrosFiltrados = trimestre ? filtrarPorTrimestre(cobros, trimestre, año) : cobros
   const pagosFiltrados = trimestre ? filtrarPorTrimestre(pagos, trimestre, año) : pagos
 
@@ -90,7 +92,7 @@ export const exportarBalanceTrimestral = (cobros, pagos, { trimestre, año } = {
   const filasGastos = pagosFiltrados.map(p => ({
     Fecha: p.fecha,
     Proveedor: p.proveedores?.nombre ?? '',
-    Categoría: CATEGORIA_GASTO_LABELS[p.categoria] ?? p.categoria ?? '',
+    Categoría: labels[p.categoria] ?? p.categoria ?? '',
     Concepto: p.concepto,
     'Base imponible': p.base_imponible != null ? p.base_imponible : '',
     '% IVA': p.iva_porcentaje != null && p.base_imponible != null ? p.iva_porcentaje : '',
@@ -128,7 +130,7 @@ export const exportarBalanceTrimestral = (cobros, pagos, { trimestre, año } = {
     ...Object.entries(porCategoria)
       .sort((a, b) => b[1] - a[1])
       .map(([cat, total]) => ({
-        Concepto: CATEGORIA_GASTO_LABELS[cat] ?? cat,
+        Concepto: labels[cat] ?? cat,
         Importe: total,
       })),
   ]

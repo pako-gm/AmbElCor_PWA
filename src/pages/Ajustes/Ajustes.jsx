@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   Tags, Ruler, TrendingUp, UserCog, Plus, Trash2, Pencil,
   Shirt, Layers, Gem, Scissors, Circle, Box, Boxes, Heart,
-  Mail, ShieldCheck, ShieldAlert, ReceiptText, Bell,
+  Mail, ShieldCheck, ShieldAlert, ReceiptText, Bell, Coins,
 } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import PageHeader from '@/components/ui/PageHeader'
@@ -14,6 +14,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import LoadingState from '@/components/ui/LoadingState'
 import { useToast } from '@/hooks/useToast'
 import { useInventario } from '@/hooks/useInventario'
+import { useContabilidad } from '@/hooks/useContabilidad'
 import { useConfiguracion } from '@/hooks/useConfiguracion'
 import { TIPOS_NOTIFICACION, CONFIG_KEY_NOTIFICACIONES, parsePreferencias } from '@/lib/notificaciones'
 import { useDatosFiscales } from '@/hooks/useDatosFiscales'
@@ -41,11 +42,21 @@ const ICONOS_DISPONIBLES = [
 const SECCIONES = [
   { id: 'categorias',  label: 'Categorías',          icon: Tags },
   { id: 'unidades',    label: 'Unidades de gestión', icon: Ruler },
+  { id: 'categorias_gasto', label: 'Categorías de gasto', icon: Coins },
   { id: 'incremento',  label: 'Incremento de precios', icon: TrendingUp },
   { id: 'facturacion', label: 'Datos de facturación', icon: ReceiptText },
   { id: 'notificaciones', label: 'Notificaciones',   icon: Bell },
   { id: 'usuarios',    label: 'Usuarios CRM',        icon: UserCog },
 ]
+
+// Genera una clave snake_case a partir de la etiqueta: sin acentos, minúsculas,
+// caracteres no alfanuméricos → guion bajo.
+const slugClave = (texto) =>
+  texto
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
 
 // Prefijo por defecto: 3 primeras letras del nombre (solo letras), en mayúscula
 const prefijoPorDefecto = (nombre) =>
@@ -250,6 +261,217 @@ function EditarCategoriaModal({ categoria, onClose, onGuardar }) {
             <Select value={icono} onChange={e => setIcono(e.target.value)}>
               {ICONOS_DISPONIBLES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
             </Select>
+          </Field>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-[--border] pt-4">
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button onClick={handleGuardar} loading={guardando}>Guardar</Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+// ── Sección: Categorías de gasto ──────────────────────────────────────────────
+const COLOR_DEFECTO = '#9CA3AF'
+
+function SeccionCategoriasGasto({ categorias, loading, onAdd, onEdit, onDelete }) {
+  const [etiqueta, setEtiqueta] = useState('')
+  const [clave, setClave] = useState('')
+  const [claveTocada, setClaveTocada] = useState(false)
+  const [color, setColor] = useState(COLOR_DEFECTO)
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState('')
+  const [errs, setErrs] = useState({})
+  const [aBorrar, setABorrar] = useState(null)
+  const [borrando, setBorrando] = useState(false)
+  const [aEditar, setAEditar] = useState(null)
+
+  const handleEtiqueta = (e) => {
+    const v = e.target.value
+    setEtiqueta(v)
+    if (errs.etiqueta) setErrs(p => ({ ...p, etiqueta: undefined }))
+    if (!claveTocada) setClave(slugClave(v))
+  }
+
+  const handleAdd = async () => {
+    const nuevosErrs = {}
+    if (!etiqueta.trim()) nuevosErrs.etiqueta = 'Obligatorio.'
+    if (!clave.trim()) nuevosErrs.clave = 'Obligatorio.'
+    else if (!/^[a-z0-9_]+$/.test(clave.trim())) nuevosErrs.clave = 'Solo minúsculas, números y guiones bajos.'
+    if (Object.keys(nuevosErrs).length > 0) { setErrs(nuevosErrs); return }
+    setErrs({})
+    setError('')
+    setGuardando(true)
+    try {
+      await onAdd({ clave: clave.trim(), etiqueta: etiqueta.trim(), color })
+      setEtiqueta(''); setClave(''); setClaveTocada(false); setColor(COLOR_DEFECTO)
+    } catch (e) {
+      setError(e.message?.includes('unique') || e.message?.includes('duplicate')
+        ? 'Ya existe una categoría con esa clave.' : e.message)
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setBorrando(true)
+    try {
+      await onDelete(aBorrar.id)
+      setABorrar(null)
+    } finally {
+      setBorrando(false)
+    }
+  }
+
+  return (
+    <section className="bg-white rounded-lg border border-[--border] p-5 space-y-4">
+      <div>
+        <h2 className="font-display text-xl text-[--text-dark]">Categorías de gasto</h2>
+        <p className="text-xs text-[--text-light]">Categorías de los pagos a proveedores. El color se usa en el gráfico del Dashboard de Contabilidad.</p>
+      </div>
+
+      {loading ? (
+        <LoadingState />
+      ) : categorias.length === 0 ? (
+        <EmptyState icon={Coins} titulo="Sin categorías" descripcion="Añade la primera abajo." />
+      ) : (
+        <ul className="space-y-2">
+          {categorias.map(cat => (
+            <li
+              key={cat.id}
+              className="flex items-center justify-between px-3 py-2 bg-[--bg-gray] rounded-lg border border-[--border]"
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-4 h-4 rounded-full border border-[--border] flex-shrink-0" style={{ background: cat.color || COLOR_DEFECTO }} />
+                <span className="text-sm font-medium text-[--text-dark]">{cat.etiqueta}</span>
+                <code className="text-xs font-mono px-1.5 py-0.5 rounded bg-white border border-[--border] text-[--text-light]">{cat.clave}</code>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setAEditar(cat)}
+                  aria-label={`Editar categoría ${cat.etiqueta}`}
+                  className="p-1.5 rounded-md text-[--text-light] hover:text-primary hover:bg-primary-light/50 transition-colors"
+                >
+                  <Pencil size={15} />
+                </button>
+                <button
+                  onClick={() => setABorrar(cat)}
+                  aria-label={`Eliminar categoría ${cat.etiqueta}`}
+                  className="p-1.5 rounded-md text-[--text-light] hover:text-danger hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="border-t border-[--border] pt-4 space-y-2">
+        <p className="text-[11px] font-bold tracking-wider text-[--text-light]">NUEVA CATEGORÍA</p>
+        <div className="flex flex-wrap items-end gap-2">
+          <Field label="Etiqueta" className="flex-1 min-w-[150px]" error={errs.etiqueta}>
+            <Input
+              placeholder="ej: Formación"
+              value={etiqueta}
+              sanitize={sanitizers.texto}
+              onChange={handleEtiqueta}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            />
+          </Field>
+          <Field label="Clave" className="w-40" error={errs.clave}>
+            <Input
+              placeholder="ej: formacion"
+              value={clave}
+              onChange={e => { setClaveTocada(true); setClave(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '')); if (errs.clave) setErrs(p => ({ ...p, clave: undefined })) }}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            />
+          </Field>
+          <Field label="Color" className="w-20">
+            <input
+              type="color"
+              value={color}
+              onChange={e => setColor(e.target.value)}
+              className="h-[38px] w-full rounded-md border border-[--border] bg-white p-1 cursor-pointer"
+            />
+          </Field>
+          <Button onClick={handleAdd} loading={guardando}>
+            <Plus size={15} /> Añadir
+          </Button>
+        </div>
+        {error && <p className="text-xs text-red-500">{error}</p>}
+      </div>
+
+      <EditarCategoriaGastoModal
+        categoria={aEditar}
+        onClose={() => setAEditar(null)}
+        onGuardar={onEdit}
+      />
+
+      <ConfirmDialog
+        open={!!aBorrar}
+        title="Eliminar categoría"
+        description={aBorrar ? `¿Eliminar la categoría «${aBorrar.etiqueta}»? Los gastos ya registrados con ella conservarán su valor.` : ''}
+        loading={borrando}
+        onConfirm={handleDelete}
+        onCancel={() => setABorrar(null)}
+      />
+    </section>
+  )
+}
+
+// ── Modal: Editar categoría de gasto ──────────────────────────────────────────
+function EditarCategoriaGastoModal({ categoria, onClose, onGuardar }) {
+  const [etiqueta, setEtiqueta] = useState('')
+  const [color, setColor] = useState(COLOR_DEFECTO)
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState('')
+  const [errEtiqueta, setErrEtiqueta] = useState('')
+
+  useEffect(() => {
+    if (categoria) {
+      setEtiqueta(categoria.etiqueta || '')
+      setColor(categoria.color || COLOR_DEFECTO)
+      setError('')
+      setErrEtiqueta('')
+    }
+  }, [categoria])
+
+  const handleGuardar = async () => {
+    if (!etiqueta.trim()) return setErrEtiqueta('La etiqueta es obligatoria.')
+    setErrEtiqueta('')
+    setError('')
+    setGuardando(true)
+    try {
+      await onGuardar(categoria.id, { etiqueta: etiqueta.trim(), color })
+      onClose()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  return (
+    <Modal open={!!categoria} onClose={onClose} maxWidth="max-w-md">
+      <div className="space-y-4 pt-2">
+        <h3 className="font-display text-lg text-[--text-dark]">Editar categoría</h3>
+        <div className="space-y-3">
+          <Field label="Etiqueta" error={errEtiqueta}>
+            <Input value={etiqueta} sanitize={sanitizers.texto} onChange={e => { setEtiqueta(e.target.value); if (errEtiqueta) setErrEtiqueta('') }} placeholder="Etiqueta…" />
+          </Field>
+          <Field label="Clave (no editable)">
+            <code className="block text-xs font-mono px-3 py-2 rounded bg-[--bg-gray] border border-[--border] text-[--text-light]">{categoria?.clave}</code>
+          </Field>
+          <Field label="Color">
+            <input
+              type="color"
+              value={color}
+              onChange={e => setColor(e.target.value)}
+              className="h-[38px] w-20 rounded-md border border-[--border] bg-white p-1 cursor-pointer"
+            />
           </Field>
           {error && <p className="text-xs text-red-500">{error}</p>}
         </div>
@@ -715,12 +937,16 @@ export default function Ajustes() {
     fetchCategorias, crearCategoria, actualizarCategoria, eliminarCategoria,
     fetchUnidades, crearUnidad, eliminarUnidad,
   } = useInventario()
+  const {
+    fetchCategoriasGasto, crearCategoriaGasto, actualizarCategoriaGasto, eliminarCategoriaGasto,
+  } = useContabilidad()
   const { fetchConfig, guardarConfig, aplicarIncrementoCatalogo } = useConfiguracion()
   const { fetchDatosFiscales, guardarDatosFiscales } = useDatosFiscales()
 
   const [seccion, setSeccion] = useState('categorias')
   const [categorias, setCategorias] = useState([])
   const [unidades, setUnidades] = useState([])
+  const [categoriasGasto, setCategoriasGasto] = useState([])
   const [incremento, setIncremento] = useState(null)
   const [notifPrefs, setNotifPrefs] = useState(() => parsePreferencias(null))
   const [datosFiscales, setDatosFiscales] = useState(null)
@@ -728,6 +954,7 @@ export default function Ajustes() {
 
   const cargarCategorias = () => fetchCategorias().then(setCategorias)
   const cargarUnidades = () => fetchUnidades().then(setUnidades)
+  const cargarCategoriasGasto = () => fetchCategoriasGasto().then(setCategoriasGasto)
   const cargarConfig = () => fetchConfig().then(c => {
     setIncremento(Number(c.incremento_precios_anual) || 0)
     setNotifPrefs(parsePreferencias(c[CONFIG_KEY_NOTIFICACIONES]))
@@ -735,7 +962,7 @@ export default function Ajustes() {
   const cargarFiscales = () => fetchDatosFiscales().then(setDatosFiscales)
 
   useEffect(() => {
-    Promise.all([cargarCategorias(), cargarUnidades(), cargarConfig(), cargarFiscales()])
+    Promise.all([cargarCategorias(), cargarUnidades(), cargarCategoriasGasto(), cargarConfig(), cargarFiscales()])
       .finally(() => setCargando(false))
   }, [])
 
@@ -786,6 +1013,15 @@ export default function Ajustes() {
                 loading={cargando}
                 onAdd={async (datos) => { await crearUnidad(datos); await cargarUnidades() }}
                 onDelete={async (id) => { await eliminarUnidad(id); await cargarUnidades() }}
+              />
+            )}
+            {seccion === 'categorias_gasto' && (
+              <SeccionCategoriasGasto
+                categorias={categoriasGasto}
+                loading={cargando}
+                onAdd={async (datos) => { await crearCategoriaGasto(datos); await cargarCategoriasGasto() }}
+                onEdit={async (id, datos) => { await actualizarCategoriaGasto(id, datos); await cargarCategoriasGasto() }}
+                onDelete={async (id) => { await eliminarCategoriaGasto(id); await cargarCategoriasGasto() }}
               />
             )}
             {seccion === 'incremento' && (

@@ -3,7 +3,7 @@
    (maestro-detalle + ficha + artículos + pagos + edición)
    ============================================================ */
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon, Btn, Field, Input, TextareaInput } from './InventarioUI'
 import SearchInput from '@/components/ui/SearchInput'
 import { fetchProveedores, fetchProveedor, crearProveedor, actualizarProveedor, eliminarProveedor } from '@/hooks/useProveedores'
@@ -304,10 +304,14 @@ function ProviderForm({ proveedor, isNew, onSave, onCancel }) {
 /* ---------- Vista Proveedores (maestro-detalle) ---------- */
 export default function ProveedoresPanel({ topNav = null }) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  // Llegada desde Contabilidad > Registrar gasto: abrir directamente el alta y,
+  // al terminar, volver al formulario de gasto con el proveedor seleccionado.
+  const volverAGasto = searchParams.get('nuevo') === 'gasto'
   const [proveedores, setProveedores] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState(null)
-  const [mode, setMode] = useState('view') // 'view' | 'create' | 'edit'
+  const [mode, setMode] = useState(volverAGasto ? 'create' : 'view') // 'view' | 'create' | 'edit'
   const [query, setQuery] = useState('')
   const [reload, setReload] = useState(0)
   const [aEliminar, setAEliminar] = useState(null)
@@ -327,12 +331,22 @@ export default function ProveedoresPanel({ topNav = null }) {
   const handleSave = async (form) => {
     if (mode === 'create') {
       const nuevo = await crearProveedor(form)
+      if (volverAGasto) {
+        navigate(`/contabilidad?tab=pagos&proveedorCreado=${nuevo.id}`)
+        return
+      }
       setSelectedId(nuevo.id)
     } else {
       await actualizarProveedor(selectedId, form)
     }
     setMode('view')
     setReload(r => r + 1)
+  }
+
+  // Cancelar el alta: si veníamos de Registrar gasto, volver allí sin proveedor.
+  const handleCancelCreate = () => {
+    if (volverAGasto) navigate('/contabilidad?tab=pagos&volverGasto=1')
+    else setMode('view')
   }
 
   const handleReload = () => setReload(r => r + 1)
@@ -394,7 +408,7 @@ export default function ProveedoresPanel({ topNav = null }) {
 
         {/* Contenido derecho */}
         {mode === 'create' ? (
-          <ProviderForm isNew onSave={handleSave} onCancel={() => setMode('view')} />
+          <ProviderForm isNew onSave={handleSave} onCancel={handleCancelCreate} />
         ) : mode === 'edit' ? (
           <ProviderForm
             proveedor={proveedores.find(p => p.id === selectedId)}

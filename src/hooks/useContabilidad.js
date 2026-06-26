@@ -124,6 +124,17 @@ export function useContabilidad() {
     return data
   }, [])
 
+  const actualizarPagoProveedor = useCallback(async (id, payload) => {
+    const { data, error: err } = await supabase
+      .from('pagos_proveedor')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single()
+    if (err) throw err
+    return data
+  }, [])
+
   const eliminarPagoProveedor = useCallback(async (id) => {
     const { error: err } = await supabase
       .from('pagos_proveedor')
@@ -255,6 +266,54 @@ export function useContabilidad() {
     return meses
   }, [])
 
+  // ── Categorías de gasto ───────────────────────────────────────────────────
+
+  const fetchCategoriasGasto = useCallback(async () => {
+    const { data, error: err } = await supabase
+      .from('categorias_gasto')
+      .select('*')
+      .order('orden')
+    if (err) throw err
+    return data ?? []
+  }, [])
+
+  const crearCategoriaGasto = useCallback(async ({ clave, etiqueta, color = '#9CA3AF' }) => {
+    const maxOrden = await supabase
+      .from('categorias_gasto')
+      .select('orden')
+      .order('orden', { ascending: false })
+      .limit(1)
+      .single()
+    const orden = (maxOrden.data?.orden ?? 0) + 1
+    const { data, error: err } = await supabase
+      .from('categorias_gasto')
+      .insert({ clave, etiqueta, color, orden })
+      .select()
+      .single()
+    if (err) throw err
+    return data
+  }, [])
+
+  // No se permite cambiar la clave: los pagos existentes la referencian.
+  const actualizarCategoriaGasto = useCallback(async (id, { etiqueta, color }) => {
+    const { data, error: err } = await supabase
+      .from('categorias_gasto')
+      .update({ etiqueta, color })
+      .eq('id', id)
+      .select()
+      .single()
+    if (err) throw err
+    return data
+  }, [])
+
+  const eliminarCategoriaGasto = useCallback(async (id) => {
+    const { error: err } = await supabase
+      .from('categorias_gasto')
+      .delete()
+      .eq('id', id)
+    if (err) throw err
+  }, [])
+
   return {
     loading,
     error,
@@ -263,11 +322,16 @@ export function useContabilidad() {
     fetchPagosProveedor,
     marcarEstadoPago,
     registrarPagoProveedor,
+    actualizarPagoProveedor,
     eliminarPagoProveedor,
     fetchProveedores,
     crearProveedor,
     fetchLibroDiario,
     fetchResumenAnual,
     fetchResumenPorCategoria,
+    fetchCategoriasGasto,
+    crearCategoriaGasto,
+    actualizarCategoriaGasto,
+    eliminarCategoriaGasto,
   }
 }
