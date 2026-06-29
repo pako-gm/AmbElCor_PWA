@@ -462,7 +462,7 @@ export default function MaterialesLista() {
               }`}
             >
               <Icon name="eyeOff" size={14} />
-              Inactivos
+              Mostrar Inactivos
             </button>
           </div>
         </div>

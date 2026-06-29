@@ -175,10 +175,7 @@ export default function PageWrapper({ children, title }) {
 
       {/* Footer */}
       <footer className="relative py-4 px-4 text-center text-xs text-[--text-light] border-t border-[--border]">
-        © <CopyrightYear /> · Amb el Cor · Todos los derechos reservados
-        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[--text-light]/70">
-          {APP_VERSION}
-        </span>
+        © <CopyrightYear /> · Amb el Cor · Todos los derechos reservados · Version WebApp - {APP_VERSION}
       </footer>
     </div>
   )

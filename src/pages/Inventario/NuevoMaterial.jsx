@@ -132,7 +132,7 @@ export default function NuevoMaterial() {
           <div className="grid-2">
             <Field
               label="CÓDIGO (opcional)"
-              hint={`Si lo dejas vacío, se genera automáticamente (${prefijoActual}-NNN).`}
+              hint={`Si lo dejas vacío, se genera automáticamente (${prefijoActual}-XXX).`}
               htmlFor="nm-codigo"
             >
               <Input

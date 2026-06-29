@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Tags, Ruler, TrendingUp, UserCog, Plus, Trash2, Pencil,
   Shirt, Layers, Gem, Scissors, Circle, Box, Boxes, Heart,
+  Wind, Flower, Crown, PersonStanding, Ribbon, Footprints, Sparkles, Feather,
   Mail, ShieldCheck, ShieldAlert, ReceiptText, Bell, Coins,
 } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
@@ -27,20 +28,30 @@ import { UsuarioForm } from '@/pages/Acceso/panels'
 const ICON_MAP = {
   shirt: Shirt, layers: Layers, gem: Gem, scissors: Scissors,
   circle: Circle, box: Box, cubes: Boxes, heart: Heart,
+  wind: Wind, flower: Flower, crown: Crown, person: PersonStanding,
+  ribbon: Ribbon, footprints: Footprints, sparkles: Sparkles, feather: Feather,
 }
 const ICONOS_DISPONIBLES = [
-  { value: 'shirt',    label: 'Camiseta (telas)' },
-  { value: 'layers',   label: 'Capas (pasamanería)' },
-  { value: 'gem',      label: 'Gema (joyería)' },
-  { value: 'scissors', label: 'Tijeras (mercería)' },
-  { value: 'circle',   label: 'Círculo (botones)' },
-  { value: 'box',      label: 'Caja (genérico)' },
-  { value: 'cubes',    label: 'Cubos' },
-  { value: 'heart',    label: 'Corazón' },
+  { value: 'shirt',      label: 'Camiseta (telas, camisas)' },
+  { value: 'layers',     label: 'Capas (pasamanería, enaguas)' },
+  { value: 'gem',        label: 'Gema (joyería)' },
+  { value: 'scissors',   label: 'Tijeras (mercería)' },
+  { value: 'circle',     label: 'Círculo (botones)' },
+  { value: 'box',        label: 'Caja (genérico)' },
+  { value: 'cubes',      label: 'Cubos' },
+  { value: 'heart',      label: 'Corazón' },
+  { value: 'wind',       label: 'Vuelo (cancanes, pañuelos)' },
+  { value: 'flower',     label: 'Flor (bordados, mantones)' },
+  { value: 'crown',      label: 'Corona (aderezos)' },
+  { value: 'person',     label: 'Figura (calzones, chalecos)' },
+  { value: 'ribbon',     label: 'Lazo (cintas, fajas)' },
+  { value: 'footprints', label: 'Pisadas (zapatos)' },
+  { value: 'sparkles',   label: 'Destellos (pelo, peinado)' },
+  { value: 'feather',    label: 'Pluma (medias, seda calada)' },
 ]
 
 const SECCIONES = [
-  { id: 'categorias',  label: 'Categorías',          icon: Tags },
+  { id: 'categorias',  label: 'Categorías Materiales', icon: Tags },
   { id: 'unidades',    label: 'Unidades de gestión', icon: Ruler },
   { id: 'categorias_gasto', label: 'Categorías de gasto', icon: Coins },
   { id: 'incremento',  label: 'Incremento de precios', icon: TrendingUp },
@@ -65,6 +76,38 @@ const prefijoPorDefecto = (nombre) =>
 const normalizarPrefijo = (v) =>
   v.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ/]/g, '').slice(0, 3).toUpperCase()
 
+const ALFABETO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+// Devuelve un prefijo de 3 letras único respecto a `usados` (Set de prefijos en
+// mayúscula), partiendo del nombre. Si el prefijo por defecto ya está asignado,
+// prueba a variar la 3ª letra con el resto de letras del nombre y, en último
+// recurso, con todo el alfabeto.
+const prefijoUnico = (nombre, usados) => {
+  const base = prefijoPorDefecto(nombre)
+  if (base && !usados.has(base)) return base
+
+  const letras = nombre.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ]/g, '').toUpperCase()
+  const cab = letras.slice(0, 2)
+
+  // 1) Mantener las 2 primeras letras y variar la 3ª con el resto de letras del nombre
+  for (let i = 2; i < letras.length; i++) {
+    const cand = cab + letras[i]
+    if (cand.length === 3 && !usados.has(cand)) return cand
+  }
+  // 2) Variar la 3ª letra por todo el alfabeto
+  for (const c of ALFABETO) {
+    const cand = cab + c
+    if (cand.length === 3 && !usados.has(cand)) return cand
+  }
+  // 3) Fuerza bruta sobre todas las combinaciones de 3 letras
+  for (const a of ALFABETO)
+    for (const b of ALFABETO)
+      for (const c of ALFABETO)
+        if (!usados.has(a + b + c)) return a + b + c
+
+  return base
+}
+
 // ── Sección: Categorías ───────────────────────────────────────────────────────
 function SeccionCategorias({ categorias, loading, onAdd, onEdit, onDelete }) {
   const [nombre, setNombre] = useState('')
@@ -78,11 +121,17 @@ function SeccionCategorias({ categorias, loading, onAdd, onEdit, onDelete }) {
   const [borrando, setBorrando] = useState(false)
   const [aEditar, setAEditar] = useState(null)
 
+  // Prefijos ya asignados a otras categorías, para autocorregir colisiones
+  const prefijosUsados = useMemo(
+    () => new Set(categorias.map(c => (c.prefijo || '').toUpperCase()).filter(Boolean)),
+    [categorias],
+  )
+
   const handleNombre = (e) => {
     const v = e.target.value
     setNombre(v)
     if (errNombre) setErrNombre('')
-    if (!prefijoTocado) setPrefijo(prefijoPorDefecto(v))
+    if (!prefijoTocado) setPrefijo(prefijoUnico(v, prefijosUsados))
   }
 
   const handleAdd = async () => {
@@ -116,7 +165,7 @@ function SeccionCategorias({ categorias, loading, onAdd, onEdit, onDelete }) {
   return (
     <section className="bg-white rounded-lg border border-[--border] p-5 space-y-4">
       <div>
-        <h2 className="font-display text-xl text-[--text-dark]">Categorías</h2>
+        <h2 className="font-display text-xl text-[--text-dark]">Categorías Materiales</h2>
         <p className="text-xs text-[--text-light]">Categorías de materiales del inventario. El prefijo se usa para autogenerar el código de cada material (ej. TEL-001).</p>
       </div>
 
@@ -485,7 +534,7 @@ function EditarCategoriaGastoModal({ categoria, onClose, onGuardar }) {
 }
 
 // ── Sección: Unidades ─────────────────────────────────────────────────────────
-function SeccionUnidades({ unidades, loading, onAdd, onDelete }) {
+function SeccionUnidades({ unidades, loading, onAdd, onEdit, onDelete }) {
   const [clave, setClave] = useState('')
   const [etiqueta, setEtiqueta] = useState('')
   const [abreviatura, setAbreviatura] = useState('')
@@ -494,6 +543,7 @@ function SeccionUnidades({ unidades, loading, onAdd, onDelete }) {
   const [errs, setErrs] = useState({})
   const [aBorrar, setABorrar] = useState(null)
   const [borrando, setBorrando] = useState(false)
+  const [aEditar, setAEditar] = useState(null)
 
   const limpiar = (k) => { if (errs[k]) setErrs(prev => ({ ...prev, [k]: undefined })) }
 
@@ -550,13 +600,22 @@ function SeccionUnidades({ unidades, loading, onAdd, onDelete }) {
                 <span className="text-sm font-medium text-[--text-dark]">{u.etiqueta}</span>
                 <span className="text-xs text-[--text-light]">({u.abreviatura})</span>
               </div>
-              <button
-                onClick={() => setABorrar(u)}
-                aria-label={`Eliminar unidad ${u.etiqueta}`}
-                className="p-1.5 rounded-md text-[--text-light] hover:text-danger hover:bg-red-50 transition-colors"
-              >
-                <Trash2 size={15} />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setAEditar(u)}
+                  aria-label={`Editar unidad ${u.etiqueta}`}
+                  className="p-1.5 rounded-md text-[--text-light] hover:text-primary hover:bg-primary-light/50 transition-colors"
+                >
+                  <Pencil size={15} />
+                </button>
+                <button
+                  onClick={() => setABorrar(u)}
+                  aria-label={`Eliminar unidad ${u.etiqueta}`}
+                  className="p-1.5 rounded-md text-[--text-light] hover:text-danger hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -585,6 +644,12 @@ function SeccionUnidades({ unidades, loading, onAdd, onDelete }) {
         {error && <p className="text-xs text-red-500">{error}</p>}
       </div>
 
+      <EditarUnidadModal
+        unidad={aEditar}
+        onClose={() => setAEditar(null)}
+        onGuardar={onEdit}
+      />
+
       <ConfirmDialog
         open={!!aBorrar}
         title="Eliminar unidad"
@@ -597,17 +662,73 @@ function SeccionUnidades({ unidades, loading, onAdd, onDelete }) {
   )
 }
 
+// ── Modal: Editar unidad ──────────────────────────────────────────────────────
+function EditarUnidadModal({ unidad, onClose, onGuardar }) {
+  const [etiqueta, setEtiqueta] = useState('')
+  const [abreviatura, setAbreviatura] = useState('')
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState('')
+  const [errs, setErrs] = useState({})
+
+  useEffect(() => {
+    if (unidad) {
+      setEtiqueta(unidad.etiqueta || '')
+      setAbreviatura(unidad.abreviatura || '')
+      setError('')
+      setErrs({})
+    }
+  }, [unidad])
+
+  const handleGuardar = async () => {
+    const nuevosErrs = {}
+    if (!etiqueta.trim()) nuevosErrs.etiqueta = 'La etiqueta es obligatoria.'
+    if (!abreviatura.trim()) nuevosErrs.abreviatura = 'La abreviatura es obligatoria.'
+    if (Object.keys(nuevosErrs).length > 0) { setErrs(nuevosErrs); return }
+    setErrs({})
+    setError('')
+    setGuardando(true)
+    try {
+      await onGuardar(unidad.id, { etiqueta: etiqueta.trim(), abreviatura: abreviatura.trim() })
+      onClose()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  return (
+    <Modal open={!!unidad} onClose={onClose} maxWidth="max-w-md">
+      <div className="space-y-4 pt-2">
+        <h3 className="font-display text-lg text-[--text-dark]">Editar unidad</h3>
+        <div className="space-y-3">
+          <Field label="Etiqueta" error={errs.etiqueta}>
+            <Input value={etiqueta} sanitize={sanitizers.texto} onChange={e => { setEtiqueta(e.target.value); if (errs.etiqueta) setErrs(p => ({ ...p, etiqueta: undefined })) }} placeholder="Etiqueta…" />
+          </Field>
+          <Field label="Abreviatura" error={errs.abreviatura}>
+            <Input value={abreviatura} sanitize={sanitizers.texto} onChange={e => { setAbreviatura(e.target.value); if (errs.abreviatura) setErrs(p => ({ ...p, abreviatura: undefined })) }} placeholder="ej: g" />
+          </Field>
+          <Field label="Clave (no editable)">
+            <code className="block text-xs font-mono px-3 py-2 rounded bg-[--bg-gray] border border-[--border] text-[--text-light]">{unidad?.clave}</code>
+          </Field>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-[--border] pt-4">
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button onClick={handleGuardar} loading={guardando}>Guardar</Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 // ── Sección: Incremento de precios ────────────────────────────────────────────
 function SeccionIncremento({ valorActual, loading, onGuardar, onAplicar }) {
-  const [pct, setPct] = useState('0')
+  const [pct, setPct] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [confirmAplicar, setConfirmAplicar] = useState(false)
   const [aplicando, setAplicando] = useState(false)
   const toast = useToast()
-
-  useEffect(() => {
-    if (valorActual != null) setPct(String(valorActual))
-  }, [valorActual])
 
   const handleGuardar = async () => {
     setGuardando(true)
@@ -679,7 +800,7 @@ function SeccionIncremento({ valorActual, loading, onGuardar, onAplicar }) {
               onClick={() => setConfirmAplicar(true)}
               disabled={pctNum <= 0}
             >
-              <TrendingUp size={15} /> Aplicar al catálogo
+              <TrendingUp size={15} /> Aplicar a todo el Catálogo
             </Button>
           </div>
         </>
@@ -689,7 +810,7 @@ function SeccionIncremento({ valorActual, loading, onGuardar, onAplicar }) {
         open={confirmAplicar}
         tone="primary"
         title="Aplicar incremento"
-        description={`Se subirá el precio base de todas las prendas del catálogo un ${pctNum}%. ¿Continuar?`}
+        description={`Se va a incrementar el precio base de todas las prendas del catálogo un ${pctNum}%. ¿Acepta el incremento?`}
         confirmLabel="Aplicar"
         loading={aplicando}
         onConfirm={handleAplicar}
@@ -935,7 +1056,7 @@ function SeccionUsuarios() {
 export default function Ajustes() {
   const {
     fetchCategorias, crearCategoria, actualizarCategoria, eliminarCategoria,
-    fetchUnidades, crearUnidad, eliminarUnidad,
+    fetchUnidades, crearUnidad, actualizarUnidad, eliminarUnidad,
   } = useInventario()
   const {
     fetchCategoriasGasto, crearCategoriaGasto, actualizarCategoriaGasto, eliminarCategoriaGasto,
@@ -969,7 +1090,7 @@ export default function Ajustes() {
   return (
     <PageWrapper>
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
-        <PageHeader titulo="Ajustes" backTo="/encargos" />
+        <PageHeader titulo="Panel de Control CRM" backTo="/encargos" />
 
         <div className="flex flex-col md:flex-row gap-5">
           {/* Nav de secciones */}
@@ -1012,6 +1133,7 @@ export default function Ajustes() {
                 unidades={unidades}
                 loading={cargando}
                 onAdd={async (datos) => { await crearUnidad(datos); await cargarUnidades() }}
+                onEdit={async (id, datos) => { await actualizarUnidad(id, datos); await cargarUnidades() }}
                 onDelete={async (id) => { await eliminarUnidad(id); await cargarUnidades() }}
               />
             )}

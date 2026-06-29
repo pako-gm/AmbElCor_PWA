@@ -346,6 +346,17 @@ export function useInventario() {
     return data
   }, [])
 
+  const actualizarUnidad = useCallback(async (id, { etiqueta, abreviatura }) => {
+    const { data, error: err } = await supabase
+      .from('unidades_inventario')
+      .update({ etiqueta, abreviatura })
+      .eq('id', id)
+      .select()
+      .single()
+    if (err) throw err
+    return data
+  }, [])
+
   const eliminarUnidad = useCallback(async (id) => {
     const { error: err } = await supabase
       .from('unidades_inventario')
@@ -378,6 +389,7 @@ export function useInventario() {
     eliminarCategoria,
     fetchUnidades,
     crearUnidad,
+    actualizarUnidad,
     eliminarUnidad,
   }
 }
