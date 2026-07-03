@@ -238,6 +238,23 @@ export async function agregarLinea(encargoId, linea) {
   await registrarHistorial(encargoId, `Prenda añadida: ${linea.descripcion}`)
 }
 
+// Actualizar estado de un encargo (setter genérico para Kanban D&D y menú cambiar estado)
+export async function actualizarEstado(id, nuevoEstado) {
+  const { data: actual } = await supabase.from('encargos').select('estado').eq('id', id).single()
+  const estadoAnterior = actual?.estado
+  const { error } = await supabase
+    .from('encargos')
+    .update({
+      estado: nuevoEstado,
+      ...(nuevoEstado === 'entregado' ? { fecha_entrega_real: new Date().toISOString().split('T')[0] } : {}),
+    })
+    .eq('id', id)
+  if (error) throw error
+  await registrarHistorial(id, estadoAnterior
+    ? `Estado: ${ESTADO_LABELS[estadoAnterior]} → ${ESTADO_LABELS[nuevoEstado]}`
+    : `Estado cambiado a: ${ESTADO_LABELS[nuevoEstado]}`)
+}
+
 // Actualizar fechas de un encargo
 export async function updateFechasEncargo(id, fecha_encargo, fecha_entrega_estimada) {
   const fmt = d => d.toISOString().split('T')[0]

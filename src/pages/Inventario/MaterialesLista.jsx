@@ -461,8 +461,8 @@ export default function MaterialesLista() {
                   : 'bg-white border border-line text-muted hover:bg-line-2'
               }`}
             >
-              <Icon name="eyeOff" size={14} />
-              Mostrar Inactivos
+              <Icon name={mostrarInactivos ? 'eyeOff' : 'eye'} size={14} />
+              {mostrarInactivos ? 'Ocultar Inactivos' : 'Mostrar Inactivos'}
             </button>
           </div>
         </div>

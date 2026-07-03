@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, Fragment } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { Download, Plus, Pencil, Trash2, ArrowRight, ChevronLeft } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
@@ -697,23 +697,27 @@ function PagosPanel({ año, trimestre, categorias = [], labelsMap = {} }) {
     })
   }
 
-  const iniciarEdicion = (p) => {
+  const cancelarForm = () => {
+    setMostrarForm(false); setForm(formVacio); setEditando(null); setErrForm(''); setErrCampos({})
+  }
+
+  const iniciarEdicion = (pago) => {
     setForm({
-      proveedor_id: p.proveedores?.id ?? '',
-      fecha: p.fecha,
-      concepto: p.concepto ?? '',
-      importe: p.importe != null ? String(p.importe) : '',
-      forma_pago: p.forma_pago ?? 'efectivo',
-      referencia: p.referencia ?? '',
-      categoria: p.categoria ?? 'material',
-      base_imponible: p.base_imponible != null ? String(p.base_imponible) : '',
-      iva_porcentaje: p.iva_porcentaje != null ? p.iva_porcentaje : 21,
-      iva_importe: p.iva_importe != null ? String(p.iva_importe) : '',
-      desglosarIva: p.iva_porcentaje != null && p.base_imponible != null,
-      estado: p.estado ?? 'pagado',
+      proveedor_id: pago.proveedores?.id ?? '',
+      fecha: pago.fecha,
+      concepto: pago.concepto ?? '',
+      importe: pago.importe != null ? String(pago.importe) : '',
+      forma_pago: pago.forma_pago ?? 'efectivo',
+      referencia: pago.referencia ?? '',
+      categoria: pago.categoria ?? 'material',
+      base_imponible: pago.base_imponible != null ? String(pago.base_imponible) : '',
+      iva_porcentaje: pago.iva_porcentaje != null ? pago.iva_porcentaje : 21,
+      iva_importe: pago.iva_importe != null ? String(pago.iva_importe) : '',
+      desglosarIva: pago.iva_porcentaje != null && pago.base_imponible != null,
+      estado: pago.estado ?? 'pagado',
     })
-    setEditando(p.id)
-    setMostrarForm(true)
+    setEditando(pago.id)
+    setMostrarForm(false)
     setErrForm(''); setErrCampos({})
   }
 
@@ -820,10 +824,10 @@ function PagosPanel({ año, trimestre, categorias = [], labelsMap = {} }) {
         </div>
       </div>
 
-      {/* Formulario inline */}
-      {mostrarForm && (
+      {/* Formulario nuevo gasto */}
+      {mostrarForm && !editando && (
         <div className="bg-white border border-[--border] rounded-xl p-5 space-y-4">
-          <h3 className="font-semibold text-[--text] text-sm">{editando ? 'Editar gasto' : 'Nuevo gasto'}</h3>
+          <h3 className="font-semibold text-[--text] text-sm">Nuevo gasto</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-[--text-light] mb-1">Proveedor (opcional)</label>
@@ -929,7 +933,7 @@ function PagosPanel({ año, trimestre, categorias = [], labelsMap = {} }) {
           </div>
           {errForm && <p className="text-xs text-red-500">{errForm}</p>}
           <div className="flex gap-2 justify-end">
-            <button onClick={() => { setMostrarForm(false); setForm(formVacio); setEditando(null); setErrForm(''); setErrCampos({}) }}
+            <button onClick={cancelarForm}
               className="px-4 py-2 text-sm rounded-md border border-[--border] text-[--text-medium] hover:bg-gray-50 transition-colors">
               Cancelar
             </button>
@@ -953,46 +957,167 @@ function PagosPanel({ año, trimestre, categorias = [], labelsMap = {} }) {
           {rows.length === 0 ? (
             <p className="text-sm text-[--text-light] text-center py-10">Sin gastos que coincidan.</p>
           ) : rows.map((p, i) => (
-            <div key={p.id}
-              className={`grid md:grid-cols-[88px_minmax(120px,1.5fr)_120px_minmax(150px,1.7fr)_66px_52px_86px_80px_60px] gap-1 md:gap-2 px-4 py-3 text-sm border-b border-[--border] last:border-0 items-center ${i % 2 ? 'bg-gray-50/40' : ''}`}
-            >
-              <span className="text-xs text-[--text-light]">{formatFecha(p.fecha)}</span>
-              <span className="text-[--text] truncate">{p.proveedores?.nombre ?? <em className="text-[--text-light] not-italic text-xs">—</em>}</span>
-              <span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-[--text-light]">
-                  {labelsMap[p.categoria] ?? CATEGORIA_GASTO_LABELS[p.categoria] ?? p.categoria ?? '—'}
+            <Fragment key={p.id}>
+              <div
+                className={`grid md:grid-cols-[88px_minmax(120px,1.5fr)_120px_minmax(150px,1.7fr)_66px_52px_86px_80px_60px] gap-1 md:gap-2 px-4 py-3 text-sm border-b border-[--border] items-center ${editando === p.id ? 'bg-primary/5' : i % 2 ? 'bg-gray-50/40' : ''}`}
+              >
+                <span className="text-xs text-[--text-light]">{formatFecha(p.fecha)}</span>
+                <span className="text-[--text] truncate">{p.proveedores?.nombre ?? <em className="text-[--text-light] not-italic text-xs">—</em>}</span>
+                <span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-[--text-light]">
+                    {labelsMap[p.categoria] ?? CATEGORIA_GASTO_LABELS[p.categoria] ?? p.categoria ?? '—'}
+                  </span>
                 </span>
-              </span>
-              <span className="text-[--text-medium] truncate">{p.concepto}</span>
-              <span className="text-right text-xs text-[--text-light]">
-                {p.base_imponible != null ? formatImporte(p.base_imponible) : '—'}
-              </span>
-              <span className="text-right text-xs text-[--text-light]">
-                {p.iva_porcentaje != null && p.base_imponible != null ? `${p.iva_porcentaje}%` : '—'}
-              </span>
-              <span className="text-right font-semibold text-amber-700">{formatImporte(p.importe)}</span>
-              <div className="flex items-center gap-1.5">
-                <EstadoPill estado={p.estado} map={ESTADO_PAGO} />
-                {p.estado === 'pendiente' && (
-                  <button onClick={() => setModalPagar({ id: p.id, concepto: p.concepto, importe: p.importe })}
-                    className="text-[10px] text-green-600 hover:underline whitespace-nowrap">
-                    ✓ Pagar
+                <span className="text-[--text-medium] truncate">{p.concepto}</span>
+                <span className="text-right text-xs text-[--text-light]">
+                  {p.base_imponible != null ? formatImporte(p.base_imponible) : '—'}
+                </span>
+                <span className="text-right text-xs text-[--text-light]">
+                  {p.iva_porcentaje != null && p.base_imponible != null ? `${p.iva_porcentaje}%` : '—'}
+                </span>
+                <span className="text-right font-semibold text-amber-700">{formatImporte(p.importe)}</span>
+                <div className="flex items-center gap-1.5">
+                  <EstadoPill estado={p.estado} map={ESTADO_PAGO} />
+                  {p.estado === 'pendiente' && (
+                    <button onClick={() => setModalPagar({ id: p.id, concepto: p.concepto, importe: p.importe })}
+                      className="text-[10px] text-green-600 hover:underline whitespace-nowrap">
+                      ✓ Pagar
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 justify-self-end">
+                  <button onClick={() => editando === p.id ? cancelarForm() : iniciarEdicion(p)}
+                    aria-label={`Editar gasto ${p.concepto}`}
+                    className={`transition-colors ${editando === p.id ? 'text-primary' : 'text-gray-300 hover:text-primary'}`}>
+                    <Pencil size={14} />
                   </button>
-                )}
+                  <button onClick={() => setModalEliminar({ id: p.id, concepto: p.concepto })}
+                    aria-label={`Eliminar gasto ${p.concepto}`}
+                    className="text-gray-300 hover:text-red-400 transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2 justify-self-end">
-                <button onClick={() => iniciarEdicion(p)}
-                  aria-label={`Editar gasto ${p.concepto}`}
-                  className="text-gray-300 hover:text-primary transition-colors">
-                  <Pencil size={14} />
-                </button>
-                <button onClick={() => setModalEliminar({ id: p.id, concepto: p.concepto })}
-                  aria-label={`Eliminar gasto ${p.concepto}`}
-                  className="text-gray-300 hover:text-red-400 transition-colors">
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
+              {editando === p.id && (
+                <div className="border-b border-[--border] bg-slate-50 px-5 py-5 space-y-4">
+                  <h3 className="font-semibold text-[--text] text-sm">Editar gasto</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-[--text-light] mb-1">Proveedor (opcional)</label>
+                      <div className="flex gap-2">
+                        <select value={form.proveedor_id} onChange={e => setForm(f => ({ ...f, proveedor_id: e.target.value }))}
+                          className="flex-1 border border-[--border] rounded-md px-3 py-2 text-sm bg-white">
+                          <option value="">— Sin proveedor —</option>
+                          {proveedores.map(prov => <option key={prov.id} value={prov.id}>{prov.nombre}</option>)}
+                        </select>
+                        <button onClick={irANuevoProveedor}
+                          title="Dar de alta un proveedor nuevo"
+                          className="text-xs border border-dashed border-[--border] px-2 rounded-md text-[--text-light] hover:border-primary hover:text-primary transition-colors">
+                          ＋
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[--text-light] mb-1">Fecha</label>
+                      <input type="date" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))}
+                        className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[--text-light] mb-1">Categoría *</label>
+                      <select value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}
+                        className="w-full border border-[--border] rounded-md px-3 py-2 text-sm bg-white">
+                        {(categorias.length
+                          ? categorias.map(c => [c.clave, c.etiqueta])
+                          : Object.entries(CATEGORIA_GASTO_LABELS)
+                        ).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={`block text-xs mb-1 ${errCampos.concepto ? 'text-red-500' : 'text-[--text-light]'}`}>Concepto *</label>
+                      <input type="text" value={form.concepto}
+                        onChange={e => { setForm(f => ({ ...f, concepto: sanitizers.texto(e.target.value) })); if (errCampos.concepto) setErrCampos(prev => ({ ...prev, concepto: undefined })) }}
+                        placeholder="Descripción del gasto"
+                        className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${errCampos.concepto ? 'border-red-400' : 'border-[--border]'}`} />
+                      {errCampos.concepto && <p className="text-xs text-red-500 mt-1">{errCampos.concepto}</p>}
+                    </div>
+                    <div className="md:col-span-2">
+                      <div className="flex items-center gap-3 mb-2">
+                        <label className="text-xs text-[--text-light]">Desglosar IVA</label>
+                        <button type="button"
+                          onClick={() => setForm(f => {
+                            const d = !f.desglosarIva
+                            return d ? { ...f, desglosarIva: true } : { ...f, desglosarIva: false, base_imponible: '', iva_importe: '' }
+                          })}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.desglosarIva ? 'bg-primary' : 'bg-gray-200'}`}>
+                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${form.desglosarIva ? 'translate-x-4' : 'translate-x-1'}`} />
+                        </button>
+                      </div>
+                      {form.desglosarIva ? (
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-xs text-[--text-light] mb-1">Base (€)</label>
+                            <input type="number" min="0" step="0.50" value={form.base_imponible}
+                              onChange={e => handleBaseIvaChange('base_imponible', sanitizers.decimal(e.target.value))}
+                              className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-[--text-light] mb-1">% IVA</label>
+                            <input type="number" min="0" step="0.5" value={form.iva_porcentaje}
+                              onChange={e => handleBaseIvaChange('iva_porcentaje', sanitizers.decimal(e.target.value))}
+                              className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-[--text-light] mb-1">Total (auto)</label>
+                            <input type="number" value={form.importe} readOnly
+                              className="w-full border border-[--border] rounded-md px-3 py-2 text-sm bg-gray-50 cursor-not-allowed" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className={`block text-xs mb-1 ${errCampos.importe ? 'text-red-500' : 'text-[--text-light]'}`}>Importe (€) *</label>
+                          <input type="number" min="0" step="0.50" value={form.importe}
+                            onChange={e => { setForm(f => ({ ...f, importe: sanitizers.decimal(e.target.value) })); if (errCampos.importe) setErrCampos(prev => ({ ...prev, importe: undefined })) }}
+                            className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${errCampos.importe ? 'border-red-400' : 'border-[--border]'}`} />
+                          {errCampos.importe && <p className="text-xs text-red-500 mt-1">{errCampos.importe}</p>}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[--text-light] mb-1">Forma de pago</label>
+                      <select value={form.forma_pago} onChange={e => setForm(f => ({ ...f, forma_pago: e.target.value }))}
+                        className="w-full border border-[--border] rounded-md px-3 py-2 text-sm bg-white">
+                        {FORMAS_PAGO.map(fp => <option key={fp} value={fp}>{FORMA_PAGO_LABELS[fp]}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[--text-light] mb-1">Referencia</label>
+                      <input type="text" value={form.referencia} onChange={e => setForm(f => ({ ...f, referencia: sanitizers.texto(e.target.value) }))}
+                        placeholder="Nº factura, albarán…"
+                        className="w-full border border-[--border] rounded-md px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[--text-light] mb-1">Estado</label>
+                      <select value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))}
+                        className="w-full border border-[--border] rounded-md px-3 py-2 text-sm bg-white">
+                        <option value="pagado">Pagado</option>
+                        <option value="pendiente">Pendiente de pago</option>
+                      </select>
+                    </div>
+                  </div>
+                  {errForm && <p className="text-xs text-red-500">{errForm}</p>}
+                  <div className="flex gap-2 justify-end">
+                    <button onClick={cancelarForm}
+                      className="px-4 py-2 text-sm rounded-md border border-[--border] text-[--text-medium] hover:bg-gray-50 transition-colors">
+                      Cancelar
+                    </button>
+                    <button onClick={handleGuardar} disabled={guardando}
+                      className="px-4 py-2 text-sm rounded-md bg-primary text-white hover:bg-primary-dark transition-colors disabled:opacity-50">
+                      {guardando ? 'Guardando…' : 'Guardar'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </Fragment>
           ))}
         </div>
       )}
