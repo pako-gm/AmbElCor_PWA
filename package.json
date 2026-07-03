@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "screenshot": "playwright test tests/screenshot.spec.ts",
-    "export:carga": "node scripts/exportar-carga-datos.js",
+"export:carga": "node scripts/exportar-carga-datos.js",
     "cargar:datos": "node scripts/cargar-datos.js"
   },
   "dependencies": {

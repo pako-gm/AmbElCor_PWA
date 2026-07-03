@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { LogOut, BookOpen } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
 // Dos iniciales a partir del nombre: "Carmen Moya" → "CM".
@@ -56,6 +56,16 @@ export default function UserMenu() {
             <div className="text-sm font-medium text-[--text-dark] leading-tight">{perfil.nombre}</div>
             {perfil.rol && <div className="text-xs text-[--text-light]">{perfil.rol}</div>}
           </div>
+          <a
+            href="/manual-usuario.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setAbierto(false)}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[--text-medium] hover:bg-[--bg-gray] transition-colors"
+          >
+            <BookOpen size={16} />
+            Manual usuario
+          </a>
           <button
             onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[--text-medium] hover:bg-[--bg-gray] transition-colors text-left"
