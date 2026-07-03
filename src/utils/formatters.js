@@ -40,8 +40,14 @@ export const formatTelefono = (telefono) => {
   return `${limpio.slice(0, 3)} ${limpio.slice(3, 6)} ${limpio.slice(6)}`
 }
 
-// Generar número de encargo YY/NNN
-export const formatNumeroEncargo = (numero) => numero ?? '—'
+// Generar número de encargo YY/NNN → ENC-YY/NNNN
+export const formatNumeroEncargo = (numero) => {
+  if (!numero) return '—'
+  const parts = String(numero).split('/')
+  if (parts.length !== 2) return numero
+  const [yr, num] = parts
+  return `ENC-${yr}/${num.padStart(4, '0')}`
+}
 
 // Etiquetas legibles de estado
 export const ESTADO_LABELS = {
@@ -53,11 +59,20 @@ export const ESTADO_LABELS = {
 }
 
 export const ESTADO_COLORS = {
-  presupuestado: 'bg-muted text-white',
-  confirmado: 'bg-primary text-white',
-  en_confeccion: 'bg-violet text-white',
-  listo: 'bg-amber text-white',
-  entregado: 'bg-green text-white',
+  presupuestado: { color: '#5E6878', backgroundColor: '#EFF1F4', borderColor: '#DDE0E7' },
+  confirmado:    { color: '#5E48A8', backgroundColor: '#EFEAFB', borderColor: '#DCD0F2' },
+  en_confeccion: { color: '#2F5AA0', backgroundColor: '#E8F0FB', borderColor: '#CFE0F5' },
+  listo:         { color: '#8A6228', backgroundColor: '#F6EEDD', borderColor: '#E5D4AD' },
+  entregado:     { color: '#0F7A4A', backgroundColor: '#E6F4EC', borderColor: '#C6E4D2' },
+}
+
+// Colores de acento para barras del Cronograma (Gantt)
+export const ESTADO_BARRA = {
+  presupuestado: '#7B8496',
+  confirmado:    '#7559C2',
+  en_confeccion: '#3D6BB3',
+  listo:         '#B07D33',
+  entregado:     '#2E9D5B',
 }
 
 // Etiquetas de tipo de pago

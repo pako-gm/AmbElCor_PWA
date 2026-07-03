@@ -13,7 +13,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import LoadingState from '@/components/ui/LoadingState'
 import Badge from '@/components/ui/Badge'
 import {
-  formatFecha, formatImporte,
+  formatFecha, formatImporte, formatNumeroEncargo,
   ESTADO_LABELS,
   TIPO_PAGO_LABELS, FORMA_PAGO_LABELS
 } from '@/utils/formatters'
@@ -175,10 +175,8 @@ export default function EncargoDetalle() {
     ? `${encargo.clientes.nombre} ${encargo.clientes.apellidos ?? ''}`.trim()
     : 'Sin cliente'
 
-  const fechasPorEstado = {}
+  const fechasPorEstado = { presupuestado: encargo.fecha_encargo }
   if (encargo.historial_encargo) {
-    const hCreado = encargo.historial_encargo.find(h => h.descripcion === 'Encargo creado')
-    if (hCreado) fechasPorEstado['presupuestado'] = hCreado.fecha
     for (let i = 1; i < ESTADOS.length; i++) {
       const label = ESTADO_LABELS[ESTADOS[i]]
       const h = encargo.historial_encargo.find(h => h.descripcion?.includes(`→ ${label}`))
@@ -193,7 +191,7 @@ export default function EncargoDetalle() {
     // Bloquear avance a en_confeccion si no hay reserva del 30%
     if (nuevoIndex > estadoActual && nuevoEstado === 'en_confeccion') {
       const cobrado = (encargo.pagos ?? []).filter(p => p.tipo !== 'devolucion').reduce((s, p) => s + parseFloat(p.importe), 0)
-      if (cobrado < (encargo.precio_total ?? 0) * 0.3) {
+      if (Math.round(cobrado * 100) < Math.round((encargo.precio_total ?? 0) * 0.3 * 100)) {
         setModalSenal(true)
         return
       }
@@ -320,9 +318,10 @@ export default function EncargoDetalle() {
             <ChevronLeft size={18} />
           </button>
           <div className="flex-1">
-            <p className="text-xs text-[--text-light]">{encargo.numero}</p>
+            <p className="text-xs text-[--text-light]">{formatNumeroEncargo(encargo.numero)}</p>
             <h1 className="font-display text-2xl text-[--text-dark]">{nombreCliente}</h1>
           </div>
+          {/* Slider + botón WhatsApp — oculto temporalmente, descomentar para activar
           {encargo.clientes?.telefono && (
             <div className="flex items-center gap-2">
               <button
@@ -346,6 +345,7 @@ export default function EncargoDetalle() {
               </button>
             </div>
           )}
+          */}
           <button
             onClick={() => setModalCompartir(true)}
             className="flex items-center gap-1.5 text-xs border border-[--border] px-3 py-1.5 rounded-md text-[--text-medium] hover:border-primary hover:text-primary transition-colors"
