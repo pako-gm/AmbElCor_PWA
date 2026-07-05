@@ -38,12 +38,12 @@ Acceso CRM exclusivo de Carmen. Clientes acceden a sus encargos vía token/códi
 ## Diseño
 
 - **Primary/brand:** `#1fb39a` | **dark:** `#118b78` | **Gold/amber:** `#b07d33`
-- Paleta completa definida en `tailwind.config.js` (brand, ink, violet, purple, green, amber, danger, muted, line, surface…) y vars CSS en `src/index.css`
+- Paleta completa definida en `tailwind.config.js` (brand, ink, violet, purple, green, amber, danger, muted, line, surface…) y vars CSS en `apps/crm/index.css`
 - **Fuentes:** Lora (titulares, `font-display`) + Figtree (cuerpo, `font-sans`)
 - Hover de botón primario estándar: `hover:bg-primary-dark`
 - Mobile-first: bottom-tab nav en móvil, drawer lateral en desktop
 - CRM funcional y conciso (no tan visual como la landing)
-- El módulo Inventario usa un design system CSS propio (`.btn`, `.panel`, `.modal`, `.input`… en `src/index.css`) con componentes en `src/components/inventario/InventarioUI.jsx`
+- El módulo Inventario usa un design system CSS propio (`.btn`, `.panel`, `.modal`, `.input`… en `apps/crm/index.css`) con componentes en `apps/crm/components/inventario/InventarioUI.jsx`
 
 ## Convenciones de código
 
@@ -51,28 +51,34 @@ Acceso CRM exclusivo de Carmen. Clientes acceden a sus encargos vía token/códi
 - Tablas y columnas Supabase en snake_case
 - Componentes React en PascalCase, hooks con prefijo `use`
 - No añadir dependencias nuevas sin evaluar si ya existe algo en el stack
-- Hooks Supabase en `src/hooks/` (useEncargos.js, useAuth.jsx, useClientes.js, useProveedores.js, useInventario.js, useContabilidad.js, useCitas.js, useCatalogo.js)
-- Formateo de fechas, importes, teléfonos y números de encargo en `src/utils/formatters.js`
-- Validaciones de entrada (teléfono, email, números) en `src/utils/validators.js`
-- Componentes base propios en `src/components/ui/` (Button, Field, Modal, ConfirmDialog, Toast, LoadingState, EmptyState, Badge, SearchInput, PageHeader)
-- Exportación Excel en `src/utils/exportExcel.js`
-- PDFs en `src/utils/pdfGenerator.js`
-- Componentes shadcn/ui en `src/components/ui/` — instalar con `npx shadcn@latest add <component>`
+- Hooks Supabase en `apps/crm/hooks/` (useEncargos.js, useAuth.jsx, useClientes.js, useProveedores.js, useInventario.js, useContabilidad.js, useCitas.js, useCatalogo.js)
+- Formateo de fechas, importes, teléfonos y números de encargo en `apps/crm/utils/formatters.js`
+- Validaciones de entrada (teléfono, email, números) en `apps/crm/utils/validators.js`
+- Componentes base propios en `apps/crm/components/ui/` (Button, Field, Modal, ConfirmDialog, Toast, LoadingState, EmptyState, Badge, SearchInput, PageHeader)
+- Exportación Excel en `apps/crm/utils/exportExcel.js`
+- PDFs en `apps/crm/utils/pdfGenerator.js`
+- Componentes shadcn/ui en `apps/crm/components/ui/` — instalar con `npx shadcn@latest add <component>`
 
 ## Estructura de carpetas relevante
 
+El proyecto separa el código en `apps/` (sin tooling de monorepo — sigue siendo un único `package.json` y build Vite; alias `@` → `apps/crm`, `@landing` → `apps/landing`):
+
 ```
-src/
-  components/ui/        ← shadcn/ui (no modificar manualmente)
-  components/layout/    ← PageWrapper, BottomNav, ProtectedRoute
-  pages/                ← una carpeta por módulo (Encargos/, Clientes/, etc.)
-  hooks/                ← useAuth.jsx, useEncargos.js, useClientes.js…
-  utils/                ← formatters.js, exportExcel.js, pdfGenerator.js
-  lib/                  ← supabase.js, stripe.js
+apps/
+  crm/                   ← CRM (todo lo que antes vivía en src/)
+    components/ui/       ← shadcn/ui (no modificar manualmente)
+    components/layout/   ← PageWrapper, BottomNav, ProtectedRoute
+    pages/                ← una carpeta por módulo (Encargos/, Clientes/, etc.)
+    hooks/                ← useAuth.jsx, useEncargos.js, useClientes.js…
+    utils/                ← formatters.js, exportExcel.js, pdfGenerator.js
+    lib/                  ← supabase.js, stripe.js
+  landing/               ← Landing pública ("Web Pública"), sin dependencias del CRM
 supabase/
   functions/
     notify-whatsapp/    ← Edge Function para notificaciones WhatsApp
 ```
+
+`apps/shop/` y `packages/` (para código compartido) no existen todavía — se crearán cuando se aborde la tienda online (Fase 4, Stripe), momento en el que se decidirá si conviene adoptar tooling de monorepo (pnpm workspaces/turborepo) según lo que esa app necesite compartir de verdad con el CRM.
 
 ## Estado de desarrollo (abril 2026)
 
@@ -92,7 +98,7 @@ supabase/
 - **Módulo Proveedores:** panel integrado en Inventario (`/inventario/proveedores`)
 - **Módulo Inventario:** lista de materiales, nuevo, detalle, ajustes (`/inventario`, `/inventario/ajustes`)
 - **Módulo Contabilidad:** página única con tabs dashboard/cobros/pagos/libro (`/contabilidad`, `ContabilidadDashboard.jsx`)
-- **Módulo Citas:** agenda de día con timeline propio y drag&drop táctil (`/citas`, componentes en `src/components/citas/`)
+- **Módulo Citas:** agenda de día con timeline propio y drag&drop táctil (`/citas`, componentes en `apps/crm/components/citas/`)
 - **Módulo Catálogo:** lista y formulario de prendas (`/catalogo`)
 - Edge Function `notify-whatsapp` para notificaciones al cliente
 

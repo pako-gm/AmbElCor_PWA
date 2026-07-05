@@ -36,7 +36,8 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './apps/crm'),
+      '@landing': path.resolve(__dirname, './apps/landing')
     }
   }
 })

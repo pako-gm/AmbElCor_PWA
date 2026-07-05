@@ -38,7 +38,7 @@ import SeguimientoDetalle from '@/pages/Seguimiento/SeguimientoDetalle'
 import Ajustes from '@/pages/Ajustes/Ajustes'
 
 // Landing pública (Web Pública, enlazada desde el menú del CRM)
-import Landing from '@/pages/Landing/Landing'
+import Landing from '@landing/Landing'
 
 const Placeholder = ({ title }) => (
   <PageWrapper>

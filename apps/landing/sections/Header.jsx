@@ -4,8 +4,8 @@ import { useLanguage } from '../LanguageContext';
 import { LANGUAGES } from '../translations';
 import { css } from '../utils';
 import styles from '../Landing.module.css';
-import logoOscuro from '../../../public/img/ambelcor-oscuro.png';
-import logoClaro from '../../../public/img/ambelcor-claro.png';
+import logoOscuro from '../assets/img/ambelcor-oscuro.png';
+import logoClaro from '../assets/img/ambelcor-claro.png';
 
 function LanguageSelector({ variant = 'desktop' }) {
   const { lang, setLang } = useLanguage();
