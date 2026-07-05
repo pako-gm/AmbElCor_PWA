@@ -37,6 +37,9 @@ import SeguimientoDetalle from '@/pages/Seguimiento/SeguimientoDetalle'
 // Ajustes
 import Ajustes from '@/pages/Ajustes/Ajustes'
 
+// Landing pública (Web Pública, enlazada desde el menú del CRM)
+import Landing from '@/pages/Landing/Landing'
+
 const Placeholder = ({ title }) => (
   <PageWrapper>
     <div className="p-8 text-center text-[--text-light]">
@@ -61,6 +64,7 @@ export default function App() {
         <Route path="/acceso" element={<Acceso />} />
         <Route path="/seguimiento" element={<SeguimientoForm />} />
         <Route path="/seguimiento/:token" element={<SeguimientoDetalle />} />
+        <Route path="/web-publica" element={<Landing />} />
 
         {/* Rutas protegidas */}
         <Route path="/encargos" element={<Protected><EncargosLista /></Protected>} />

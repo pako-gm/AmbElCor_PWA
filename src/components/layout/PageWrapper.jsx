@@ -152,7 +152,7 @@ export default function PageWrapper({ children, title }) {
             </div>
           ))}
           <a
-            href="/ambelcor-emergent.html"
+            href="/web-publica"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 px-5 py-3 text-sm text-[--text-medium] hover:bg-[--bg-gray] transition-colors"
