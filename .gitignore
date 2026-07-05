@@ -34,6 +34,9 @@ playwright-report/
 # Design handoff bundle
 DESIGN/
 
+# CodeGraph — índice local del repo (SQLite), se regenera con `codegraph init`
+.codegraph/
+
 # Logs
 *.log
 npm-debug.log*

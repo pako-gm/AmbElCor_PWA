@@ -1,0 +1,1 @@
+la carpeta shop se crea para cuando el cliente quiera instalar una tienda virtual via Stripe, algo que todavía no ha sido comentado. plazo creacion:  > 1 año.
