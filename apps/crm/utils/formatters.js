@@ -81,6 +81,7 @@ export const TIPO_PAGO_LABELS = {
   a_cuenta: 'A cuenta',
   final: 'Final',
   devolucion: 'Devolución',
+  ajuste_redondeo: 'Ajuste por redondeo',
 }
 
 export const FORMA_PAGO_LABELS = {
@@ -90,6 +91,7 @@ export const FORMA_PAGO_LABELS = {
   bizum: 'Bizum',
   domiciliacion: 'Domiciliación',
   stripe: 'Online',
+  ajuste: 'Ajuste',
 }
 
 // Formatea código de material: "TEL001" → "TEL-001"

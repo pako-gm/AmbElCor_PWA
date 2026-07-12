@@ -33,7 +33,7 @@ export async function fetchEncargo(id) {
       token_publico, codigo_corto, notas,
       clientes (id, nombre, apellidos, telefono, email),
       encargo_lineas (
-        id, descripcion, cantidad, precio_unitario, precio_base, medidas_ajuste, notas,
+        id, descripcion, cantidad, precio_unitario, precio_base, descuento, medidas_ajuste, notas,
         prendas_catalogo (id, nombre)
       ),
       historial_encargo (id, fecha, descripcion),
@@ -48,7 +48,7 @@ export async function fetchEncargo(id) {
 // Crear encargo con sus líneas
 export async function crearEncargo({ cliente_id, fecha_entrega_estimada, notas, lineas }) {
   const precio_total = lineas.reduce(
-    (sum, l) => sum + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1),
+    (sum, l) => sum + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1) - (parseFloat(l.descuento) || 0),
     0
   )
 
@@ -78,6 +78,7 @@ export async function crearEncargo({ cliente_id, fecha_entrega_estimada, notas, 
       cantidad: parseInt(l.cantidad) || 1,
       precio_unitario: parseFloat(l.precio_unitario) || 0,
       precio_base: parseFloat(l.precio_base) || null,
+      descuento: parseFloat(l.descuento) || 0,
       medidas_ajuste: l.medidas_ajuste ? { notas: l.medidas_ajuste } : {},
       notas: l.notas || null,
     }))
@@ -195,8 +196,8 @@ export async function crearClienteRapido({ nombre, apellidos, telefono, email })
 export async function eliminarLinea(lineaId, encargoId, descripcion) {
   const { error } = await supabase.from('encargo_lineas').delete().eq('id', lineaId)
   if (error) throw error
-  const { data: lineas } = await supabase.from('encargo_lineas').select('cantidad, precio_unitario').eq('encargo_id', encargoId)
-  const total = (lineas || []).reduce((s, l) => s + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1), 0)
+  const { data: lineas } = await supabase.from('encargo_lineas').select('cantidad, precio_unitario, descuento').eq('encargo_id', encargoId)
+  const total = (lineas || []).reduce((s, l) => s + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1) - (parseFloat(l.descuento) || 0), 0)
   await supabase.from('encargos').update({ precio_total: total }).eq('id', encargoId)
   await registrarHistorial(encargoId, `Prenda eliminada: ${descripcion || 'sin descripción'}`)
 }
@@ -206,6 +207,7 @@ export async function actualizarLinea(lineaId, encargoId, cambios) {
   const update = {
     cantidad: parseInt(cambios.cantidad) || 1,
     precio_unitario: parseFloat(cambios.precio_unitario) || 0,
+    descuento: parseFloat(cambios.descuento) || 0,
     medidas_ajuste: cambios.medidas_ajuste ? { notas: cambios.medidas_ajuste } : {},
     notas: cambios.notas || null,
   }
@@ -214,8 +216,8 @@ export async function actualizarLinea(lineaId, encargoId, cambios) {
   if (cambios.descripcion !== undefined) update.descripcion = cambios.descripcion
   const { error } = await supabase.from('encargo_lineas').update(update).eq('id', lineaId)
   if (error) throw error
-  const { data: lineas } = await supabase.from('encargo_lineas').select('cantidad, precio_unitario').eq('encargo_id', encargoId)
-  const total = (lineas || []).reduce((s, l) => s + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1), 0)
+  const { data: lineas } = await supabase.from('encargo_lineas').select('cantidad, precio_unitario, descuento').eq('encargo_id', encargoId)
+  const total = (lineas || []).reduce((s, l) => s + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1) - (parseFloat(l.descuento) || 0), 0)
   await supabase.from('encargos').update({ precio_total: total }).eq('id', encargoId)
 }
 
@@ -228,12 +230,13 @@ export async function agregarLinea(encargoId, linea) {
     cantidad: parseInt(linea.cantidad) || 1,
     precio_unitario: parseFloat(linea.precio_unitario) || 0,
     precio_base: parseFloat(linea.precio_base) || null,
+    descuento: parseFloat(linea.descuento) || 0,
     medidas_ajuste: linea.medidas_ajuste ? { notas: linea.medidas_ajuste } : {},
     notas: linea.notas || null,
   })
   if (error) throw error
-  const { data: lineas } = await supabase.from('encargo_lineas').select('cantidad, precio_unitario').eq('encargo_id', encargoId)
-  const total = (lineas || []).reduce((s, l) => s + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1), 0)
+  const { data: lineas } = await supabase.from('encargo_lineas').select('cantidad, precio_unitario, descuento').eq('encargo_id', encargoId)
+  const total = (lineas || []).reduce((s, l) => s + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1) - (parseFloat(l.descuento) || 0), 0)
   await supabase.from('encargos').update({ precio_total: total }).eq('id', encargoId)
   await registrarHistorial(encargoId, `Prenda añadida: ${linea.descripcion}`)
 }
@@ -255,6 +258,16 @@ export async function actualizarEstado(id, nuevoEstado) {
     : `Estado cambiado a: ${ESTADO_LABELS[nuevoEstado]}`)
 }
 
+// Actualizar solo la fecha de entrega estimada de un encargo
+export async function actualizarFechaEntrega(id, fechaEntregaEstimada) {
+  const { error } = await supabase
+    .from('encargos')
+    .update({ fecha_entrega_estimada: fechaEntregaEstimada })
+    .eq('id', id)
+  if (error) throw error
+  await registrarHistorial(id, `Fecha de entrega actualizada a ${fechaEntregaEstimada}`)
+}
+
 // Actualizar fechas de un encargo
 export async function updateFechasEncargo(id, fecha_encargo, fecha_entrega_estimada) {
   const fmt = d => d.toISOString().split('T')[0]
@@ -270,7 +283,7 @@ export async function updateFechasEncargo(id, fecha_encargo, fecha_entrega_estim
 export async function fetchCatalogo() {
   const { data, error } = await supabase
     .from('prendas_catalogo')
-    .select('id, nombre, precio_base, descuento')
+    .select('id, nombre, precio_base')
     .eq('activo', true)
     .order('nombre')
   if (error) throw error

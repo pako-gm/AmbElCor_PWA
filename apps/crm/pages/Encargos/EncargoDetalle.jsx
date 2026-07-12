@@ -5,7 +5,7 @@ import {
   Trash2, PlusCircle, Pencil, Plus, MessageCircle, AlertCircle
 } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
-import { fetchEncargo, avanzarEstado, registrarPago, actualizarPago, eliminarPago, eliminarLinea, agregarLinea, actualizarLinea, fetchCatalogo, eliminarEncargo } from '@/hooks/useEncargos'
+import { fetchEncargo, avanzarEstado, registrarPago, actualizarPago, eliminarPago, eliminarLinea, agregarLinea, actualizarLinea, fetchCatalogo, eliminarEncargo, actualizarFechaEntrega } from '@/hooks/useEncargos'
 import { supabase } from '@/lib/supabase'
 import { generarPresupuestoPDF, generarFacturaPDF } from '@/utils/pdfGenerator'
 import { useToast } from '@/hooks/useToast'
@@ -27,8 +27,8 @@ const cargarFiscal = async () => {
 
 const ESTADOS = ['presupuestado', 'confirmado', 'en_confeccion', 'listo', 'entregado']
 
-const TIPOS_PAGO = ['reserva', 'a_cuenta', 'final', 'devolucion']
-const FORMAS_PAGO = ['efectivo', 'transferencia', 'tarjeta', 'bizum']
+const TIPOS_PAGO = ['reserva', 'a_cuenta', 'final', 'devolucion', 'ajuste_redondeo']
+const FORMAS_PAGO = ['efectivo', 'transferencia', 'tarjeta', 'bizum', 'ajuste']
 
 export default function EncargoDetalle() {
   const { id } = useParams()
@@ -57,6 +57,9 @@ export default function EncargoDetalle() {
   const [pagoEditando, setPagoEditando] = useState(null) // id del pago en edición
   const [datosPagoEdicion, setDatosPagoEdicion] = useState({})
   const [guardandoPagoEdicion, setGuardandoPagoEdicion] = useState(false)
+  const [editandoFechaEntrega, setEditandoFechaEntrega] = useState(false)
+  const [nuevaFechaEntrega, setNuevaFechaEntrega] = useState('')
+  const [guardandoFechaEntrega, setGuardandoFechaEntrega] = useState(false)
 
   // Modal confirmación eliminar
   const [confirmDelete, setConfirmDelete] = useState(null) // { tipo: 'encargo' | 'pago', pagoId? }
@@ -65,7 +68,7 @@ export default function EncargoDetalle() {
   const [modalSenal, setModalSenal] = useState(false)
 
   // Modal aviso de cobro pendiente al entregar
-  const [modalCobroPendiente, setModalCobroPendiente] = useState(false)
+  const [modalCobroPendiente, setModalCobroPendiente] = useState(null) // { tipo: 'bloqueo'|'redondeo', pendiente, limite? }
 
   // Timeline hover
   const [hoveredEstado, setHoveredEstado] = useState(null)
@@ -105,7 +108,7 @@ export default function EncargoDetalle() {
 
   const abrirModalLineas = () => {
     fetchCatalogo().then(setCatalogo).catch(console.error)
-    setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', precio_base: '', notas: '' })
+    setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', precio_base: '', descuento: '', notas: '' })
     setModalLineas(true)
   }
 
@@ -124,7 +127,7 @@ export default function EncargoDetalle() {
     setGuardandoLinea(true)
     try {
       await agregarLinea(id, nuevaLinea)
-      setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', precio_base: '', notas: '' })
+      setNuevaLinea({ prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', precio_base: '', descuento: '', notas: '' })
       setMostrarFormLinea(false)
       cargar()
     } catch (e) {
@@ -142,7 +145,7 @@ export default function EncargoDetalle() {
         const prenda = catalogo.find(p => p.id === valor)
         if (prenda) {
           updated.descripcion = prenda.nombre
-          updated.precio_unitario = (prenda.precio_base * (1 - (prenda.descuento ?? 0) / 100)).toFixed(2)
+          updated.precio_unitario = String(prenda.precio_base)
           updated.precio_base = prenda.precio_base
         }
       }
@@ -157,7 +160,7 @@ export default function EncargoDetalle() {
         const prenda = catalogo.find(p => p.id === valor)
         if (prenda) {
           updated.descripcion = prenda.nombre
-          updated.precio_unitario = (prenda.precio_base * (1 - (prenda.descuento ?? 0) / 100)).toFixed(2)
+          updated.precio_unitario = String(prenda.precio_base)
           updated.precio_base = prenda.precio_base
         }
       }
@@ -197,17 +200,42 @@ export default function EncargoDetalle() {
       }
     }
 
-    // Avisar si se entrega con cantidad pendiente sin cobrar
+    // Bloquear entrega si el saldo pendiente supera el 1% del total; condonar si es menor
     if (nuevoIndex > estadoActual && nuevoEstado === 'entregado') {
-      const cobrado = (encargo.pagos ?? []).filter(p => p.tipo !== 'devolucion').reduce((s, p) => s + parseFloat(p.importe), 0)
+      const cobrado = (encargo.pagos ?? []).filter(p => p.tipo !== 'devolucion' && p.estado !== 'pendiente').reduce((s, p) => s + parseFloat(p.importe), 0)
       const pend = Math.max(0, (encargo.precio_total ?? 0) - cobrado)
+      const limite = (encargo.precio_total ?? 0) * 0.01
+      if (Math.round(pend * 100) > Math.round(limite * 100)) {
+        setModalCobroPendiente({ tipo: 'bloqueo', pendiente: pend, limite })
+        return
+      }
       if (Math.round(pend * 100) > 0) {
-        setModalCobroPendiente(true)
+        setModalCobroPendiente({ tipo: 'redondeo', pendiente: pend })
         return
       }
     }
 
     await procederCambioEstado(nuevoEstado, nuevoIndex)
+  }
+
+  const handleAceptarRedondeo = async () => {
+    const pend = modalCobroPendiente.pendiente
+    setModalCobroPendiente(null)
+    try {
+      await registrarPago({
+        encargo_id: encargo.id,
+        fecha: new Date().toISOString().split('T')[0],
+        importe: pend,
+        tipo: 'ajuste_redondeo',
+        forma_pago: 'ajuste',
+        estado: 'cobrado',
+        notas: 'Redondeo automático al entregar (saldo ≤1% del total)',
+      })
+      await procederCambioEstado('entregado', ESTADOS.indexOf('entregado'))
+    } catch (e) {
+      console.error(e)
+      toast.error('No se pudo registrar el ajuste por redondeo.')
+    }
   }
 
   const procederCambioEstado = async (nuevoEstado, nuevoIndex) => {
@@ -413,11 +441,54 @@ export default function EncargoDetalle() {
                       const fin = new Date(encargo.fecha_entrega_estimada + 'T00:00:00')
                       const dias = Math.round((fin - hoy) / 86400000)
                       const color = dias < 0 ? 'text-red-800' : dias <= 3 ? 'text-red-500' : dias <= 7 ? 'text-amber-500' : 'text-teal-600'
-                      return (
-                        <p className={`text-xs -mt-2 mb-1 ${color}`}>
+                      return editandoFechaEntrega ? (
+                        <div className="flex items-center gap-2 -mt-2 mb-1">
+                          <input
+                            type="date"
+                            value={nuevaFechaEntrega}
+                            min={encargo.fecha_encargo}
+                            onChange={e => setNuevaFechaEntrega(e.target.value)}
+                            aria-label="Nueva fecha de entrega estimada"
+                            className="border border-[--border] rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                          <button
+                            onClick={async () => {
+                              if (!nuevaFechaEntrega) return
+                              setGuardandoFechaEntrega(true)
+                              try {
+                                await actualizarFechaEntrega(encargo.id, nuevaFechaEntrega)
+                                await cargar()
+                                setEditandoFechaEntrega(false)
+                              } catch (e) { console.error(e); toast.error('No se pudo actualizar la fecha de entrega.') }
+                              finally { setGuardandoFechaEntrega(false) }
+                            }}
+                            disabled={guardandoFechaEntrega}
+                            className="text-xs bg-primary text-white px-2.5 py-1 rounded hover:bg-primary-dark disabled:opacity-50 transition-colors"
+                          >
+                            {guardandoFechaEntrega ? 'Guardando…' : 'Guardar'}
+                          </button>
+                          <button
+                            onClick={() => setEditandoFechaEntrega(false)}
+                            className="text-xs border border-[--border] px-2.5 py-1 rounded text-[--text-medium] hover:bg-[--bg-alt] transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      ) : (
+                        <p className={`text-xs -mt-2 mb-1 flex items-center gap-1.5 ${color}`}>
                           {dias < 0
                             ? `Vencido · ${formatFecha(encargo.fecha_entrega_estimada)}`
                             : `Entrega prevista: ${formatFecha(encargo.fecha_entrega_estimada)}`}
+                          <button
+                            onClick={() => { setNuevaFechaEntrega(encargo.fecha_entrega_estimada); setEditandoFechaEntrega(true) }}
+                            aria-label="Editar fecha de entrega"
+                            className="text-[--text-light] hover:text-primary transition-colors"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <span className="text-[--text-light] font-normal whitespace-nowrap">
+                            ← Cambiar fecha de entrega estimada
+                          </span>
                         </p>
                       )
                     })()}
@@ -489,8 +560,17 @@ export default function EncargoDetalle() {
                 </p>
                 {l.notas && <p className="text-xs text-[--text-light] italic">{l.notas}</p>}
               </div>
-              <span className="text-sm font-medium text-[--text-dark] ml-4 flex-shrink-0">
-                {formatImporte((parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1))}
+              <span className="text-sm font-medium text-[--text-dark] ml-4 flex-shrink-0 text-right">
+                {(() => {
+                  const antes = (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1)
+                  const descuento = parseFloat(l.descuento) || 0
+                  return descuento > 0 ? (
+                    <>
+                      <span className="text-[--text-light] line-through font-normal mr-1.5">{formatImporte(antes)}</span>
+                      {formatImporte(antes - descuento)}
+                    </>
+                  ) : formatImporte(antes)
+                })()}
               </span>
             </div>
           ))}
@@ -819,6 +899,7 @@ export default function EncargoDetalle() {
                               cantidad: l.cantidad,
                               precio_unitario: l.precio_unitario,
                               precio_base: l.precio_base ?? '',
+                              descuento: l.descuento || '',
                               notas: l.notas || '',
                             })
                           }}
@@ -851,7 +932,7 @@ export default function EncargoDetalle() {
                           <option value="">— Seleccionar prenda —</option>
                           {catalogo.map(p => (
                             <option key={p.id} value={p.id}>
-                              {p.nombre} ({formatImporte(p.precio_base * (1 - (p.descuento ?? 0) / 100))})
+                              {p.nombre} ({formatImporte(p.precio_base)})
                             </option>
                           ))}
                         </select>
@@ -877,12 +958,31 @@ export default function EncargoDetalle() {
                             className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                           />
                         </div>
-                        <div className="flex-1 flex items-end">
-                          <p className="text-sm font-medium text-[--text-medium] pb-2">
-                            = {formatImporte((parseFloat(datosEdicion.precio_unitario) || 0) * (parseInt(datosEdicion.cantidad) || 1))}
-                          </p>
+                        <div className="w-28">
+                          <label className="block text-xs text-[--text-light] mb-1">Descuento (€)</label>
+                          <input
+                            type="number" inputMode="decimal" min="0" step="0.50"
+                            value={datosEdicion.descuento}
+                            onChange={e => updateDatosEdicion('descuento', sanitizers.importe(e.target.value))}
+                            placeholder="0,00"
+                            className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
                         </div>
                       </div>
+
+                      {(() => {
+                        const antes = (parseFloat(datosEdicion.precio_unitario) || 0) * (parseInt(datosEdicion.cantidad) || 1)
+                        const descuento = parseFloat(datosEdicion.descuento) || 0
+                        const despues = antes - descuento
+                        return descuento > 0 ? (
+                          <p className="text-sm font-medium">
+                            <span className="text-[--text-light] line-through mr-2">{formatImporte(antes)}</span>
+                            <span className="text-primary-dark">{formatImporte(despues)}</span>
+                          </p>
+                        ) : (
+                          <p className="text-sm font-medium text-[--text-medium]">= {formatImporte(antes)}</p>
+                        )
+                      })()}
 
                       <div>
                         <label className="block text-xs text-[--text-light] mb-1">Notas de esta prenda</label>
@@ -926,7 +1026,16 @@ export default function EncargoDetalle() {
                         {l.cantidad > 1 && <span className="text-[--text-light] ml-1">×{l.cantidad}</span>}
                       </p>
                       <p className="text-sm font-medium text-[--text-medium] whitespace-nowrap">
-                        {formatImporte((parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1))}
+                        {(() => {
+                          const antes = (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1)
+                          const descuento = parseFloat(l.descuento) || 0
+                          return descuento > 0 ? (
+                            <>
+                              <span className="text-[--text-light] line-through mr-1.5">{formatImporte(antes)}</span>
+                              {formatImporte(antes - descuento)}
+                            </>
+                          ) : formatImporte(antes)
+                        })()}
                       </p>
                     </div>
                   )}
@@ -957,7 +1066,7 @@ export default function EncargoDetalle() {
                       <option value="">— Seleccionar prenda —</option>
                       {catalogo.map(p => (
                         <option key={p.id} value={p.id}>
-                          {p.nombre} ({formatImporte(p.precio_base * (1 - (p.descuento ?? 0) / 100))})
+                          {p.nombre} ({formatImporte(p.precio_base)})
                         </option>
                       ))}
                     </select>
@@ -983,12 +1092,31 @@ export default function EncargoDetalle() {
                         className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
-                    <div className="flex-1 flex items-end">
-                      <p className="text-sm font-medium text-[--text-medium] pb-2">
-                        = {formatImporte((parseFloat(nuevaLinea.precio_unitario) || 0) * (parseInt(nuevaLinea.cantidad) || 1))}
-                      </p>
+                    <div className="w-28">
+                      <label className="block text-xs text-[--text-light] mb-1">Descuento (€)</label>
+                      <input
+                        type="number" inputMode="decimal" min="0" step="0.50"
+                        value={nuevaLinea.descuento}
+                        onChange={e => updateNuevaLinea('descuento', sanitizers.importe(e.target.value))}
+                        placeholder="0,00"
+                        className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
                     </div>
                   </div>
+
+                  {(() => {
+                    const antes = (parseFloat(nuevaLinea.precio_unitario) || 0) * (parseInt(nuevaLinea.cantidad) || 1)
+                    const descuento = parseFloat(nuevaLinea.descuento) || 0
+                    const despues = antes - descuento
+                    return descuento > 0 ? (
+                      <p className="text-sm font-medium">
+                        <span className="text-[--text-light] line-through mr-2">{formatImporte(antes)}</span>
+                        <span className="text-primary-dark">{formatImporte(despues)}</span>
+                      </p>
+                    ) : (
+                      <p className="text-sm font-medium text-[--text-medium]">= {formatImporte(antes)}</p>
+                    )
+                  })()}
 
                   <div>
                     <label className="block text-xs text-[--text-light] mb-1">Notas de esta prenda</label>
@@ -1149,11 +1277,42 @@ export default function EncargoDetalle() {
         </div>
       )}
 
-      {/* Modal aviso de cobro pendiente al entregar */}
-      {modalCobroPendiente && (
+      {/* Modal bloqueo: saldo pendiente > 1% del total */}
+      {modalCobroPendiente?.tipo === 'bloqueo' && (
         <div
           className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4"
-          onClick={() => setModalCobroPendiente(false)}
+          onClick={() => setModalCobroPendiente(null)}
+        >
+          <div
+            className="bg-white rounded-xl w-full max-w-sm p-6 space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                <AlertCircle size={18} className="text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-display text-base text-[--text-dark]">No se puede entregar</h3>
+                <p className="text-xs text-[--text-light] mt-0.5">
+                  Este encargo tiene {formatImporte(modalCobroPendiente.pendiente)} pendientes de cobro, más del 1% del total ({formatImporte(modalCobroPendiente.limite)}). Cobra el resto antes de marcarlo como entregado.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setModalCobroPendiente(null)}
+              className="w-full text-sm bg-[--primary] text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal redondeo: saldo pendiente ≤ 1% del total, se condona */}
+      {modalCobroPendiente?.tipo === 'redondeo' && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setModalCobroPendiente(null)}
         >
           <div
             className="bg-white rounded-xl w-full max-w-sm p-6 space-y-4"
@@ -1164,27 +1323,21 @@ export default function EncargoDetalle() {
                 <AlertCircle size={18} className="text-amber-500" />
               </div>
               <div>
-                <h3 className="font-display text-base text-[--text-dark]">Cobro pendiente</h3>
+                <h3 className="font-display text-base text-[--text-dark]">Pequeño saldo pendiente</h3>
                 <p className="text-xs text-[--text-light] mt-0.5">
-                  Este encargo tiene una cantidad pendiente de cobro. Si lo entregas igualmente, recuerda gestionar el cobro.
-                </p>
-                <p className="text-xs text-[--text-dark] font-semibold mt-1">
-                  Pendiente: {formatImporte(pendiente)}
+                  Quedan {formatImporte(modalCobroPendiente.pendiente)} sin cobrar (≤1% del total). Si entregas el encargo, esa cantidad se condonará y se registrará como pérdida por redondeo en Contabilidad, asociada al encargo {encargo.numero}.
                 </p>
               </div>
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => {
-                  setModalCobroPendiente(false)
-                  procederCambioEstado('entregado', ESTADOS.indexOf('entregado'))
-                }}
+                onClick={handleAceptarRedondeo}
                 className="flex-1 text-sm bg-[--primary] text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
               >
-                Aceptar
+                Aceptar y entregar
               </button>
               <button
-                onClick={() => setModalCobroPendiente(false)}
+                onClick={() => setModalCobroPendiente(null)}
                 className="flex-1 text-sm border border-[--border] text-[--text-medium] px-4 py-2 rounded-md hover:bg-[--bg-alt] transition-colors"
               >
                 Cancelar

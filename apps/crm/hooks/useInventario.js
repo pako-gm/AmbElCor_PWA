@@ -31,26 +31,29 @@ export function useInventario() {
     setLoading(true)
     setError(null)
     try {
-      const [{ data: material, error: e1 }, { data: movimientos, error: e2 }] = await Promise.all([
+      const [{ data: material, error: e1 }, { data: movimientos, error: e2 }, { data: prendas, error: e3 }] = await Promise.all([
         supabase.from('vista_stock_materiales').select('*').eq('id', id).single(),
         supabase
           .from('movimientos_inventario')
           .select(`
             id, tipo, cantidad, precio_unitario, fecha, motivo, notas, created_at,
             proveedores ( id, nombre ),
-            encargos ( id, numero )
+            encargos ( id, numero ),
+            ventas ( id, numero )
           `)
           .eq('material_id', id)
           .order('fecha', { ascending: false })
           .order('created_at', { ascending: false })
           .limit(50),
+        supabase.from('prendas_catalogo').select('id, nombre').eq('material_id', id).limit(1),
       ])
       if (e1) throw e1
       if (e2) throw e2
-      return { material, movimientos: movimientos ?? [] }
+      if (e3) throw e3
+      return { material, movimientos: movimientos ?? [], prendaVinculada: prendas?.[0] ?? null }
     } catch (e) {
       setError(e.message)
-      return { material: null, movimientos: [] }
+      return { material: null, movimientos: [], prendaVinculada: null }
     } finally {
       setLoading(false)
     }

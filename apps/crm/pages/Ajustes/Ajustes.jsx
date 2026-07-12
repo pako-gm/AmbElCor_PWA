@@ -20,6 +20,7 @@ import { useConfiguracion } from '@/hooks/useConfiguracion'
 import { TIPOS_NOTIFICACION, CONFIG_KEY_NOTIFICACIONES, parsePreferencias } from '@/lib/notificaciones'
 import { useDatosFiscales } from '@/hooks/useDatosFiscales'
 import { sanitizers } from '@/utils/validators'
+import { formatFecha } from '@/utils/formatters'
 import { useAuth } from '@/hooks/useAuth'
 import { USUARIOS } from '@/lib/usuarios'
 import { UsuarioForm } from '@/pages/Acceso/panels'
@@ -723,7 +724,7 @@ function EditarUnidadModal({ unidad, onClose, onGuardar }) {
 }
 
 // ── Sección: Incremento de precios ────────────────────────────────────────────
-function SeccionIncremento({ valorActual, loading, onGuardar, onAplicar }) {
+function SeccionIncremento({ valorActual, loading, historial, onGuardar, onAplicar }) {
   const [pct, setPct] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [confirmAplicar, setConfirmAplicar] = useState(false)
@@ -803,6 +804,24 @@ function SeccionIncremento({ valorActual, loading, onGuardar, onAplicar }) {
               <TrendingUp size={15} /> Aplicar a todo el Catálogo
             </Button>
           </div>
+
+          {historial?.length > 0 && (
+            <div className="border-t border-[--border] pt-4 space-y-2">
+              <h3 className="text-sm font-medium text-[--text-dark]">Historial de subidas</h3>
+              <div className="divide-y divide-[--border] text-sm">
+                {historial.map(h => (
+                  <div key={h.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2">
+                    <span className="text-[--text-medium]">{formatFecha(h.created_at)}</span>
+                    <span className="font-medium text-[--text-dark]">+{h.porcentaje}%</span>
+                    <span className="text-[--text-light]">
+                      {h.prendas_afectadas} {h.prendas_afectadas === 1 ? 'prenda' : 'prendas'}
+                    </span>
+                    <span className="text-[--text-light]">{h.usuario_nombre || '—'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -1061,14 +1080,16 @@ export default function Ajustes() {
   const {
     fetchCategoriasGasto, crearCategoriaGasto, actualizarCategoriaGasto, eliminarCategoriaGasto,
   } = useContabilidad()
-  const { fetchConfig, guardarConfig, aplicarIncrementoCatalogo } = useConfiguracion()
+  const { fetchConfig, guardarConfig, aplicarIncrementoCatalogo, fetchHistorialIncrementos } = useConfiguracion()
   const { fetchDatosFiscales, guardarDatosFiscales } = useDatosFiscales()
+  const { user, perfil } = useAuth()
 
   const [seccion, setSeccion] = useState('categorias')
   const [categorias, setCategorias] = useState([])
   const [unidades, setUnidades] = useState([])
   const [categoriasGasto, setCategoriasGasto] = useState([])
   const [incremento, setIncremento] = useState(null)
+  const [historialIncrementos, setHistorialIncrementos] = useState([])
   const [notifPrefs, setNotifPrefs] = useState(() => parsePreferencias(null))
   const [datosFiscales, setDatosFiscales] = useState(null)
   const [cargando, setCargando] = useState(true)
@@ -1080,10 +1101,11 @@ export default function Ajustes() {
     setIncremento(Number(c.incremento_precios_anual) || 0)
     setNotifPrefs(parsePreferencias(c[CONFIG_KEY_NOTIFICACIONES]))
   })
+  const cargarHistorialIncrementos = () => fetchHistorialIncrementos().then(setHistorialIncrementos)
   const cargarFiscales = () => fetchDatosFiscales().then(setDatosFiscales)
 
   useEffect(() => {
-    Promise.all([cargarCategorias(), cargarUnidades(), cargarCategoriasGasto(), cargarConfig(), cargarFiscales()])
+    Promise.all([cargarCategorias(), cargarUnidades(), cargarCategoriasGasto(), cargarConfig(), cargarHistorialIncrementos(), cargarFiscales()])
       .finally(() => setCargando(false))
   }, [])
 
@@ -1150,8 +1172,13 @@ export default function Ajustes() {
               <SeccionIncremento
                 valorActual={incremento}
                 loading={cargando}
+                historial={historialIncrementos}
                 onGuardar={async (pct) => { await guardarConfig('incremento_precios_anual', pct); await cargarConfig() }}
-                onAplicar={(pct) => aplicarIncrementoCatalogo(pct)}
+                onAplicar={async (pct) => {
+                  const n = await aplicarIncrementoCatalogo(pct, perfil?.nombre || user?.email)
+                  await cargarHistorialIncrementos()
+                  return n
+                }}
               />
             )}
             {seccion === 'facturacion' && (

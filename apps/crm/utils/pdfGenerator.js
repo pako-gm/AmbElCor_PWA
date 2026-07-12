@@ -133,17 +133,13 @@ function addLineasTable(doc, lineas, y) {
     }
     const desc = l.descripcion || l.prendas_catalogo?.nombre || '—'
     const unit = parseFloat(l.precio_unitario) || 0
-    const base = parseFloat(l.precio_base) || 0
     const cant = parseInt(l.cantidad) || 1
-    // Precio mostrado = precio base íntegro (el descuento se resta en el total)
-    const tieneDto = base > unit
-    const precioMostrado = tieneDto ? base : unit
-    const pct = tieneDto ? Math.round((1 - unit / base) * 100) : 0
-    const etiqueta = tieneDto ? `${desc}  (-${pct}%)` : desc
-    const subtotal = precioMostrado * cant
+    const descuento = parseFloat(l.descuento) || 0
+    const etiqueta = descuento > 0 ? `${desc}  (-${formatImporte(descuento)})` : desc
+    const subtotal = unit * cant - descuento
     doc.text(doc.splitTextToSize(etiqueta, 100)[0], 16, y + 3.5)
     doc.text(String(l.cantidad ?? 1), 122, y + 3.5, { align: 'right' })
-    doc.text(formatImporte(precioMostrado), 154, y + 3.5, { align: 'right' })
+    doc.text(formatImporte(unit), 154, y + 3.5, { align: 'right' })
     doc.text(formatImporte(subtotal), 196, y + 3.5, { align: 'right' })
     y += 8
   })
@@ -154,16 +150,14 @@ function addLineasTable(doc, lineas, y) {
 // Calcula subtotal bruto (sin descuento), descuento total y total neto de las líneas.
 function calcularTotales(lineas) {
   let bruto = 0
-  let neto = 0
+  let descuento = 0
   for (const l of lineas) {
     const unit = parseFloat(l.precio_unitario) || 0
-    const base = parseFloat(l.precio_base) || 0
     const cant = parseInt(l.cantidad) || 1
-    const precioBase = base > unit ? base : unit
-    bruto += precioBase * cant
-    neto += unit * cant
+    bruto += unit * cant
+    descuento += parseFloat(l.descuento) || 0
   }
-  return { bruto, descuento: bruto - neto, neto }
+  return { bruto, descuento, neto: bruto - descuento }
 }
 
 export async function generarPresupuestoPDF(encargo, datosFiscales) {

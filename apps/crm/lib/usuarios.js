@@ -8,6 +8,7 @@
 export const SECCIONES = [
   { id: 'encargos',     nombre: 'Encargos' },
   { id: 'inventario',   nombre: 'Inventario' },
+  { id: 'ventas',       nombre: 'Ventas' },
   { id: 'contabilidad', nombre: 'Contabilidad' },
   { id: 'ajustes',      nombre: 'Ajustes' },
 ]
@@ -47,6 +48,7 @@ export const perfilDesdeUsuario = (u) => ({
 const RUTA_POR_SECCION = {
   encargos: '/encargos',
   inventario: '/inventario',
+  ventas: '/ventas',
   contabilidad: '/contabilidad',
   ajustes: '/ajustes',
 }

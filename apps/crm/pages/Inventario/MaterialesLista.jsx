@@ -73,10 +73,15 @@ function MaterialCard({ material, iconoCategoria = 'box', onOpen, onMove }) {
     >
       <div className="flex justify-between items-start mb-2">
         <span className="text-xs font-bold text-muted uppercase">{formatCodigo(material.codigo)}</span>
-        {inactivo
-          ? <span className="text-xs font-bold px-2 py-0.5 rounded bg-line-2 text-faint">INACTIVO</span>
-          : <StatusPill status={estado} />
-        }
+        <div className="flex items-center gap-1.5">
+          {material.tipo === 'producto_reventa' && (
+            <span className="text-xs font-bold px-2 py-0.5 rounded bg-purple-soft text-purple-ink">REVENTA</span>
+          )}
+          {inactivo
+            ? <span className="text-xs font-bold px-2 py-0.5 rounded bg-line-2 text-faint">INACTIVO</span>
+            : <StatusPill status={estado} />
+          }
+        </div>
       </div>
 
       <h3 className="font-display text-base font-bold text-ink mb-2">{material.nombre}</h3>
@@ -437,7 +442,8 @@ export default function MaterialesLista() {
             placeholder="Buscar en el taller…"
             className="w-1/2"
           />
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Filtros de categoría y "Mostrar Inactivos" ocultos temporalmente (no eliminar) */}
+          {/* <div className="flex items-center gap-2 flex-wrap">
             {categorias.map((c) => (
               <button
                 key={c}
@@ -464,7 +470,7 @@ export default function MaterialesLista() {
               <Icon name={mostrarInactivos ? 'eyeOff' : 'eye'} size={14} />
               {mostrarInactivos ? 'Ocultar Inactivos' : 'Mostrar Inactivos'}
             </button>
-          </div>
+          </div> */}
         </div>
 
         {/* Contenido según KPI */}

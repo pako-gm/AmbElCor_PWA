@@ -450,9 +450,10 @@
     <a class="nav-item" href="#catalogo">8. Catálogo</a>
     <a class="nav-item" href="#inventario">9. Inventario</a>
     <a class="nav-item" href="#proveedores">10. Proveedores</a>
-    <a class="nav-item" href="#contabilidad">11. Contabilidad</a>
-    <a class="nav-item" href="#ajustes">12. Ajustes</a>
-    <a class="nav-item" href="#seguimiento">13. Seguimiento público</a>
+    <a class="nav-item" href="#ventas">11. Venta directa a Cliente</a>
+    <a class="nav-item" href="#contabilidad">12. Contabilidad</a>
+    <a class="nav-item" href="#ajustes">13. Ajustes</a>
+    <a class="nav-item" href="#seguimiento">14. Seguimiento público</a>
   </nav>
 
   <!-- ── Contenido ──────────────────────────────── -->
@@ -499,9 +500,10 @@
         <a class="toc-item" href="#catalogo"><span class="toc-num">8</span> Catálogo de prendas</a>
         <a class="toc-item" href="#inventario"><span class="toc-num">9</span> Inventario</a>
         <a class="toc-item" href="#proveedores"><span class="toc-num">10</span> Proveedores</a>
-        <a class="toc-item" href="#contabilidad"><span class="toc-num">11</span> Contabilidad</a>
-        <a class="toc-item" href="#ajustes"><span class="toc-num">12</span> Ajustes</a>
-        <a class="toc-item" href="#seguimiento"><span class="toc-num">13</span> Seguimiento público</a>
+        <a class="toc-item" href="#ventas"><span class="toc-num">11</span> Venta directa a Cliente</a>
+        <a class="toc-item" href="#contabilidad"><span class="toc-num">12</span> Contabilidad</a>
+        <a class="toc-item" href="#ajustes"><span class="toc-num">13</span> Ajustes</a>
+        <a class="toc-item" href="#seguimiento"><span class="toc-num">14</span> Seguimiento público</a>
       </div>
     </section>
 
@@ -926,9 +928,120 @@
 
       <hr class="divider" />
 
-      <!-- ── 11. CONTABILIDAD ────────────────────── -->
-      <section id="contabilidad" class="section">
+      <!-- ── 11. VENTA DIRECTA A CLIENTE ──────────── -->
+      <section id="ventas" class="section">
         <span class="section-num">MÓDULO 11</span>
+        <h2>Venta directa a Cliente</h2>
+        <p class="section-intro">
+          Además de los encargos a medida, el taller vende presencialmente algunos artículos ya confeccionados
+          (complementos, aderezos…) que Carmen compra hechos y revende directamente en el mostrador. Este módulo
+          es el que más pantallas cruza de todo el CRM: toca Catálogo, Inventario y Ventas a la vez, así que aquí
+          va explicado paso a paso.
+        </p>
+
+        <div class="subsection">
+          <h3>¿Cómo funciona?</h3>
+          <p>Tres módulos trabajan juntos, cada uno con su papel:</p>
+          <ul class="feature-list">
+            <li><strong>Catálogo:</strong> define qué se vende, su nombre y su precio de venta al público.</li>
+            <li><strong>Inventario:</strong> lleva la cantidad en stock y el coste de compra (precio medio) de cada artículo.</li>
+            <li><strong>Ventas:</strong> es donde se registra la venta en sí — descuenta stock automáticamente y calcula el margen.</li>
+          </ul>
+          <div class="tip">
+            <strong>Permisos:</strong> el módulo Ventas solo es visible para los perfiles <strong>Propietaria</strong> y
+            <strong>Administrador</strong>. El personal de Costurera no lo ve en el menú.
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3>Paso 1 — Preparar un artículo para la venta</h3>
+          <p>Antes de poder vender algo, hay que marcarlo como vendible y darle stock. Se hace una sola vez por artículo.</p>
+
+          <p><strong>1a. Marca la prenda como vendible en Catálogo</strong></p>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/catalogo-uso-prenda.png" alt="Selector de uso de la prenda en Catálogo" />
+            <p class="screenshot-caption">Catálogo — selector "Uso de la prenda"</p>
+          </div>
+          <ul class="feature-list">
+            <li><strong>Solo encargos:</strong> línea de trabajo/servicio (ej. "Ajuste de talla"), sin stock físico.</li>
+            <li><strong>Solo venta directa:</strong> artículo que solo se vende suelto en el mostrador.</li>
+            <li><strong>Ambos:</strong> artículo físico que a veces se vende suelto y a veces se incluye en un encargo.</li>
+          </ul>
+
+          <p><strong>1b. Enlaza (o crea) el material de stock</strong></p>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/catalogo-material-vinculado.png" alt="Selector de material de stock vinculado" />
+            <p class="screenshot-caption">Catálogo — material de stock vinculado a la prenda</p>
+          </div>
+          <p>
+            Si el material ya existe en Inventario, selecciónalo de la lista. Si no, pulsa <strong>+ Nuevo</strong>:
+            se abre el formulario de alta de material con el nombre ya precargado, sin tener que volver a escribirlo.
+          </p>
+
+          <p><strong>1c. Da la primera entrada de stock</strong></p>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/inventario-entrada-stock.png" alt="Formulario de entrada de stock" />
+            <p class="screenshot-caption">Inventario — entrada de stock con cantidad y coste de compra</p>
+          </div>
+          <p>
+            Desde la ficha del material en Inventario, registra la <strong>entrada</strong> con la cantidad recibida y
+            el <strong>coste de compra por unidad</strong>. Este coste es el que luego se usa para calcular el margen de cada venta.
+          </p>
+        </div>
+
+        <div class="subsection">
+          <h3>Paso 2 — Registrar una venta</h3>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/ventas-lista.png" alt="Listado de ventas" />
+            <p class="screenshot-caption">Ventas — listado con panel de ayuda desplegable</p>
+          </div>
+          <ul class="feature-list">
+            <li>Pulsa <strong>+ Nueva venta</strong> para abrir el formulario tipo ticket.</li>
+            <li>Añade una línea por cada artículo: solo aparecen en el selector las prendas ya preparadas en el Paso 1.</li>
+            <li>Al elegir un artículo se muestra el <strong>stock disponible</strong> y el precio, y se indica la cantidad.</li>
+            <li>Indica la forma de pago (efectivo, transferencia, tarjeta, bizum) y, opcionalmente, la clienta.</li>
+          </ul>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/ventas-nueva.png" alt="Formulario de nueva venta" />
+            <p class="screenshot-caption">Nueva venta — artículo, cantidad, stock disponible y forma de pago</p>
+          </div>
+          <div class="warn">
+            <strong>Stock insuficiente:</strong> si la cantidad pedida supera el stock disponible, el sistema avisa y no
+            permite registrar la venta hasta ajustar la cantidad.
+          </div>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/ventas-stock-insuficiente.png" alt="Aviso de stock insuficiente" />
+            <p class="screenshot-caption">Aviso de stock insuficiente al intentar vender más cantidad de la disponible</p>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3>Detalle de la venta y margen</h3>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/venta-detalle.png" alt="Detalle de una venta" />
+            <p class="screenshot-caption">Detalle de venta — precio de venta, coste y margen por artículo</p>
+          </div>
+          <p>
+            Cada línea de venta guarda una <strong>foto del coste de compra</strong> en el momento exacto de la venta.
+            Así, si el coste de un material cambia más adelante (por una nueva compra a otro precio), el margen de
+            las ventas ya registradas no se ve afectado.
+          </p>
+        </div>
+
+        <div class="subsection">
+          <h3>Ventas y Contabilidad</h3>
+          <div class="tip">
+            El importe de cada venta aparece <strong>automáticamente</strong> como ingreso en el Dashboard y en el
+            Libro Diario de Contabilidad — no hace falta registrar nada por duplicado.
+          </div>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ── 12. CONTABILIDAD ────────────────────── -->
+      <section id="contabilidad" class="section">
+        <span class="section-num">MÓDULO 12</span>
         <h2>Contabilidad</h2>
         <p class="section-intro">
           El módulo de Contabilidad organiza todos los ingresos y gastos del taller en tres libros: Cobros, Pagos y Libro Diario. Permite exportar a Excel y filtrar por año y trimestre.
@@ -990,9 +1103,9 @@
 
       <hr class="divider" />
 
-      <!-- ── 12. AJUSTES ─────────────────────────── -->
+      <!-- ── 13. AJUSTES ─────────────────────────── -->
       <section id="ajustes" class="section">
-        <span class="section-num">MÓDULO 12</span>
+        <span class="section-num">MÓDULO 13</span>
         <h2>Ajustes del sistema</h2>
         <p class="section-intro">
           El panel de Ajustes es el lugar donde se configura el comportamiento general del CRM. Requiere permiso de administrador.
@@ -1020,9 +1133,9 @@
 
       <hr class="divider" />
 
-      <!-- ── 13. SEGUIMIENTO PÚBLICO ─────────────── -->
+      <!-- ── 14. SEGUIMIENTO PÚBLICO ─────────────── -->
       <section id="seguimiento" class="section">
-        <span class="section-num">MÓDULO 13</span>
+        <span class="section-num">MÓDULO 14</span>
         <h2>Seguimiento público</h2>
         <p class="section-intro">
           Las clientas pueden consultar el estado de su encargo en cualquier momento, sin necesidad de registrarse, usando el enlace privado o su código corto.

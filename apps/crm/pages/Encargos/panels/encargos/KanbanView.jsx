@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, AlertCircle, FileText } from 'lucide-react'
-import { actualizarEstado, eliminarEncargo, fetchEncargo } from '@/hooks/useEncargos'
+import { actualizarEstado, eliminarEncargo, fetchEncargo, registrarPago } from '@/hooks/useEncargos'
 import { ESTADO_LABELS } from '@/utils/formatters'
 import { formatFechaCorta, formatImporte, formatNumeroEncargo } from '@/utils/formatters'
 import SearchInput from '@/components/ui/SearchInput'
@@ -38,7 +38,7 @@ function calcTimeline(fechaInicio, fechaFin, entregado) {
   const t0 = parseISO(fechaInicio).getTime()
   const now = Date.now()
   if (entregado) {
-    return { pct: 100, label: 'Entregado', todayColor: '#2E9D5B', todayStroke: '#1F7A43', finColor: '#7B8496', overdue: false }
+    return { pct: 100, label: 'Entregado', todayColor: '#2E9D5B', todayStroke: '#1F7A43', finColor: '#7B8496', overdue: false, warn: false }
   }
   if (!fechaFin) return null
   const t1 = parseISO(fechaFin).getTime()
@@ -59,7 +59,7 @@ function calcTimeline(fechaInicio, fechaFin, entregado) {
     todayColor = '#5A6373'; todayStroke = '#454D5C'; finColor = '#7B8496'
     label = 'Hoy · ' + fmtShort(new Date().toISOString().split('T')[0])
   }
-  return { pct: pct * 100, label, todayColor, todayStroke, finColor, overdue }
+  return { pct: pct * 100, label, todayColor, todayStroke, finColor, overdue, warn }
 }
 
 // ── Timeline visual ──────────────────────────────────────────────────────────
@@ -201,14 +201,17 @@ function TarjetaEncargo({ encargo, onCambiarEstado, onEliminar, dragId, flashId 
   const nPrendas = encargo.encargo_lineas?.length ?? 0
   const tl = calcTimeline(encargo.fecha_encargo, encargo.fecha_entrega_estimada, encargo.estado === 'entregado')
   const overdue = tl?.overdue ?? false
+  const warn = tl?.warn ?? false
   const isDragging = dragId === encargo.id
   const isFlash = flashId === encargo.id
 
   const animStyle = isFlash
     ? { animation: 'kanban-flash .85s ease-in-out infinite' }
     : overdue
-      ? { animation: 'kanban-overdue 1.4s ease-in-out infinite' }
-      : { boxShadow: '0 1px 2px rgba(12,26,44,.05)' }
+      ? { boxShadow: '0 0 0 4px rgba(220,38,38,.6), 0 8px 20px rgba(220,38,38,.22)' }
+      : warn
+        ? { animation: 'kanban-warn 1.4s ease-in-out infinite' }
+        : { boxShadow: '0 1px 2px rgba(12,26,44,.05)' }
 
   return (
     <div
@@ -448,9 +451,14 @@ export default function KanbanView({ encargos, loading, verEntregados, setVerEnt
       const { data: pagosData } = await supabase.from('pagos').select('importe, tipo, estado').eq('encargo_id', id)
       const cobrado = (pagosData ?? []).filter(p => p.tipo !== 'devolucion' && p.estado !== 'pendiente').reduce((s, p) => s + parseFloat(p.importe), 0)
       const pendiente = Math.max(0, (enc.precio_total ?? 0) - cobrado)
+      const limite = (enc.precio_total ?? 0) * 0.01
+      if (Math.round(pendiente * 100) > Math.round(limite * 100)) {
+        setModalCobro({ tipo: 'bloqueo', pendiente, limite })
+        return
+      }
       if (Math.round(pendiente * 100) > 0) {
-        pendingAccionRef.current = { id, nuevoEstado }
-        setModalCobro({ pendiente })
+        pendingAccionRef.current = { id, nuevoEstado, pendiente }
+        setModalCobro({ tipo: 'redondeo', pendiente, numero: enc.numero })
         return
       }
     }
@@ -481,7 +489,7 @@ export default function KanbanView({ encargos, loading, verEntregados, setVerEnt
           0%,100% { box-shadow: 0 1px 2px rgba(12,26,44,.05) }
           50% { box-shadow: 0 0 0 4px rgba(31,179,154,.6), 0 8px 20px rgba(31,179,154,.18) }
         }
-        @keyframes kanban-overdue {
+        @keyframes kanban-warn {
           0%,100% { box-shadow: 0 1px 2px rgba(12,26,44,.05) }
           50% { box-shadow: 0 0 0 4px rgba(214,58,51,.45), 0 8px 20px rgba(214,58,51,.16) }
         }
@@ -558,7 +566,26 @@ export default function KanbanView({ encargos, loading, verEntregados, setVerEnt
           </div>
         </div>
       )}
-      {modalCobro && (
+      {modalCobro?.tipo === 'bloqueo' && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                <AlertCircle size={18} className="text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-display text-base text-[--text-dark]">No se puede entregar</h3>
+                <p className="text-xs text-[--text-light] mt-0.5">Este encargo tiene {formatImporte(modalCobro.pendiente)} pendientes de cobro, más del 1% del total ({formatImporte(modalCobro.limite)}). Cobra el resto antes de marcarlo como entregado.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => { setModalCobro(null); pendingAccionRef.current = null }}
+              className="w-full text-sm bg-[--primary] text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
+            >Entendido</button>
+          </div>
+        </div>
+      )}
+      {modalCobro?.tipo === 'redondeo' && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
           <div className="bg-white rounded-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
@@ -566,16 +593,32 @@ export default function KanbanView({ encargos, loading, verEntregados, setVerEnt
                 <AlertCircle size={18} className="text-amber-500" />
               </div>
               <div>
-                <h3 className="font-display text-base text-[--text-dark]">Cobro pendiente</h3>
-                <p className="text-xs text-[--text-light] mt-0.5">Este encargo tiene una cantidad pendiente de cobro. Si lo entregas igualmente, recuerda gestionar el cobro.</p>
-                <p className="text-xs text-[--text-dark] font-semibold mt-1">Pendiente: {formatImporte(modalCobro.pendiente)}</p>
+                <h3 className="font-display text-base text-[--text-dark]">Pequeño saldo pendiente</h3>
+                <p className="text-xs text-[--text-light] mt-0.5">Quedan {formatImporte(modalCobro.pendiente)} sin cobrar (≤1% del total). Si entregas el encargo, esa cantidad se condonará y se registrará como pérdida por redondeo en Contabilidad, asociada al encargo {modalCobro.numero}.</p>
               </div>
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => { const a = pendingAccionRef.current; setModalCobro(null); pendingAccionRef.current = null; if (a) ejecutarRef.current(a.id, a.nuevoEstado) }}
+                onClick={async () => {
+                  const a = pendingAccionRef.current
+                  setModalCobro(null)
+                  pendingAccionRef.current = null
+                  if (!a) return
+                  try {
+                    await registrarPago({
+                      encargo_id: a.id,
+                      fecha: new Date().toISOString().split('T')[0],
+                      importe: a.pendiente,
+                      tipo: 'ajuste_redondeo',
+                      forma_pago: 'ajuste',
+                      estado: 'cobrado',
+                      notas: 'Redondeo automático al entregar (saldo ≤1% del total)',
+                    })
+                  } catch (e) { console.error(e); toast.error('No se pudo registrar el ajuste por redondeo.'); return }
+                  ejecutarRef.current(a.id, a.nuevoEstado)
+                }}
                 className="flex-1 text-sm bg-[--primary] text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
-              >Aceptar</button>
+              >Aceptar y entregar</button>
               <button onClick={() => { setModalCobro(null); pendingAccionRef.current = null }} className="flex-1 text-sm border border-[--border] text-[--text-medium] px-4 py-2 rounded-md hover:bg-[--bg-alt] transition-colors">Cancelar</button>
             </div>
           </div>

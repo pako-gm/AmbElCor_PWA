@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { Icon, Btn, Field, Input, TextareaInput } from '@/components/inventario/InventarioUI'
 import { useInventario } from '@/hooks/useInventario'
@@ -8,14 +8,18 @@ import { validarNumeroPositivo, sanitizers } from '@/utils/validators'
 
 const formVacio = {
   codigo: '', nombre: '', descripcion: '', unidad_gestion: 'unidad',
-  categoria: '', stock_minimo: '0', precio_referencia: '', notas: '',
+  categoria: '', stock_minimo: '0', precio_referencia: '', notas: '', tipo: 'materia_prima',
 }
 
 export default function NuevoMaterial() {
   const navigate = useNavigate()
+  const location = useLocation()
   const toast = useToast()
+  const desdeNuevaPrenda = location.state?.from === 'nueva-prenda'
   const { crearMaterial, fetchCategorias, fetchUnidades, generarCodigoMaterial } = useInventario()
-  const [form, setForm] = useState(formVacio)
+  const [form, setForm] = useState(desdeNuevaPrenda
+    ? { ...formVacio, tipo: 'producto_reventa', nombre: location.state?.draftPrenda?.nombre?.trim() || '' }
+    : formVacio)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
   const [errs, setErrs] = useState({})
@@ -57,6 +61,7 @@ export default function NuevoMaterial() {
         stock_minimo: parseFloat(form.stock_minimo) || 0,
         precio_referencia: form.precio_referencia !== '' ? parseFloat(form.precio_referencia) : null,
         notas: form.notas.trim() || null,
+        tipo: form.tipo,
       }
       if (form.codigo.trim()) {
         payload.codigo = form.codigo.trim()
@@ -66,7 +71,12 @@ export default function NuevoMaterial() {
       }
       const material = await crearMaterial(payload)
       toast.success('Material creado correctamente.')
-      navigate(`/inventario/${material.id}`)
+      if (desdeNuevaPrenda) {
+        const rutaPrenda = location.state?.prendaId ? `/catalogo/${location.state.prendaId}` : '/catalogo/nueva'
+        navigate(rutaPrenda, { state: { draftPrenda: location.state?.draftPrenda, material } })
+      } else {
+        navigate(`/inventario/${material.id}`)
+      }
     } catch (e) {
       setError(e.message)
     } finally {
@@ -91,7 +101,11 @@ export default function NuevoMaterial() {
         {/* Nota informativa */}
         <div className="form-note" style={{ marginBottom: 24 }}>
           <Icon name="info" size={16} />
-          <span>Tras crear el artículo podrás registrar la <b>primera entrada de stock</b> desde su ficha.</span>
+          {desdeNuevaPrenda ? (
+            <span>Esta es la <b>ficha de stock y coste</b> de la prenda que estás preparando para venta directa. El nombre se ha precargado — tras crearla, volverás al catálogo con el material ya enlazado.</span>
+          ) : (
+            <span>Tras crear el artículo podrás registrar la <b>primera entrada de stock</b> desde su ficha.</span>
+          )}
         </div>
 
         <div className="card-form">
@@ -123,6 +137,18 @@ export default function NuevoMaterial() {
               <div className="select-wrap">
                 <select id="nm-unidad" className="input" value={form.unidad_gestion} onChange={set('unidad_gestion')}>
                   {unidades.map(u => <option key={u.id} value={u.clave}>{u.etiqueta} ({u.abreviatura})</option>)}
+                </select>
+                <Icon name="chevron" size={16} />
+              </div>
+            </Field>
+          </div>
+
+          <div className="grid-2">
+            <Field label="TIPO" htmlFor="nm-tipo" hint="Materia prima: telas/mercería para confección. Producto de reventa: artículos que se venden tal cual en el módulo Ventas.">
+              <div className="select-wrap">
+                <select id="nm-tipo" className="input" value={form.tipo} onChange={set('tipo')}>
+                  <option value="materia_prima">Materia prima</option>
+                  <option value="producto_reventa">Producto de reventa</option>
                 </select>
                 <Icon name="chevron" size={16} />
               </div>

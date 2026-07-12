@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import logoAmbelcor from '@/public/img/ambelcor-oscuro.png'
 import {
-  Home, Package,
+  Home, Package, ShoppingCart,
   BarChart2, Menu, X, Globe, Settings,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,6 +12,7 @@ import UserMenu from '@/components/layout/UserMenu'
 const navItems = [
   { to: '/encargos', icon: Home, label: 'Encargos', permiso: 'encargos' },
   { to: '/inventario', icon: Package, label: 'Inventario', permiso: 'inventario' },
+  { to: '/ventas', icon: ShoppingCart, label: 'Ventas', permiso: 'ventas' },
   { to: '/contabilidad', icon: BarChart2, label: 'Contabilidad', end: true, permiso: 'contabilidad' },
   { to: '/ajustes', icon: Settings, label: 'Ajustes', end: true, permiso: 'ajustes' },
 ]

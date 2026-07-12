@@ -15,9 +15,10 @@ const COL_COLOR = {
   entregado:     '#2E9D5B',
 }
 
-const ZOOM_COL_W = { Día: 54, Semana: 40, Mes: 22 }
-const ZOOM_DAYS  = { Día: 28, Semana: 28, Mes: 60 }
-const ZOOM_STEP  = { Día:  3, Semana:  7, Mes: 30 }
+const COL_W = 40
+const N_DAYS = 28
+const STEP = 7
+const LEFT_TABLE_W = 138 + 148 + 140
 
 const MONTHS_ES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE']
 const MONTHS_SHORT = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
@@ -52,27 +53,38 @@ function fmtRangeLabel(start, end) {
 
 export default function CronogramaView({ encargos, loading }) {
   const navigate = useNavigate()
-  const [zoom, setZoom] = useState('Semana')
   const [panDays, setPanDays] = useState(0)
-  const [zoomOpen, setZoomOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [estadosFiltro, setEstadosFiltro] = useState(() => Object.fromEntries(ESTADOS_ORDEN.map(k => [k, true])))
-  const zoomRef = useRef(null)
   const filterRef = useRef(null)
+  const chartRef = useRef(null)
+  const [nDays, setNDays] = useState(N_DAYS)
 
-  // Cerrar dropdowns al click fuera
+  // Cerrar dropdown al click fuera
   useEffect(() => {
     const handler = e => {
-      if (zoomRef.current && !zoomRef.current.contains(e.target)) setZoomOpen(false)
       if (filterRef.current && !filterRef.current.contains(e.target)) setFiltersOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const colW = ZOOM_COL_W[zoom]
-  const nDays = ZOOM_DAYS[zoom]
-  const step = ZOOM_STEP[zoom]
+  // Ajustar el nº de días visibles al ancho disponible para evitar hueco vacío
+  useEffect(() => {
+    const el = chartRef.current
+    if (!el) return
+    const update = () => {
+      const fit = Math.ceil((el.clientWidth - LEFT_TABLE_W) / COL_W)
+      setNDays(Math.max(N_DAYS, fit))
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  const colW = COL_W
+  const step = STEP
 
   // Eje temporal: empieza 7 días antes de hoy + offset de pan
   const axisStart = useMemo(() => {
@@ -198,40 +210,15 @@ export default function CronogramaView({ encargos, loading }) {
 
         <div style={{ flex: 1 }} />
 
-        {/* Zoom dropdown */}
-        <div ref={zoomRef} style={{ position: 'relative' }}>
-          <button onClick={() => { setZoomOpen(v => !v); setFiltersOpen(false) }}
-            style={{ ...btnBase, height: 36, padding: '0 14px', gap: 9, whiteSpace: 'nowrap' }}
-            onMouseOver={e => e.currentTarget.style.borderColor = '#cfd3dc'} onMouseOut={e => e.currentTarget.style.borderColor = '#E3E5EC'}>
-            <span style={{ color: '#7B8496', fontWeight: 500 }}>Zoom:</span> {zoom}
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style={{ color: '#AAB0BD' }}>
-              <path d="M2.5 4 5.5 7 8.5 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          {zoomOpen && (
-            <div style={{ position: 'absolute', top: 'calc(100% + 7px)', right: 0, minWidth: 150, background: '#fff', border: '1px solid #E8E8EF', borderRadius: 12, boxShadow: '0 14px 34px rgba(12,26,44,.15)', padding: 6, zIndex: 40 }}>
-              {['Día', 'Semana', 'Mes'].map(z => (
-                <button key={z}
-                  onClick={e => { e.stopPropagation(); setZoom(z); setZoomOpen(false); setPanDays(0) }}
-                  style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', gap: 10, border: 'none', background: 'transparent', cursor: 'pointer', padding: '9px 11px', borderRadius: 8, fontSize: 14, fontWeight: 600, color: '#384152', textAlign: 'left' }}
-                  onMouseOver={e => e.currentTarget.style.background = '#F3F3F7'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                  {z}
-                  {zoom === z && <span style={{ color: '#1FB39A', fontWeight: 800 }}>✓</span>}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Filtros dropdown */}
+        {/* Estado dropdown */}
         <div ref={filterRef} style={{ position: 'relative' }}>
-          <button onClick={() => { setFiltersOpen(v => !v); setZoomOpen(false) }}
+          <button onClick={() => setFiltersOpen(v => !v)}
             style={{ ...btnBase, height: 36, padding: '0 15px', gap: 8 }}
             onMouseOver={e => e.currentTarget.style.borderColor = '#cfd3dc'} onMouseOut={e => e.currentTarget.style.borderColor = '#E3E5EC'}>
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
               <path d="M1.6 3.2h11.8M3.6 7.5h7.8M6 11.8h3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
-            Filtros
+            Estado
             {filtersActive && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#1FB39A' }} />}
           </button>
           {filtersOpen && (
@@ -263,7 +250,7 @@ export default function CronogramaView({ encargos, loading }) {
       </div>
 
       {/* Chart */}
-      <div style={{ borderTop: '1px solid #EEEFF3', overflowX: 'auto' }}>
+      <div ref={chartRef} style={{ borderTop: '1px solid #EEEFF3', overflowX: 'auto' }}>
         <div style={{ display: 'flex', minWidth: 'max-content' }}>
 
           {/* LEFT STICKY TABLE */}
@@ -272,7 +259,7 @@ export default function CronogramaView({ encargos, loading }) {
             <div style={{ height: 56, display: 'flex', alignItems: 'flex-end', paddingBottom: 9, borderBottom: '1px solid #EEEFF3' }}>
               <div style={{ width: 138, paddingLeft: 24, fontSize: 12, fontWeight: 700, color: '#7B8496' }}>Nº Encargo</div>
               <div style={{ width: 148, fontSize: 12, fontWeight: 700, color: '#7B8496' }}>Cliente</div>
-              <div style={{ width: 106, fontSize: 12, fontWeight: 700, color: '#7B8496' }}>Estado</div>
+              <div style={{ width: 140, fontSize: 12, fontWeight: 700, color: '#7B8496' }}>Estado</div>
             </div>
             {/* Rows */}
             {rows.length === 0 ? (
@@ -287,7 +274,7 @@ export default function CronogramaView({ encargos, loading }) {
               >
                 <div style={{ width: 138, paddingLeft: 24, fontSize: 13, fontWeight: 700, color: '#1B2433', fontVariantNumeric: 'tabular-nums', letterSpacing: '.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatNumeroEncargo(r.numero)}</div>
                 <div style={{ width: 148, fontSize: 13, fontWeight: 500, color: '#384152', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 8 }}>{r.nombreCliente}</div>
-                <div style={{ width: 106 }}><Badge estado={r.estado} /></div>
+                <div style={{ width: 140 }}><Badge estado={r.estado} className="whitespace-nowrap" /></div>
               </div>
             ))}
           </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Euro } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { Icon, Btn } from '@/components/inventario/InventarioUI'
 import { MovementModal, LineEditModal, EditMovimientoModal, ConfirmEliminarMovimientoModal, ConfirmDesactivarModal } from '@/components/inventario/InventarioModals'
@@ -31,6 +32,7 @@ export default function MaterialDetalle() {
 
   const [material, setMaterial] = useState(null)
   const [movimientos, setMovimientos] = useState([])
+  const [prendaVinculada, setPrendaVinculada] = useState(null)
   const [loading, setLoading] = useState(true)
   const [proveedores, setProveedores] = useState([])
   const [encargos, setEncargos] = useState([])
@@ -42,10 +44,24 @@ export default function MaterialDetalle() {
 
   const cargar = async () => {
     setLoading(true)
-    const { material: m, movimientos: movs } = await fetchMaterial(id)
+    const { material: m, movimientos: movs, prendaVinculada: pv } = await fetchMaterial(id)
     setMaterial(m)
     setMovimientos(movs)
+    setPrendaVinculada(pv)
     setLoading(false)
+  }
+
+  const handlePonerEnVenta = () => {
+    if (prendaVinculada) {
+      navigate(`/catalogo/${prendaVinculada.id}`)
+    } else {
+      navigate('/catalogo/nueva', {
+        state: {
+          material: { id: material.id, nombre: material.nombre },
+          draftPrenda: { nombre: material.nombre, tipo_uso: 'solo_venta' },
+        },
+      })
+    }
   }
 
   useEffect(() => {
@@ -168,6 +184,7 @@ export default function MaterialDetalle() {
             <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--muted)', letterSpacing: '.04em' }}>
               {material.codigo}
               {material.categoria && ` · ${material.categoria}`}
+              {material.tipo === 'producto_reventa' && ' · PRODUCTO DE REVENTA'}
             </p>
             <h1 style={{ fontFamily: '"Lora", serif', fontSize: 38, fontWeight: 600, margin: '6px 0 4px', letterSpacing: '-.01em', color: 'var(--ink)', lineHeight: 1.1 }}>
               {material.nombre}
@@ -186,6 +203,11 @@ export default function MaterialDetalle() {
               {formatCantidad(stock)}
             </b>
             <span style={{ display: 'block', color: 'var(--muted)', fontSize: 14, marginTop: 4 }}>{unit} en stock</span>
+            {material.tipo === 'producto_reventa' && (
+              <span style={{ display: 'block', color: 'var(--muted)', fontSize: 13, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
+                Coste actual (PMP): <b style={{ color: 'var(--ink)' }}>{formatImporte(material.precio_referencia)}</b>/{unit}
+              </span>
+            )}
             {stockBajo && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--danger)', fontWeight: 700, marginTop: 4 }}>
                 <Icon name="warn" size={13} /> Stock bajo (mín. {minimo})
@@ -203,6 +225,12 @@ export default function MaterialDetalle() {
               <Btn kind="aju" icon="wrench" onClick={() => setModal('ajuste')}>Ajuste</Btn>
             </>}
             <Btn kind="edi" icon="pencil" onClick={() => setModal('editar')}>Editar</Btn>
+            {material.tipo === 'producto_reventa' && (
+              <button type="button" className="btn btn--brand" onClick={handlePonerEnVenta}>
+                <Euro size={16} />
+                <span>Poner en venta</span>
+              </button>
+            )}
           </div>
           {material.activo
             ? <Btn kind="danger-ghost" icon="power" onClick={() => setModal('desactivar')}>Desactivar</Btn>
@@ -229,6 +257,7 @@ export default function MaterialDetalle() {
             ) : movimientos.map((mv) => {
               const qty = parseFloat(mv.cantidad || 0)
               const pos = mv.tipo === 'entrada' || (mv.tipo === 'ajuste' && qty > 0)
+              const esDeVenta = !!mv.ventas
               return (
                 <div key={mv.id} className="mov" style={{ padding: '13px 0' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, minWidth: 0 }}>
@@ -236,7 +265,16 @@ export default function MaterialDetalle() {
                       {fmtDate(mv.fecha)}
                     </span>
                     <span style={{ fontSize: 14.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {mv.proveedores?.nombre || mv.encargos?.numero || mv.motivo || '—'}
+                      {mv.ventas ? (
+                        <button
+                          onClick={() => navigate(`/ventas/${mv.ventas.id}`)}
+                          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--brand-deep)', fontWeight: 600, font: 'inherit' }}
+                        >
+                          Venta {mv.ventas.numero}
+                        </button>
+                      ) : (
+                        mv.proveedores?.nombre || mv.encargos?.numero || mv.motivo || '—'
+                      )}
                     </span>
                     <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>
                       {mv.notas || mv.motivo || ''}
@@ -253,20 +291,24 @@ export default function MaterialDetalle() {
                       </span>
                     )}
                     <button
-                      title="Editar movimiento" aria-label="Editar movimiento"
-                      onClick={() => { setMovSeleccionado(mv); setModal('editarMov') }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center', opacity: 0.6 }}
-                      onMouseEnter={e => e.currentTarget.style.opacity = 1}
-                      onMouseLeave={e => e.currentTarget.style.opacity = 0.6}
+                      title={esDeVenta ? 'Esta salida pertenece a una venta: edítala desde Ventas' : 'Editar movimiento'}
+                      aria-label="Editar movimiento"
+                      disabled={esDeVenta}
+                      onClick={() => { if (!esDeVenta) { setMovSeleccionado(mv); setModal('editarMov') } }}
+                      style={{ background: 'none', border: 'none', cursor: esDeVenta ? 'not-allowed' : 'pointer', color: 'var(--muted)', padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center', opacity: esDeVenta ? 0.25 : 0.6 }}
+                      onMouseEnter={e => { if (!esDeVenta) e.currentTarget.style.opacity = 1 }}
+                      onMouseLeave={e => { if (!esDeVenta) e.currentTarget.style.opacity = 0.6 }}
                     >
                       <Icon name="pencil" size={14} />
                     </button>
                     <button
-                      title="Eliminar movimiento" aria-label="Eliminar movimiento"
-                      onClick={() => { setMovSeleccionado(mv); setModal('borrarMov') }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center', opacity: 0.5 }}
-                      onMouseEnter={e => e.currentTarget.style.opacity = 1}
-                      onMouseLeave={e => e.currentTarget.style.opacity = 0.5}
+                      title={esDeVenta ? 'Esta salida pertenece a una venta: elimínala desde Ventas' : 'Eliminar movimiento'}
+                      aria-label="Eliminar movimiento"
+                      disabled={esDeVenta}
+                      onClick={() => { if (!esDeVenta) { setMovSeleccionado(mv); setModal('borrarMov') } }}
+                      style={{ background: 'none', border: 'none', cursor: esDeVenta ? 'not-allowed' : 'pointer', color: 'var(--danger)', padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center', opacity: esDeVenta ? 0.25 : 0.5 }}
+                      onMouseEnter={e => { if (!esDeVenta) e.currentTarget.style.opacity = 1 }}
+                      onMouseLeave={e => { if (!esDeVenta) e.currentTarget.style.opacity = 0.5 }}
                     >
                       <Icon name="trash" size={14} />
                     </button>

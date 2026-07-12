@@ -73,6 +73,17 @@ export const sanitizers = {
     return s.slice(0, i + 1) + s.slice(i + 1).replace(/[.,]/g, '')
   },
 
+  // Importe monetario: como decimal, pero limita a 2 decimales (céntimos)
+  importe: (v) => {
+    let s = (v ?? '').replace(/[^\d.,]/g, '')
+    const i = s.search(/[.,]/)
+    if (i === -1) return s
+    const sep = s[i]
+    const entera = s.slice(0, i)
+    const decimales = s.slice(i + 1).replace(/[.,]/g, '').slice(0, 2)
+    return entera + sep + decimales
+  },
+
   // Código de material/seguimiento: alfanumérico + guion, en mayúsculas
   codigo: (v) => (v ?? '').toUpperCase().replace(/[^A-Z0-9-]/g, ''),
 

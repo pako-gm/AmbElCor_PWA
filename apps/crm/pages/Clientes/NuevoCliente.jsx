@@ -28,7 +28,9 @@ export default function NuevoCliente() {
   const validar = () => {
     const errs = {}
     if (!form.nombre.trim()) errs.nombre = 'El nombre es obligatorio.'
-    if (form.telefono && !validarTelefono(form.telefono)) errs.telefono = 'Debe tener exactamente 9 dígitos.'
+    if (!form.apellidos.trim()) errs.apellidos = 'Los apellidos son obligatorios.'
+    if (!form.telefono.trim()) errs.telefono = 'El teléfono es obligatorio.'
+    else if (!validarTelefono(form.telefono)) errs.telefono = 'Debe tener exactamente 9 dígitos.'
     if (form.email && !validarEmail(form.email)) errs.email = 'Email no válido.'
     setErrores(errs)
     return Object.keys(errs).length === 0
@@ -77,7 +79,7 @@ export default function NuevoCliente() {
                 onChange={e => set('nombre', e.target.value)}
               />
             </Field>
-            <Field label="Apellidos">
+            <Field label="Apellidos" required error={errores.apellidos}>
               <Input
                 type="text"
                 placeholder="Apellidos"
@@ -99,7 +101,7 @@ export default function NuevoCliente() {
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Teléfono" error={errores.telefono}>
+            <Field label="Teléfono" required error={errores.telefono}>
               <Input
                 type="tel"
                 inputMode="numeric"

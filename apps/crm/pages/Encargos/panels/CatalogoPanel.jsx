@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Pencil, Tag } from 'lucide-react'
+import { Plus, Pencil, Tag, Euro } from 'lucide-react'
 import { fetchPrendasCatalogo } from '@/hooks/useCatalogo'
 import { formatImporte } from '@/utils/formatters'
 import Button from '@/components/ui/Button'
@@ -63,9 +63,20 @@ export default function CatalogoPanel() {
             >
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate ${p.activo ? 'text-[--text-dark]' : 'text-[--text-light]'}`}>
-                  {p.nombre}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className={`text-sm font-medium truncate ${p.activo ? 'text-[--text-dark]' : 'text-[--text-light]'}`}>
+                    {p.nombre}
+                  </p>
+                  {p.tipo_uso !== 'solo_encargo' && (
+                    <span
+                      className="inline-flex items-center gap-1 flex-shrink-0 bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                      title="Disponible para venta directa"
+                    >
+                      <Euro size={12} strokeWidth={2.5} />
+                      Venta directa
+                    </span>
+                  )}
+                </div>
                 {p.descripcion && (
                   <p className="text-xs text-[--text-light] truncate">{p.descripcion}</p>
                 )}
@@ -76,9 +87,6 @@ export default function CatalogoPanel() {
                 <p className="text-sm font-semibold text-[--text-dark]">
                   {formatImporte(p.precio_base)}
                 </p>
-                {p.descuento > 0 && (
-                  <p className="text-xs text-green-600">−{p.descuento}%</p>
-                )}
               </div>
 
               {/* Editar */}

@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, Fragment } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { Download, Plus, Pencil, Trash2, ArrowRight, ChevronLeft } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
-import { useContabilidad } from '@/hooks/useContabilidad'
+import { useContabilidad, rangoTrimestre } from '@/hooks/useContabilidad'
+import { fetchVentas } from '@/hooks/useVentas'
 import {
   formatFecha, formatImporte,
   FORMA_PAGO_LABELS, CATEGORIA_GASTO_LABELS,
@@ -39,6 +40,10 @@ const ESTADO_COBRO = {
 const ESTADO_PAGO = {
   pagado:    { label: 'Pagado',    cls: 'bg-green-100 text-green-700' },
   pendiente: { label: 'Pendiente', cls: 'bg-amber-100 text-amber-700' },
+}
+
+const ESTADO_PERDIDA = {
+  condonado: { label: 'Condonado', cls: 'bg-gray-100 text-gray-600' },
 }
 
 const formVacio = {
@@ -290,19 +295,34 @@ function DashboardPanel({ año, trimestre, setTab, labelsMap = {}, coloresMap = 
   const { fetchCobros, fetchPagosProveedor, loading } = useContabilidad()
   const [cobros, setCobros] = useState([])
   const [pagos, setPagos] = useState([])
+  const [ventas, setVentas] = useState([])
 
   useEffect(() => {
+    const { desde, hasta } = trimestre
+      ? rangoTrimestre(año, trimestre)
+      : { desde: `${año}-01-01`, hasta: `${año}-12-31` }
     Promise.all([
       fetchCobros({ año, trimestre: trimestre || undefined }),
       fetchPagosProveedor({ año, trimestre: trimestre || undefined }),
-    ]).then(([c, p]) => {
+      fetchVentas({ desde, hasta }),
+    ]).then(([c, p, v]) => {
       setCobros(c)
       setPagos(p)
+      setVentas(v)
     })
   }, [año, trimestre])
 
+  const totalVentas = useMemo(() =>
+    ventas.reduce((s, v) => s + parseFloat(v.total || 0), 0)
+  , [ventas])
+
   const ingresosCobrados = useMemo(() =>
-    cobros.filter(c => c.estado === 'cobrado' && c.tipo !== 'devolucion')
+    cobros.filter(c => c.estado === 'cobrado' && c.tipo !== 'devolucion' && c.tipo !== 'ajuste_redondeo')
+      .reduce((s, c) => s + parseFloat(c.importe || 0), 0) + totalVentas
+  , [cobros, totalVentas])
+
+  const perdidasRedondeo = useMemo(() =>
+    cobros.filter(c => c.tipo === 'ajuste_redondeo')
       .reduce((s, c) => s + parseFloat(c.importe || 0), 0)
   , [cobros])
 
@@ -328,16 +348,20 @@ function DashboardPanel({ año, trimestre, setTab, labelsMap = {}, coloresMap = 
 
   const mesesData = useMemo(() => {
     const data = Array.from({ length: 12 }, () => ({ ing: 0, gas: 0 }))
-    cobros.filter(c => c.tipo !== 'devolucion').forEach(c => {
+    cobros.filter(c => c.tipo !== 'devolucion' && c.tipo !== 'ajuste_redondeo').forEach(c => {
       const mes = new Date(c.fecha + 'T00:00:00').getMonth()
       data[mes].ing += parseFloat(c.importe || 0)
+    })
+    ventas.forEach(v => {
+      const mes = new Date(v.fecha + 'T00:00:00').getMonth()
+      data[mes].ing += parseFloat(v.total || 0)
     })
     pagos.forEach(p => {
       const mes = new Date(p.fecha + 'T00:00:00').getMonth()
       data[mes].gas += parseFloat(p.importe || 0)
     })
     return data
-  }, [cobros, pagos])
+  }, [cobros, pagos, ventas])
 
   const categoriaData = useMemo(() => {
     const mapa = {}
@@ -355,7 +379,7 @@ function DashboardPanel({ año, trimestre, setTab, labelsMap = {}, coloresMap = 
   }, [pagos, labelsMap, coloresMap])
 
   const totalGastosCat = categoriaData.reduce((s, d) => s + d.value, 0)
-  const resultado = ingresosCobrados - gastosPagados
+  const resultado = ingresosCobrados - gastosPagados - perdidasRedondeo
 
   return (
     <div className="space-y-6">
@@ -370,8 +394,15 @@ function DashboardPanel({ año, trimestre, setTab, labelsMap = {}, coloresMap = 
         </div>
       )}
 
+      {perdidasRedondeo > 0 && (
+        <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-600">
+          <span className="font-semibold">↩ Pérdidas por redondeo este periodo</span>
+          <span className="text-gray-500">— total {formatImporte(perdidasRedondeo)}</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Ingresos cobrados" value={formatImporte(ingresosCobrados)} tone="green" hint="Ejercicio actual" />
+        <StatCard label="Ingresos cobrados" value={formatImporte(ingresosCobrados)} tone="green" hint="Incl. ventas directas" />
         <StatCard label="Gastos pagados"    value={formatImporte(gastosPagados)}    tone="red"   hint="Ejercicio actual" />
         <StatCard label="Resultado neto"    value={formatImporte(resultado)}        tone={resultado >= 0 ? 'green' : 'red'} hint="Ingresos − Gastos" />
         <StatCard label="Por cobrar"        value={formatImporte(porCobrar)}        tone="amber" hint="Pendiente + vencido" />
@@ -581,7 +612,7 @@ function CobrosPanel({ año, trimestre }) {
                   {c.fecha_vencimiento ? formatFecha(c.fecha_vencimiento) : '—'}
                 </span>
                 <span className="text-xs text-[--text-light]">{FORMA_PAGO_LABELS[c.forma_pago] ?? c.forma_pago}</span>
-                <span className={`text-right font-semibold ${c.tipo === 'devolucion' ? 'text-red-500' : 'text-[--text]'}`}>
+                <span className={`text-right font-semibold ${c.tipo === 'devolucion' || c.tipo === 'ajuste_redondeo' ? 'text-red-500' : 'text-[--text]'}`}>
                   {formatImporte(c.importe)}
                 </span>
                 <div className="flex items-center gap-2">
@@ -1180,6 +1211,7 @@ function LibroPanel({ año }) {
           <option value="todos">Todos los tipos</option>
           <option value="ingreso">Ingresos</option>
           <option value="gasto">Gastos</option>
+          <option value="perdida">Pérdidas</option>
         </select>
         <button
           onClick={() => exportarLibroDiario(rows, { año, mes: mes !== 'todos' ? mes : undefined })}
@@ -1206,8 +1238,8 @@ function LibroPanel({ año }) {
             >
               <span className="text-xs text-[--text-light]">{formatFecha(e.fecha)}</span>
               <span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${e.tipo === 'ingreso' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                  {e.tipo === 'ingreso' ? 'Ingreso' : 'Gasto'}
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${e.tipo === 'ingreso' ? 'bg-green-100 text-green-700' : e.tipo === 'perdida' ? 'bg-gray-200 text-gray-700' : 'bg-red-100 text-red-600'}`}>
+                  {e.tipo === 'ingreso' ? 'Ingreso' : e.tipo === 'perdida' ? 'Pérdida' : 'Gasto'}
                 </span>
               </span>
               <span className="font-medium text-[--text] truncate">{e.descripcion}</span>
@@ -1219,10 +1251,10 @@ function LibroPanel({ año }) {
                 {e.iva != null ? `${e.iva}%` : '—'}
               </span>
               <span className={`text-right font-semibold ${e.tipo === 'ingreso' ? 'text-green-600' : 'text-red-500'}`}>
-                {e.tipo === 'gasto' ? '−' : ''}{formatImporte(e.total)}
+                {e.tipo !== 'ingreso' ? '−' : ''}{formatImporte(e.total)}
               </span>
               <span className="text-xs text-[--text-light]">{FORMA_PAGO_LABELS[e.forma_pago] ?? e.forma_pago ?? '—'}</span>
-              <EstadoPill estado={e.estado} map={e.tipo === 'ingreso' ? ESTADO_COBRO : ESTADO_PAGO} />
+              <EstadoPill estado={e.estado} map={e.tipo === 'ingreso' ? ESTADO_COBRO : e.tipo === 'perdida' ? ESTADO_PERDIDA : ESTADO_PAGO} />
             </div>
           ))}
         </div>

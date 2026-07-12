@@ -12,7 +12,7 @@ import { sanitizers } from '@/utils/validators'
 import { useToast } from '@/hooks/useToast'
 
 function lineaVacia() {
-  return { _id: Date.now() + Math.random(), prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', precio_base: '', notas: '' }
+  return { _id: Date.now() + Math.random(), prenda_id: '', descripcion: '', cantidad: 1, precio_unitario: '', precio_base: '', descuento: '', notas: '' }
 }
 
 export default function NuevoEncargo() {
@@ -54,9 +54,8 @@ export default function NuevoEncargo() {
     }
     if (st.nuevaPrenda) {
       setCatalogo(prev => prev.some(p => p.id === st.nuevaPrenda.id) ? prev : [...prev, st.nuevaPrenda])
-      const precio = st.nuevaPrenda.precio_base * (1 - (st.nuevaPrenda.descuento ?? 0) / 100)
       base = (base ?? lineas).map(x => x._id === st.lineaId
-        ? { ...x, prenda_id: st.nuevaPrenda.id, descripcion: st.nuevaPrenda.nombre, precio_unitario: precio.toFixed(2), precio_base: st.nuevaPrenda.precio_base }
+        ? { ...x, prenda_id: st.nuevaPrenda.id, descripcion: st.nuevaPrenda.nombre, precio_unitario: String(st.nuevaPrenda.precio_base), precio_base: st.nuevaPrenda.precio_base }
         : x)
     }
     if (base) setLineas(base)
@@ -106,9 +105,8 @@ export default function NuevoEncargo() {
       if (campo === 'prenda_id' && valor) {
         const prenda = catalogo.find(p => p.id === valor)
         if (prenda) {
-          const precio = prenda.precio_base * (1 - (prenda.descuento ?? 0) / 100)
           updated.descripcion = prenda.nombre
-          updated.precio_unitario = precio.toFixed(2)
+          updated.precio_unitario = String(prenda.precio_base)
           updated.precio_base = prenda.precio_base
         }
       }
@@ -124,7 +122,7 @@ export default function NuevoEncargo() {
   }
 
   const total = lineas.reduce(
-    (s, l) => s + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1), 0
+    (s, l) => s + (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1) - (parseFloat(l.descuento) || 0), 0
   )
 
   const handleGuardar = async () => {
@@ -276,7 +274,7 @@ export default function NuevoEncargo() {
                   <option value="">— Seleccionar prenda —</option>
                   {catalogo.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.nombre} ({formatImporte(p.precio_base * (1 - (p.descuento ?? 0) / 100))})
+                      {p.nombre} ({formatImporte(p.precio_base)})
                     </option>
                   ))}
                 </select>
@@ -314,12 +312,34 @@ export default function NuevoEncargo() {
                     className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
-                <div className="flex-1 flex items-end">
-                  <p className="text-sm font-medium text-[--text-medium] pb-2">
-                    = {formatImporte((parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1))}
-                  </p>
+                <div className="w-28">
+                  <label className="block text-xs text-[--text-light] mb-1">Descuento (€)</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.50"
+                    value={l.descuento}
+                    onChange={e => updateLinea(l._id, 'descuento', sanitizers.importe(e.target.value))}
+                    placeholder="0,00"
+                    className="w-full border border-[--border] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
                 </div>
               </div>
+
+              {(() => {
+                const antes = (parseFloat(l.precio_unitario) || 0) * (parseInt(l.cantidad) || 1)
+                const descuento = parseFloat(l.descuento) || 0
+                const despues = antes - descuento
+                return descuento > 0 ? (
+                  <p className="text-sm font-medium pb-1">
+                    <span className="text-[--text-light] line-through mr-2">{formatImporte(antes)}</span>
+                    <span className="text-primary-dark">{formatImporte(despues)}</span>
+                  </p>
+                ) : (
+                  <p className="text-sm font-medium text-[--text-medium] pb-1">= {formatImporte(antes)}</p>
+                )
+              })()}
 
               <div>
                 <label className="block text-xs text-[--text-light] mb-1">Notas de esta prenda</label>

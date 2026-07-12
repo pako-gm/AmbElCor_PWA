@@ -30,6 +30,12 @@ import MaterialDetalle from '@/pages/Inventario/MaterialDetalle'
 // Catálogo
 import CatalogoForm from '@/pages/Catalogo/CatalogoForm'
 
+// Ventas
+import VentasLista from '@/pages/Ventas/VentasLista'
+import NuevaVenta from '@/pages/Ventas/NuevaVenta'
+import VentaDetalle from '@/pages/Ventas/VentaDetalle'
+import EditarVenta from '@/pages/Ventas/EditarVenta'
+
 // Seguimiento público
 import SeguimientoForm from '@/pages/Seguimiento/SeguimientoForm'
 import SeguimientoDetalle from '@/pages/Seguimiento/SeguimientoDetalle'
@@ -82,6 +88,11 @@ export default function App() {
         <Route path="/inventario/ajustes" element={<Navigate to="/ajustes" replace />} />
         <Route path="/inventario/proveedores" element={<Navigate to="/inventario?tab=proveedores" replace />} />
         <Route path="/inventario/:id" element={<Protected><MaterialDetalle /></Protected>} />
+
+        <Route path="/ventas" element={<Protected permiso="ventas"><VentasLista /></Protected>} />
+        <Route path="/ventas/nueva" element={<Protected permiso="ventas"><NuevaVenta /></Protected>} />
+        <Route path="/ventas/:id" element={<Protected permiso="ventas"><VentaDetalle /></Protected>} />
+        <Route path="/ventas/:id/editar" element={<Protected permiso="ventas"><EditarVenta /></Protected>} />
 
         <Route path="/catalogo" element={<Navigate to="/encargos?tab=catalogo" replace />} />
         <Route path="/catalogo/nueva" element={<Protected><CatalogoForm /></Protected>} />

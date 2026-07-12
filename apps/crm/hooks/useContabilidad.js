@@ -8,7 +8,7 @@ const mesesTrimestre = {
   4: ['10', '11', '12'],
 }
 
-function rangoTrimestre(año, trimestre) {
+export function rangoTrimestre(año, trimestre) {
   const meses = mesesTrimestre[trimestre]
   const desde = `${año}-${meses[0]}-01`
   const hasta = `${año}-${meses[2]}-31`
@@ -173,7 +173,7 @@ export function useContabilidad() {
       const desde = `${año}-01-01`
       const hasta = `${año}-12-31`
 
-      const [{ data: cobros, error: e1 }, { data: pagos, error: e2 }] = await Promise.all([
+      const [{ data: cobros, error: e1 }, { data: pagos, error: e2 }, { data: ventas, error: e3 }] = await Promise.all([
         supabase
           .from('pagos')
           .select('id, fecha, importe, tipo, forma_pago, referencia, estado, fecha_vencimiento, encargos(id, numero, clientes(nombre, apellidos))')
@@ -184,12 +184,18 @@ export function useContabilidad() {
           .select('id, fecha, concepto, importe, forma_pago, referencia, base_imponible, iva_porcentaje, estado')
           .gte('fecha', desde)
           .lte('fecha', hasta),
+        supabase
+          .from('ventas')
+          .select('id, numero, fecha, forma_pago, total, notas, clientes(nombre, apellidos)')
+          .gte('fecha', desde)
+          .lte('fecha', hasta),
       ])
 
       if (e1) throw e1
       if (e2) throw e2
+      if (e3) throw e3
 
-      const ingresos = (cobros ?? []).map(c => {
+      const ingresos = (cobros ?? []).filter(c => c.tipo !== 'ajuste_redondeo').map(c => {
         const cliente = c.encargos?.clientes
           ? `${c.encargos.clientes.nombre} ${c.encargos.clientes.apellidos ?? ''}`.trim()
           : '—'
@@ -207,6 +213,37 @@ export function useContabilidad() {
         }
       })
 
+      const perdidas = (cobros ?? []).filter(c => c.tipo === 'ajuste_redondeo').map(c => {
+        const cliente = c.encargos?.clientes
+          ? `${c.encargos.clientes.nombre} ${c.encargos.clientes.apellidos ?? ''}`.trim()
+          : '—'
+        return {
+          id: `r-${c.id}`,
+          tipo: 'perdida',
+          fecha: c.fecha,
+          descripcion: `Pérdida por redondeo · ${cliente}`,
+          referencia: c.encargos?.numero ?? null,
+          base: parseFloat(c.importe) || 0,
+          iva: null,
+          total: parseFloat(c.importe) || 0,
+          forma_pago: c.forma_pago,
+          estado: 'condonado',
+        }
+      })
+
+      const ingresosVentas = (ventas ?? []).map(v => ({
+        id: `v-${v.id}`,
+        tipo: 'ingreso',
+        fecha: v.fecha,
+        descripcion: v.clientes ? `${v.clientes.nombre} ${v.clientes.apellidos ?? ''}`.trim() : 'Venta directa',
+        referencia: v.numero,
+        base: parseFloat(v.total) || 0,
+        iva: null,
+        total: parseFloat(v.total) || 0,
+        forma_pago: v.forma_pago,
+        estado: 'cobrado',
+      }))
+
       const gastos = (pagos ?? []).map(p => ({
         id: `p-${p.id}`,
         tipo: 'gasto',
@@ -220,7 +257,7 @@ export function useContabilidad() {
         estado: p.estado ?? 'pagado',
       }))
 
-      return [...ingresos, ...gastos].sort((a, b) => a.fecha.localeCompare(b.fecha))
+      return [...ingresos, ...ingresosVentas, ...gastos, ...perdidas].sort((a, b) => a.fecha.localeCompare(b.fecha))
     } catch (e) {
       setError(e.message)
       return []
@@ -249,15 +286,20 @@ export function useContabilidad() {
     const desde = `${año}-01-01`
     const hasta = `${año}-12-31`
 
-    const [{ data: cobros }, { data: pagos }] = await Promise.all([
+    const [{ data: cobros }, { data: pagos }, { data: ventas }] = await Promise.all([
       supabase.from('pagos').select('fecha, importe').gte('fecha', desde).lte('fecha', hasta),
       supabase.from('pagos_proveedor').select('fecha, importe').gte('fecha', desde).lte('fecha', hasta),
+      supabase.from('ventas').select('fecha, total').gte('fecha', desde).lte('fecha', hasta),
     ])
 
-    const meses = Array.from({ length: 12 }, (_, i) => ({ mes: i + 1, cobros: 0, gastos: 0 }))
+    const meses = Array.from({ length: 12 }, (_, i) => ({ mes: i + 1, cobros: 0, ventas: 0, gastos: 0 }))
     ;(cobros ?? []).forEach(({ fecha, importe }) => {
       const mes = new Date(fecha + 'T00:00:00').getMonth()
       meses[mes].cobros += parseFloat(importe) || 0
+    })
+    ;(ventas ?? []).forEach(({ fecha, total }) => {
+      const mes = new Date(fecha + 'T00:00:00').getMonth()
+      meses[mes].ventas += parseFloat(total) || 0
     })
     ;(pagos ?? []).forEach(({ fecha, importe }) => {
       const mes = new Date(fecha + 'T00:00:00').getMonth()
