@@ -9,7 +9,7 @@ import Header from './sections/Header';
 import Hero from './sections/Hero';
 import QuienesSomos from './sections/QuienesSomos';
 import Servicios from './sections/Servicios';
-import Noticias from './sections/Noticias';
+import Instagram from './sections/Instagram';
 import Tienda from './sections/Tienda';
 import Contacto from './sections/Contacto';
 import Footer from './sections/Footer';
@@ -60,7 +60,7 @@ function LandingContent() {
       <Hero />
       <QuienesSomos />
       <Servicios />
-      <Noticias />
+      <Instagram />
       <Tienda />
 
       <div className={css(styles, 'cta-band')}>

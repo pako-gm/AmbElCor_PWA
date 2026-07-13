@@ -5,7 +5,7 @@ import { css } from '../utils';
 import styles from '../Landing.module.css';
 
 const LEGAL_KEYS = ['aviso', 'privacidad', 'pago', 'ventas', 'tyc', 'cookies'];
-const NAV_HREFS = ['#inicio', '#qs', '#noticias', '#tienda', '#contacto'];
+const NAV_HREFS = ['#inicio', '#qs', '#instagram', '#tienda', '#contacto'];
 
 export default function Footer({ onOpenModal }) {
   const { t } = useLanguage();

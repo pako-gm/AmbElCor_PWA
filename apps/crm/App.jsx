@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import PageWrapper from '@/components/layout/PageWrapper'
+import { useAuth } from '@/hooks/useAuth'
 
 // Auth
 import Login from '@/pages/Login'
@@ -59,6 +60,13 @@ const Protected = ({ children, permiso }) => (
   <ProtectedRoute permiso={permiso}>{children}</ProtectedRoute>
 )
 
+// Ruta raíz: sin sesión va a login (Acceso); con sesión, directo a Encargos.
+const Inicio = () => {
+  const { perfil, loading } = useAuth()
+  if (loading) return null
+  return <Navigate to={perfil ? '/encargos' : '/acceso'} replace />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -106,7 +114,7 @@ export default function App() {
 
         <Route path="/admin" element={<Protected><Placeholder title="Administración" /></Protected>} />
 
-        <Route path="/" element={<Navigate to="/encargos" replace />} />
+        <Route path="/" element={<Inicio />} />
       </Routes>
     </BrowserRouter>
   )

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CalendarCheck, ShoppingCart } from 'lucide-react';
+import { CalendarCheck, ShoppingCart, LogIn } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 import { LANGUAGES } from '../translations';
 import { css } from '../utils';
@@ -44,7 +44,7 @@ export default function Header() {
   const navItems = [
     { href: '#qs', label: t.nav.quienesSomos },
     { href: '#servicios', label: t.nav.servicios },
-    { href: '#noticias', label: t.nav.noticias },
+    { href: '#instagram', label: t.nav.instagram },
     { href: '#tienda', label: t.nav.tienda },
     { href: '#contacto', label: t.nav.contacto },
   ];
@@ -74,6 +74,18 @@ export default function Header() {
               <li>
                 <a href="#" className={css(styles, 'nav-cart')} aria-label={t.nav.carritoAria}>
                   <ShoppingCart size={17} />
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  target="_blank"
+                  rel="noreferrer"
+                  className={css(styles, 'nav-crm')}
+                  aria-label={t.nav.crmAria}
+                  title={t.nav.crmAria}
+                >
+                  <LogIn size={17} />
                 </a>
               </li>
             </ul>

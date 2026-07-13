@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manual de Usuario — Amb el Cor CRM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Variables ─────────────────────────────── */
+    :root {
+      --brand:      #1fb39a;
+      --brand-dark: #118b78;
+      --gold:       #b07d33;
+      --ink:        #1a1a2e;
+      --ink-medium: #3d3d5c;
+      --ink-light:  #6b6b8d;
+      --border:     #e2e2ef;
+      --bg:         #f7f8fc;
+      --white:      #ffffff;
+      --radius:     10px;
+    }
+
+    /* ── Reset y base ──────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Figtree', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    h1, h2, h3, h4 { font-family: 'Lora', Georgia, serif; }
+
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    }
+
+    /* ── Layout web ────────────────────────────── */
+    .layout {
+      display: flex;
+      gap: 0;
+      min-height: 100vh;
+    }
+
+    /* Sidebar de navegación (solo pantalla) */
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      width: 230px;
+      flex-shrink: 0;
+      background: var(--white);
+      border-right: 1px solid var(--border);
+      padding: 28px 18px;
+    }
+
+    .sidebar-logo {
+      font-family: 'Lora', serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--brand);
+      margin-bottom: 6px;
+    }
+    .sidebar-sub {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      margin-bottom: 22px;
+    }
+
+    .nav-section {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+      margin: 18px 0 6px;
+    }
+
+    .nav-item {
+      display: block;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--ink-medium);
+      transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--bg); color: var(--brand); text-decoration: none; }
+
+    /* Contenido principal */
+    .main {
+      flex: 1;
+      min-width: 0;
+      padding: 48px 56px 80px;
+      max-width: 900px;
+    }
+
+    /* ── Portada ────────────────────────────────── */
+    .cover {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 60px 56px;
+      background: linear-gradient(135deg, #f0faf8 0%, #fff 60%);
+      border-bottom: 2px solid var(--brand);
+    }
+
+    .cover-logo {
+      width: 56px;
+      height: 56px;
+      background: var(--brand);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+    .cover-logo svg { fill: #fff; width: 32px; height: 32px; }
+
+    .cover h1 {
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+    .cover-brand {
+      font-size: 20px;
+      color: var(--brand);
+      font-family: 'Lora', serif;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .cover-desc {
+      font-size: 16px;
+      color: var(--ink-medium);
+      max-width: 520px;
+      line-height: 1.7;
+      margin-bottom: 36px;
+    }
+    .cover-meta {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+    .cover-meta-item {
+      font-size: 12px;
+      color: var(--ink-light);
+    }
+    .cover-meta-item strong {
+      display: block;
+      font-size: 14px;
+      color: var(--ink-medium);
+      font-weight: 600;
+    }
+
+    /* ── Secciones ──────────────────────────────── */
+    .section {
+      padding-top: 56px;
+    }
+
+    .section-num {
+      display: inline-block;
+      background: var(--brand);
+      color: #fff;
+      font-family: 'Figtree', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      padding: 3px 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .section h2 {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+
+    .section-intro {
+      font-size: 15px;
+      color: var(--ink-medium);
+      margin-bottom: 28px;
+      max-width: 680px;
+    }
+
+    /* ── Subsecciones ───────────────────────────── */
+    .subsection {
+      margin-top: 36px;
+    }
+
+    .subsection h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1.5px solid var(--border);
+    }
+
+    .subsection p {
+      color: var(--ink-medium);
+      margin-bottom: 12px;
+    }
+
+    /* ── Listas de funcionalidades ──────────────── */
+    .feature-list {
+      list-style: none;
+      margin: 0 0 16px;
+      padding: 0;
+    }
+    .feature-list li {
+      position: relative;
+      padding: 5px 0 5px 20px;
+      color: var(--ink-medium);
+      font-size: 13.5px;
+    }
+    .feature-list li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 12px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--brand);
+    }
+    .feature-list li strong { color: var(--ink); }
+
+    /* ── Alertas / tip boxes ────────────────────── */
+    .tip {
+      background: #edfaf7;
+      border-left: 3px solid var(--brand);
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      font-size: 13px;
+      color: var(--ink-medium);
+    }
+    .tip strong { color: var(--brand-dark); }
+
+    .warn {
+      background: #fff8e6;
+      border-left: 3px solid var(--gold);
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 16px 0;
+      font-size: 13px;
+      color: var(--ink-medium);
+    }
+    .warn strong { color: var(--gold); }
+
+    /* ── Imagen con pie de foto ─────────────────── */
+    .screenshot-wrap {
+      margin: 20px 0 30px;
+    }
+    .screenshot-caption {
+      font-size: 12px;
+      color: var(--ink-light);
+      margin-top: 8px;
+      text-align: center;
+      font-style: italic;
+    }
+
+    /* ── Tabla de flujo de estados ──────────────── */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 16px 0;
+    }
+    .flow-state {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+    .flow-arrow { color: var(--ink-light); font-size: 16px; }
+    .s-presupuestado { background: #EFF1F4; color: #5E6878; }
+    .s-confirmado    { background: #EFEAFB; color: #5E48A8; }
+    .s-confeccion    { background: #E8F0FB; color: #2F5AA0; }
+    .s-listo         { background: #F6EEDD; color: #8A6228; }
+    .s-entregado     { background: #E6F4EC; color: #0F7A4A; }
+
+    /* ── Separador de sección ───────────────────── */
+    .divider {
+      border: none;
+      border-top: 1.5px solid var(--border);
+      margin: 56px 0 0;
+    }
+
+    /* ── Tabla de permisos ──────────────────────── */
+    .perm-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 16px 0;
+    }
+    .perm-table th {
+      background: var(--bg);
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 1.5px solid var(--border);
+    }
+    .perm-table td {
+      padding: 7px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--ink-medium);
+    }
+    .perm-table tr:last-child td { border-bottom: none; }
+    .check { color: var(--brand); font-weight: 700; }
+    .cross { color: #aaa; }
+
+    /* ── Índice ─────────────────────────────────── */
+    .toc {
+      padding: 40px 56px 56px;
+    }
+    .toc h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 24px;
+    }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .toc-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--ink-medium);
+      font-size: 13.5px;
+      transition: border-color .15s, color .15s;
+    }
+    .toc-item:hover { border-color: var(--brand); color: var(--brand); text-decoration: none; }
+    .toc-num {
+      width: 26px;
+      height: 26px;
+      background: var(--brand);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ── Impresión ──────────────────────────────── */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 18mm 15mm 18mm 15mm;
+      }
+
+      body { background: #fff; font-size: 11.5pt; }
+
+      .sidebar { display: none !important; }
+      .layout { display: block; }
+
+      .main {
+        padding: 0;
+        max-width: 100%;
+      }
+
+      .cover {
+        min-height: auto;
+        padding: 40pt 0 50pt;
+        page-break-after: always;
+        background: none;
+        border-bottom: 2pt solid var(--brand);
+      }
+
+      .toc {
+        padding: 30pt 0 40pt;
+        page-break-after: always;
+      }
+      .toc-grid { display: block; }
+      .toc-item { border: none; padding: 3pt 0; border-bottom: 1px solid #eee; border-radius: 0; }
+      .toc-item:hover { border-color: #eee; color: var(--ink-medium); }
+
+      .section {
+        page-break-before: always;
+        padding-top: 30pt;
+      }
+
+      .divider { display: none; }
+
+      img {
+        max-width: 100%;
+        page-break-inside: avoid;
+      }
+
+      .screenshot-wrap { page-break-inside: avoid; }
+      .subsection { page-break-inside: avoid; }
+
+      h2 { font-size: 20pt; }
+      h3 { font-size: 13pt; }
+
+      .tip, .warn { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ── Sidebar (solo pantalla) ────────────────── -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">Amb el Cor</div>
+    <div class="sidebar-sub">Manual de usuario</div>
+
+    <a class="nav-item" href="#portada">Portada</a>
+    <a class="nav-item" href="#indice">Índice</a>
+
+    <div class="nav-section">Módulos</div>
+    <a class="nav-item" href="#acceso">1. Acceso</a>
+    <a class="nav-item" href="#encargos">2. Encargos</a>
+    <a class="nav-item" href="#nuevo-encargo">3. Crear encargo</a>
+    <a class="nav-item" href="#detalle-encargo">4. Detalle del encargo</a>
+    <a class="nav-item" href="#citas">5. Citas</a>
+    <a class="nav-item" href="#clientes">6. Clientes</a>
+    <a class="nav-item" href="#medidas">7. Medidas</a>
+    <a class="nav-item" href="#catalogo">8. Catálogo</a>
+    <a class="nav-item" href="#inventario">9. Inventario</a>
+    <a class="nav-item" href="#proveedores">10. Proveedores</a>
+    <a class="nav-item" href="#contabilidad">11. Contabilidad</a>
+    <a class="nav-item" href="#ajustes">12. Ajustes</a>
+    <a class="nav-item" href="#seguimiento">13. Seguimiento público</a>
+  </nav>
+
+  <!-- ── Contenido ──────────────────────────────── -->
+  <div>
+
+    <!-- PORTADA -->
+    <section id="portada" class="cover">
+      <div class="cover-logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 21s-7-4.5-9.5-9C1 9 2.5 5 6 5c2 0 3 1.2 4 2.5C11 6.2 12 5 14 5c3.5 0 5 4 3.5 7-2.5 4.5-9.5 9-9.5 9z"/>
+        </svg>
+      </div>
+      <p class="cover-brand">Amb el Cor — Taller de Indumentaria Fallera</p>
+      <h1>Manual de Usuario<br/>CRM</h1>
+      <p class="cover-desc">
+        Guía completa del sistema de gestión para el taller: encargos, clientas, pagos,
+        inventario, citas y contabilidad. Incluye capturas reales de cada pantalla
+        y explicación paso a paso de cada función.
+      </p>
+      <div class="cover-meta">
+        <div class="cover-meta-item">
+          <strong>Versión</strong>1.0 — Julio 2026
+        </div>
+        <div class="cover-meta-item">
+          <strong>Aplicación</strong>CRM Amb el Cor
+        </div>
+        <div class="cover-meta-item">
+          <strong>Acceso</strong>crm.ambelcor.es
+        </div>
+      </div>
+    </section>
+
+    <!-- ÍNDICE -->
+    <section id="indice" class="toc">
+      <h2>Índice de contenidos</h2>
+      <div class="toc-grid">
+        <a class="toc-item" href="#acceso"><span class="toc-num">1</span> Acceso al sistema</a>
+        <a class="toc-item" href="#encargos"><span class="toc-num">2</span> Panel de Encargos</a>
+        <a class="toc-item" href="#nuevo-encargo"><span class="toc-num">3</span> Crear un encargo</a>
+        <a class="toc-item" href="#detalle-encargo"><span class="toc-num">4</span> Detalle del encargo</a>
+        <a class="toc-item" href="#citas"><span class="toc-num">5</span> Citas</a>
+        <a class="toc-item" href="#clientes"><span class="toc-num">6</span> Clientes</a>
+        <a class="toc-item" href="#medidas"><span class="toc-num">7</span> Medidas del cliente</a>
+        <a class="toc-item" href="#catalogo"><span class="toc-num">8</span> Catálogo de prendas</a>
+        <a class="toc-item" href="#inventario"><span class="toc-num">9</span> Inventario</a>
+        <a class="toc-item" href="#proveedores"><span class="toc-num">10</span> Proveedores</a>
+        <a class="toc-item" href="#contabilidad"><span class="toc-num">11</span> Contabilidad</a>
+        <a class="toc-item" href="#ajustes"><span class="toc-num">12</span> Ajustes</a>
+        <a class="toc-item" href="#seguimiento"><span class="toc-num">13</span> Seguimiento público</a>
+      </div>
+    </section>
+
+    <div class="main">
+
+      <!-- ── 1. ACCESO ──────────────────────────── -->
+      <section id="acceso" class="section">
+        <span class="section-num">MÓDULO 1</span>
+        <h2>Acceso al sistema</h2>
+        <p class="section-intro">
+          El CRM es privado y solo accesible para el personal del taller. La pantalla de acceso muestra los perfiles disponibles; cada uno tiene una contraseña independiente.
+        </p>
+
+        <div class="screenshot-wrap">
+          <img src="../public/test-screenshots/acceso.png" alt="Pantalla de acceso al sistema" />
+          <p class="screenshot-caption">Pantalla de acceso — selección de perfil</p>
+        </div>
+
+        <div class="subsection">
+          <h3>Cómo iniciar sesión</h3>
+          <ul class="feature-list">
+            <li>Abre el navegador y accede a la URL del CRM.</li>
+            <li>Haz clic en tu perfil (Carmen u otro usuario configurado).</li>
+            <li>Introduce tu contraseña y pulsa <strong>Entrar</strong>.</li>
+            <li>El sistema te lleva directamente al panel de Encargos.</li>
+          </ul>
+        </div>
+
+        <div class="subsection">
+          <h3>Roles y permisos</h3>
+          <p>Cada usuario tiene acceso a las secciones que le corresponden según su rol:</p>
+          <table class="perm-table">
+            <thead>
+              <tr>
+                <th>Sección</th>
+                <th>Administrador</th>
+                <th>Operario</th>
+                <th>Contable</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Encargos, Clientes, Citas, Catálogo</td><td class="check">✓</td><td class="check">✓</td><td class="cross">—</td></tr>
+              <tr><td>Inventario</td><td class="check">✓</td><td class="check">✓</td><td class="cross">—</td></tr>
+              <tr><td>Contabilidad</td><td class="check">✓</td><td class="cross">—</td><td class="check">✓</td></tr>
+              <tr><td>Ajustes del sistema</td><td class="check">✓</td><td class="cross">—</td><td class="cross">—</td></tr>
+            </tbody>
+          </table>
+          <div class="tip">
+            <strong>Consejo:</strong> La configuración de usuarios y permisos se gestiona en el módulo <strong>Ajustes &rsaquo; Usuarios</strong>.
+          </div>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ── 2. ENCARGOS — PANEL ────────────────── -->
+      <section id="encargos" class="section">
+        <span class="section-num">MÓDULO 2</span>
+        <h2>Panel de Encargos</h2>
+        <p class="section-intro">
+          El panel de Encargos es el centro de operaciones del taller. Muestra todos los trabajos en curso organizados en un tablero Kanban con columnas por estado, y también en una vista Cronograma.
+        </p>
+
+        <div class="subsection">
+          <h3>Vista Kanban</h3>
+          <p>
+            Cada columna representa un estado del encargo. Las tarjetas se pueden arrastrar de una columna a otra para cambiar su estado, o usar el menú de cada tarjeta (botón de tres puntos).
+          </p>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/encargos-kanban.png" alt="Vista Kanban de encargos" />
+            <p class="screenshot-caption">Vista Kanban — columnas por estado de encargo</p>
+          </div>
+
+          <p>Flujo de estados de un encargo:</p>
+          <div class="flow">
+            <span class="flow-state s-presupuestado">Presupuestado</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-state s-confirmado">Confirmado</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-state s-confeccion">En confección</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-state s-listo">Listo</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-state s-entregado">Entregado</span>
+          </div>
+
+          <ul class="feature-list">
+            <li><strong>Arrastra</strong> una tarjeta a la columna destino para cambiar el estado.</li>
+            <li>Haz clic en cualquier tarjeta para <strong>abrir el detalle completo</strong> del encargo.</li>
+            <li>El menú (⋯) de cada tarjeta permite ver el detalle, cambiar el estado manualmente o eliminar el encargo.</li>
+            <li>Las tarjetas con <strong>entrega vencida</strong> parpadean en rojo para llamar la atención.</li>
+            <li>Encargos entregados se ocultan por defecto; usa el botón <strong>Mostrar Entregados</strong> para verlos.</li>
+          </ul>
+
+          <div class="warn">
+            <strong>Aviso:</strong> Al mover un encargo a <em>En confección</em>, el sistema verifica que se haya cobrado al menos el 30 % del total como señal. Si no es así, bloquea el cambio y avisa.
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3>Vista Cronograma</h3>
+          <p>
+            La vista Cronograma muestra todos los encargos en una línea de tiempo. Es útil para ver de un vistazo qué encargos solapan en fechas y planificar la carga de trabajo.
+          </p>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/encargos-cronograma.png" alt="Vista Cronograma de encargos" />
+            <p class="screenshot-caption">Vista Cronograma — línea de tiempo de encargos activos</p>
+          </div>
+          <ul class="feature-list">
+            <li>Cada barra muestra la duración estimada desde la fecha de encargo hasta la fecha de entrega.</li>
+            <li>Los colores corresponden al estado del encargo (igual que en el Kanban).</li>
+            <li>Haz clic en una barra para ir al detalle del encargo.</li>
+          </ul>
+          <div class="tip">
+            <strong>Cambiar de vista:</strong> Usa los botones <em>Kanban</em> / <em>Cronograma</em> en la esquina superior derecha del panel.
+          </div>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ── 3. NUEVO ENCARGO ────────────────────── -->
+      <section id="nuevo-encargo" class="section">
+        <span class="section-num">MÓDULO 3</span>
+        <h2>Crear un encargo</h2>
+        <p class="section-intro">
+          Para registrar un nuevo trabajo, usa el botón <strong>+ Nuevo encargo</strong> en la parte superior derecha del panel. El formulario te guía paso a paso.
+        </p>
+
+        <div class="screenshot-wrap">
+          <img src="../public/test-screenshots/encargos-nuevo.png" alt="Formulario de nuevo encargo" />
+          <p class="screenshot-caption">Formulario de creación de encargo</p>
+        </div>
+
+        <div class="subsection">
+          <h3>Campos del formulario</h3>
+          <ul class="feature-list">
+            <li><strong>Cliente:</strong> Busca la clienta por nombre o teléfono. Si no existe, pulsa <em>Crear cliente</em> para añadirla al momento.</li>
+            <li><strong>Fecha de entrega estimada:</strong> Cuándo espera la clienta recoger el trabajo.</li>
+            <li><strong>Líneas de prendas:</strong> Añade tantas prendas como tenga el encargo. Para cada una indica descripción, cantidad y precio. Puedes seleccionar prendas del catálogo o escribirlas libremente.</li>
+            <li><strong>Notas:</strong> Información adicional visible solo en la gestión interna.</li>
+            <li><strong>Total:</strong> Se calcula automáticamente sumando todas las líneas.</li>
+          </ul>
+          <div class="tip">
+            <strong>Tip:</strong> Si seleccionas una prenda del catálogo, el precio base se rellena automáticamente pero puedes modificarlo.
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3>Al guardar</h3>
+          <ul class="feature-list">
+            <li>El encargo se crea en estado <strong>Presupuestado</strong> y aparece en la primera columna del Kanban.</li>
+            <li>Se asigna automáticamente un <strong>número de encargo</strong> (formato 26/001) y un <strong>código corto</strong> (AMB-XXXX) para compartir con la clienta.</li>
+          </ul>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ── 4. DETALLE DEL ENCARGO ─────────────── -->
+      <section id="detalle-encargo" class="section">
+        <span class="section-num">MÓDULO 4</span>
+        <h2>Detalle del encargo</h2>
+        <p class="section-intro">
+          Haz clic en cualquier tarjeta del Kanban para abrir el detalle completo. Aquí gestionas el estado, las prendas, los pagos y los documentos del encargo.
+        </p>
+
+        <div class="screenshot-wrap">
+          <img src="../public/test-screenshots/encargo-detalle.png" alt="Pantalla de detalle de encargo" />
+          <p class="screenshot-caption">Detalle del encargo — timeline, prendas y pagos</p>
+        </div>
+
+        <div class="subsection">
+          <h3>Timeline de estados</h3>
+          <ul class="feature-list">
+            <li>Los cinco estados aparecen en una línea de tiempo visual en la parte superior.</li>
+            <li>Haz clic en el siguiente estado para avanzar el encargo.</li>
+            <li>El sistema realiza comprobaciones automáticas antes de avanzar (señal del 30 %, cobro pendiente).</li>
+          </ul>
+          <div class="warn">
+            <strong>Al confirmar</strong> el encargo se genera automáticamente el <strong>PDF de presupuesto</strong>.<br/>
+            <strong>Al entregar</strong> se genera el <strong>PDF de factura</strong>. Ambos se pueden descargar desde el botón correspondiente.
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3>Gestión de prendas</h3>
+          <ul class="feature-list">
+            <li>Añade, edita o elimina líneas de prenda en cualquier momento.</li>
+            <li>El total del encargo se recalcula automáticamente.</li>
+            <li>Cada línea puede tener descripción, cantidad, precio unitario y notas de medidas.</li>
+          </ul>
+        </div>
+
+        <div class="subsection">
+          <h3>Registro de pagos</h3>
+          <ul class="feature-list">
+            <li><strong>Tipos de pago:</strong> Señal (reserva), A cuenta, Pago final, Devolución.</li>
+            <li><strong>Formas de pago:</strong> Efectivo, Transferencia, Tarjeta, Bizum.</li>
+            <li><strong>Estado:</strong> Cobrado o Pendiente (con fecha de vencimiento).</li>
+            <li>Puedes editar o eliminar cualquier pago ya registrado.</li>
+          </ul>
+          <div class="tip">
+            <strong>El encargo no puede marcarse como Entregado</strong> si queda importe pendiente de cobro. El sistema avisa y pide confirmación explícita.
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3>Compartir con la clienta</h3>
+          <ul class="feature-list">
+            <li>Pulsa <strong>Compartir</strong> para copiar el enlace público del encargo.</li>
+            <li>La clienta puede ver el estado, prendas y pagos de su encargo sin necesidad de registrarse.</li>
+            <li>También puedes comunicarle el <strong>código corto</strong> (ej. AMB-4X9K) para que lo busque ella misma en la web.</li>
+          </ul>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ── 5. CITAS ────────────────────────────── -->
+      <section id="citas" class="section">
+        <span class="section-num">MÓDULO 5</span>
+        <h2>Citas</h2>
+        <p class="section-intro">
+          La pestaña <strong>Citas</strong> dentro del panel de Encargos muestra la agenda del día en formato de línea de tiempo. Ideal para gestionar visitas de clientas, pruebas y recogidas.
+        </p>
+
+        <div class="screenshot-wrap">
+          <img src="../public/test-screenshots/encargos-citas.png" alt="Agenda de citas" />
+          <p class="screenshot-caption">Agenda de citas — vista de día con timeline</p>
+        </div>
+
+        <div class="subsection">
+          <h3>Funcionalidades</h3>
+          <ul class="feature-list">
+            <li>Visualiza todas las citas del día seleccionado en un timeline horario.</li>
+            <li>Pulsa <strong>+ Nueva cita</strong> para crear una cita: hora, duración, clienta y descripción.</li>
+            <li>Mueve las citas arrastrándolas en el timeline (compatible con pantalla táctil).</li>
+            <li>Haz clic en una cita para editarla o eliminarla.</li>
+            <li>Navega por días con las flechas de cabecera.</li>
+          </ul>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ── 6. CLIENTES ─────────────────────────── -->
+      <section id="clientes" class="section">
+        <span class="section-num">MÓDULO 6</span>
+        <h2>Clientes</h2>
+        <p class="section-intro">
+          El listado de clientas está accesible desde la pestaña <strong>Clientes</strong> del panel principal. Aquí puedes buscar, crear y acceder al perfil de cada clienta.
+        </p>
+
+        <div class="screenshot-wrap">
+          <img src="../public/test-screenshots/encargos-clientes.png" alt="Listado de clientes" />
+          <p class="screenshot-caption">Pestaña Clientes — listado con búsqueda</p>
+        </div>
+
+        <div class="subsection">
+          <h3>Listado de clientas</h3>
+          <ul class="feature-list">
+            <li>Busca por nombre, apellidos, alias, teléfono o email en tiempo real.</li>
+            <li>Haz clic en una clienta para acceder a su perfil completo.</li>
+            <li>Usa <strong>+ Nuevo cliente</strong> para registrar una clienta nueva.</li>
+          </ul>
+        </div>
+
+        <div class="screenshot-wrap">
+          <img src="../public/test-screenshots/cliente-detalle.png" alt="Perfil de cliente" />
+          <p class="screenshot-caption">Perfil de clienta — datos de contacto, medidas y encargos</p>
+        </div>
+
+        <div class="subsection">
+          <h3>Perfil de la clienta</h3>
+          <ul class="feature-list">
+            <li><strong>Datos de contacto:</strong> Nombre, apellidos, alias, teléfono, email y notas. Todo editable directamente en la ficha.</li>
+            <li><strong>Medidas:</strong> Sección expandible con las medidas registradas. Botón para ir a la pantalla completa de medidas.</li>
+            <li><strong>Encargos:</strong> Listado de todos los encargos de la clienta con su estado y precio. Muestra el total facturado.</li>
+            <li><strong>Eliminar clienta:</strong> Solo disponible si no tiene encargos asociados.</li>
+          </ul>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ── 7. MEDIDAS ──────────────────────────── -->
+      <section id="medidas" class="section">
+        <span class="section-num">MÓDULO 7</span>
+        <h2>Medidas del cliente</h2>
+        <p class="section-intro">
+          Registra las medidas corporales de cada clienta para agilizar futuros encargos. Se accede desde el perfil de la clienta, pulsando <strong>Editar medidas</strong>.
+        </p>
+
+        <div class="screenshot-wrap">
+          <img src="../public/test-screenshots/cliente-medidas.png" alt="Formulario de medidas" />
+          <p class="screenshot-caption">Medidas — formulario organizado en secciones</p>
+        </div>
+
+        <div class="subsection">
+          <h3>Secciones del formulario</h3>
+          <ul class="feature-list">
+            <li><strong>Corporales generales:</strong> Altura, contornos de pecho, cintura y cadera, talles delantero y espalda, ancho de espalda y pecho, separación y altura de pecho.</li>
+            <li><strong>Brazos y manga:</strong> Largo de manga, contornos de sisa, brazo, codo y muñeca.</li>
+            <li><strong>Falda y faldón:</strong> Largos delantero y trasero, contorno de cadera alta, vuelo deseado.</li>
+            <li><strong>Cuello y escote:</strong> Contorno de cuello, profundidades de escote delantero y trasero, ancho de escote.</li>
+            <li><strong>Referencias:</strong> Altura cintura-suelo, número de calzado, altura con zapato de fiesta.</li>
+          </ul>
+          <div class="tip">
+            <strong>Todas las medidas en centímetros</strong> salvo el número de calzado. El campo <em>Notas</em> al final permite anotaciones libres sobre la clienta.
+          </div>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ── 8. CATÁLOGO ─────────────────────────── -->
+      <section id="catalogo" class="section">
+        <span class="section-num">MÓDULO 8</span>
+        <h2>Catálogo de prendas</h2>
+        <p class="section-intro">
+          El catálogo almacena las prendas que ofrece el taller con su precio base y descuento. Al crear un encargo, puedes seleccionar prendas del catálogo para rellenar automáticamente la descripción y el precio.
+        </p>
+
+        <div class="screenshot-wrap">
+          <img src="../public/test-screenshots/encargos-catalogo.png" alt="Pestaña Catálogo" />
+          <p class="screenshot-caption">Pestaña Catálogo — listado de prendas disponibles</p>
+        </div>
+
+        <div class="subsection">
+          <h3>Gestión de prendas</h3>
+          <ul class="feature-list">
+            <li>Pulsa <strong>+ Nueva prenda</strong> para añadir una prenda al catálogo.</li>
+            <li>Haz clic en una prenda existente para editar sus datos.</li>
+            <li>Campos: <strong>Nombre</strong>, descripción, <strong>precio base</strong> (€) y <strong>descuento</strong> (%). El precio final se calcula automáticamente.</li>
+            <li>Las prendas pueden marcarse como <strong>inactivas</strong>: siguen en el historial pero no aparecen en el selector de nuevos encargos.</li>
+          </ul>
+        </div>
+
+        <div class="screenshot-wrap">
+          <img src="../public/test-screenshots/catalogo-form.png" alt="Formulario de nueva prenda" />
+          <p class="screenshot-caption">Formulario de prenda — crear o editar</p>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ── 9. INVENTARIO ───────────────────────── -->
+      <section id="inventario" class="section">
+        <span class="section-num">MÓDULO 9</span>
+        <h2>Inventario de materiales</h2>
+        <p class="section-intro">
+          El módulo de Inventario permite llevar el control del stock de telas, adornos y otros materiales del taller, con alertas automáticas cuando el stock baja del mínimo.
+        </p>
+
+        <div class="screenshot-wrap">
+          <img src="../public/test-screenshots/inventario.png" alt="Lista de materiales" />
+          <p class="screenshot-caption">Inventario — lista de materiales con estado de stock</p>
+        </div>
+
+        <div class="subsection">
+          <h3>Lista de materiales</h3>
+          <ul class="feature-list">
+            <li>Cada tarjeta muestra el <strong>código</strong>, nombre, categoría, <strong>stock actual</strong> frente al mínimo y el valor total en euros.</li>
+            <li>El borde izquierdo cambia de color según el estado: <span style="color:#2E9D5B;font-weight:700">verde (OK)</span>, <span style="color:#C8902E;font-weight:700">naranja (bajo)</span>, <span style="color:#D63A33;font-weight:700">rojo (agotado)</span>.</li>
+            <li>Desde la tarjeta puedes registrar rápidamente una <strong>entrada</strong> (+), una <strong>salida</strong> (−) o un <strong>ajuste</strong> (⚙) de stock.</li>
+            <li>Filtra por categoría o busca por nombre.</li>
+            <li>El botón <em>Mostrar Inactivos</em> muestra materiales que ya no están en uso.</li>
+          </ul>
+        </div>
+
+        <div class="subsection">
+          <h3>Detalle de material</h3>
+          <p>Haz clic en una tarjeta para ver el historial completo de movimientos y editar los datos del material.</p>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/inventario-detalle.png" alt="Detalle de material" />
+            <p class="screenshot-caption">Detalle de material — datos y movimientos de stock</p>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3>Nuevo material</h3>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/inventario-nuevo.png" alt="Formulario nuevo material" />
+            <p class="screenshot-caption">Formulario de nuevo material</p>
+          </div>
+          <ul class="feature-list">
+            <li><strong>Nombre y código</strong> del material (el código se genera automáticamente según la categoría).</li>
+            <li><strong>Categoría</strong> (Telas, Adornos, etc.) y <strong>unidad</strong> (metros, kg, par, unidades…).</li>
+            <li><strong>Stock inicial</strong>, <strong>stock mínimo</strong> de alerta y <strong>precio de referencia</strong> por unidad.</li>
+          </ul>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ── 10. PROVEEDORES ─────────────────────── -->
+      <section id="proveedores" class="section">
+        <span class="section-num">MÓDULO 10</span>
+        <h2>Proveedores</h2>
+        <p class="section-intro">
+          La pestaña <strong>Proveedores</strong> dentro del módulo de Inventario permite gestionar los datos de los proveedores de materiales y vincularlos a los gastos de Contabilidad.
+        </p>
+
+        <div class="screenshot-wrap">
+          <img src="../public/test-screenshots/inventario-proveedores.png" alt="Lista de proveedores" />
+          <p class="screenshot-caption">Proveedores — listado con datos de contacto</p>
+        </div>
+
+        <div class="subsection">
+          <h3>Datos del proveedor</h3>
+          <ul class="feature-list">
+            <li>Nombre comercial y razón social, NIF/CIF.</li>
+            <li>Teléfono, email y persona de contacto.</li>
+            <li>Dirección y condiciones de pago habituales.</li>
+          </ul>
+          <div class="tip">
+            Al registrar un gasto en Contabilidad, puedes asociarlo a un proveedor para llevar un control de lo gastado con cada uno.
+          </div>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ── 11. CONTABILIDAD ────────────────────── -->
+      <section id="contabilidad" class="section">
+        <span class="section-num">MÓDULO 11</span>
+        <h2>Contabilidad</h2>
+        <p class="section-intro">
+          El módulo de Contabilidad organiza todos los ingresos y gastos del taller en tres libros: Cobros, Pagos y Libro Diario. Permite exportar a Excel y filtrar por año y trimestre.
+        </p>
+
+        <div class="subsection">
+          <h3>Dashboard de contabilidad</h3>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/contabilidad.png" alt="Dashboard de contabilidad" />
+            <p class="screenshot-caption">Contabilidad — panel resumen con gráficas</p>
+          </div>
+          <ul class="feature-list">
+            <li>Resumen de ingresos y gastos del año en curso.</li>
+            <li>Gráfico mensual de cobros vs. pagos.</li>
+            <li>Desglose por forma de pago (efectivo, transferencia, tarjeta, bizum).</li>
+          </ul>
+        </div>
+
+        <div class="subsection">
+          <h3>Libro de Cobros</h3>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/contabilidad-cobros.png" alt="Libro de cobros" />
+            <p class="screenshot-caption">Libro de Cobros — ingresos por encargos</p>
+          </div>
+          <ul class="feature-list">
+            <li>Registra automáticamente los pagos cobrados de los encargos.</li>
+            <li>Filtra por fecha, forma de pago o estado.</li>
+            <li>Exporta a Excel con el botón <strong>Exportar</strong>.</li>
+          </ul>
+        </div>
+
+        <div class="subsection">
+          <h3>Libro de Pagos</h3>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/contabilidad-pagos.png" alt="Libro de pagos" />
+            <p class="screenshot-caption">Libro de Pagos — gastos operacionales</p>
+          </div>
+          <ul class="feature-list">
+            <li>Registra los gastos del taller: materiales, cuota de autónomo, alquiler, suministros, etc.</li>
+            <li>Asocia cada gasto a un proveedor y una categoría.</li>
+            <li>Indica si el IVA es deducible y la forma de pago.</li>
+            <li>Estado: <em>Pagado</em> o <em>Pendiente</em> (con fecha de vencimiento).</li>
+          </ul>
+        </div>
+
+        <div class="subsection">
+          <h3>Libro Diario</h3>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/contabilidad-diario.png" alt="Libro diario" />
+            <p class="screenshot-caption">Libro Diario — vista unificada de movimientos por fecha</p>
+          </div>
+          <ul class="feature-list">
+            <li>Muestra cobros y pagos juntos ordenados por fecha.</li>
+            <li>Útil para revisar la actividad económica de un período concreto.</li>
+            <li>Exportable a Excel para el gestor o asesor fiscal.</li>
+          </ul>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ── 12. AJUSTES ─────────────────────────── -->
+      <section id="ajustes" class="section">
+        <span class="section-num">MÓDULO 12</span>
+        <h2>Ajustes del sistema</h2>
+        <p class="section-intro">
+          El panel de Ajustes es el lugar donde se configura el comportamiento general del CRM. Requiere permiso de administrador.
+        </p>
+
+        <div class="screenshot-wrap">
+          <img src="../public/test-screenshots/ajustes.png" alt="Panel de ajustes" />
+          <p class="screenshot-caption">Ajustes — configuración general del sistema</p>
+        </div>
+
+        <div class="subsection">
+          <h3>Secciones disponibles</h3>
+          <ul class="feature-list">
+            <li><strong>Categorías de materiales:</strong> Define las categorías del inventario con nombre, icono y prefijo de código (3 letras).</li>
+            <li><strong>Unidades de gestión:</strong> Añade o edita las unidades de medida del inventario (metro, kg, par, rollo, etc.).</li>
+            <li><strong>Categorías de gasto:</strong> Tipos de gasto usados en Contabilidad (material, cuota autónomo, alquiler, etc.).</li>
+            <li><strong>Datos de facturación:</strong> NIF, razón social, dirección y datos de contacto del taller. Estos datos aparecen en los PDFs de presupuesto y factura.</li>
+            <li><strong>Gestión de usuarios:</strong> Crea, edita y desactiva usuarios del CRM. Asigna roles y permisos a cada uno.</li>
+          </ul>
+          <div class="warn">
+            <strong>Importante:</strong> Los cambios en datos de facturación afectan a los nuevos PDFs generados. Los documentos ya emitidos no se modifican.
+          </div>
+        </div>
+      </section>
+
+      <hr class="divider" />
+
+      <!-- ── 13. SEGUIMIENTO PÚBLICO ─────────────── -->
+      <section id="seguimiento" class="section">
+        <span class="section-num">MÓDULO 13</span>
+        <h2>Seguimiento público</h2>
+        <p class="section-intro">
+          Las clientas pueden consultar el estado de su encargo en cualquier momento, sin necesidad de registrarse, usando el enlace privado o su código corto.
+        </p>
+
+        <div class="subsection">
+          <h3>Formulario de búsqueda</h3>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/seguimiento-form.png" alt="Formulario de seguimiento" />
+            <p class="screenshot-caption">Seguimiento público — la clienta introduce su código corto</p>
+          </div>
+          <ul class="feature-list">
+            <li>La clienta accede a <strong>crm.ambelcor.es/seguimiento</strong> desde su móvil.</li>
+            <li>Introduce el <strong>código corto</strong> del encargo (ej. AMB-4X9K), que se lo comunicamos por teléfono o mensaje.</li>
+            <li>También funciona con el <strong>enlace directo</strong> que generamos desde el detalle del encargo (botón Compartir).</li>
+          </ul>
+        </div>
+
+        <div class="subsection">
+          <h3>Vista del encargo para la clienta</h3>
+          <div class="screenshot-wrap">
+            <img src="../public/test-screenshots/seguimiento-detalle.png" alt="Vista pública del encargo" />
+            <p class="screenshot-caption">Seguimiento público — lo que ve la clienta</p>
+          </div>
+          <ul class="feature-list">
+            <li><strong>Estado actual</strong> del encargo con timeline visual.</li>
+            <li><strong>Fecha de entrega estimada</strong> con alerta de color si se acerca o ha vencido.</li>
+            <li><strong>Listado de prendas</strong> incluidas en el encargo.</li>
+            <li><strong>Pagos registrados:</strong> fecha, importe y tipo. Solo lectura.</li>
+            <li><strong>Resumen económico:</strong> total del encargo, total pagado y pendiente.</li>
+          </ul>
+          <div class="tip">
+            La clienta no puede modificar nada desde esta vista. Solo el personal del taller puede actualizar el encargo desde el CRM.
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /main -->
+  </div><!-- /content -->
+</div><!-- /layout -->
+</body>
+</html>

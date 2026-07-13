@@ -18,11 +18,12 @@ export const translations = {
     nav: {
       quienesSomos: 'Quiénes Somos',
       servicios: 'Servicios',
-      noticias: 'Noticias',
+      instagram: 'Instagram',
       tienda: 'Tienda',
       contacto: 'Contacto',
       pedirCita: 'Pedir Cita',
       carritoAria: 'Carrito',
+      crmAria: 'Acceso CRM',
     },
     hero: {
       badge: 'Artesanía Valenciana · Taller Propio desde 2016',
@@ -87,22 +88,11 @@ export const translations = {
         },
       ],
     },
-    noticias: {
-      tag: 'Últimas Noticias',
-      title: 'Novedades del taller',
-      subtitle:
-        'Mantente al día con las últimas creaciones, eventos y novedades del mundo de la indumentaria valenciana.',
-      feat: {
-        cat: 'Colección 2025',
-        title: "Nueva colección de primavera: trajes de valenciana a l'antiga para Fallas 2025",
-        date: '10 de enero, 2025',
-      },
-      items: [
-        { cat: 'Taller', title: 'Nuevas citas disponibles para toma de medidas · Temporada Fallas 2025', date: '5 de febrero, 2025' },
-        { cat: 'Restauración', title: 'Restauramos trajes centenarios para el Museu de la Indumentaria de València', date: '18 de noviembre, 2024' },
-        { cat: 'Comunidad', title: 'Amb el Cor, presentes en la Exhibición de Indumentaria Valenciana de Paiporta', date: '3 de octubre, 2024' },
-        { cat: 'Alquiler', title: 'Nuevos trajes disponibles para alquiler: estilos históricos del s. XVIII y XIX', date: '1 de septiembre, 2024' },
-      ],
+    instagram: {
+      tag: 'Síguenos',
+      title: 'Nuestro Instagram',
+      subtitle: 'Descubre el día a día del taller y nuestras últimas creaciones falleras.',
+      cta: 'Síguenos en Instagram',
     },
     tienda: {
       tag: 'Tienda Online',
@@ -147,7 +137,7 @@ export const translations = {
     footer: {
       desc: 'Taller artesanal de indumentaria valenciana en Paiporta. Diseño, confección, arreglos y alquiler de trajes de fallera desde 2016.',
       servicios: { title: 'Servicios', items: ['Diseño de Indumentaria', 'Confección a Medida', 'Arreglos y Restauración', 'Alquiler de Trajes', 'Tienda Online'] },
-      navegacion: { title: 'Navegación', items: ['Inicio', 'Quiénes Somos', 'Noticias', 'Tienda', 'Contacto'] },
+      navegacion: { title: 'Navegación', items: ['Inicio', 'Quiénes Somos', 'Instagram', 'Tienda', 'Contacto'] },
       contactoTitle: 'Contacto',
       direccion: DIRECCION_FOOTER.es,
       copy: '© 2026 Amb el Cor · Carmen Moya · Todos los derechos reservados',
@@ -240,11 +230,12 @@ export const translations = {
     nav: {
       quienesSomos: 'Qui Som',
       servicios: 'Serveis',
-      noticias: 'Notícies',
+      instagram: 'Instagram',
       tienda: 'Botiga',
       contacto: 'Contacte',
       pedirCita: 'Demanar Cita',
       carritoAria: 'Carret',
+      crmAria: 'Accés CRM',
     },
     hero: {
       badge: 'Artesania Valenciana · Taller Propi des de 2016',
@@ -308,21 +299,11 @@ export const translations = {
         },
       ],
     },
-    noticias: {
-      tag: 'Últimes Notícies',
-      title: 'Novetats del taller',
-      subtitle: "Mantín-te al dia amb les últimes creacions, esdeveniments i novetats del món de la indumentària valenciana.",
-      feat: {
-        cat: 'Col·lecció 2025',
-        title: "Nova col·lecció de primavera: vestits de valenciana a l'antiga per a Falles 2025",
-        date: '10 de gener, 2025',
-      },
-      items: [
-        { cat: 'Taller', title: 'Noves cites disponibles per a presa de mides · Temporada Falles 2025', date: '5 de febrer, 2025' },
-        { cat: 'Restauració', title: 'Restaurem vestits centenaris per al Museu de la Indumentària de València', date: '18 de novembre, 2024' },
-        { cat: 'Comunitat', title: "Amb el Cor, presents en l'Exhibició d'Indumentària Valenciana de Paiporta", date: "3 d'octubre, 2024" },
-        { cat: 'Lloguer', title: 'Nous vestits disponibles per a lloguer: estils històrics del s. XVIII i XIX', date: '1 de setembre, 2024' },
-      ],
+    instagram: {
+      tag: 'Segueix-nos',
+      title: 'El nostre Instagram',
+      subtitle: 'Descobreix el dia a dia del taller i les nostres últimes creacions falleres.',
+      cta: 'Segueix-nos a Instagram',
     },
     tienda: {
       tag: 'Botiga Online',
@@ -366,7 +347,7 @@ export const translations = {
     footer: {
       desc: "Taller artesanal d'indumentària valenciana a Paiporta. Disseny, confecció, arranjaments i lloguer de vestits de fallera des de 2016.",
       servicios: { title: 'Serveis', items: ["Disseny d'Indumentària", 'Confecció a Mida', 'Arranjaments i Restauració', 'Lloguer de Vestits', 'Botiga Online'] },
-      navegacion: { title: 'Navegació', items: ['Inici', 'Qui Som', 'Notícies', 'Botiga', 'Contacte'] },
+      navegacion: { title: 'Navegació', items: ['Inici', 'Qui Som', 'Instagram', 'Botiga', 'Contacte'] },
       contactoTitle: 'Contacte',
       direccion: DIRECCION_FOOTER.va,
       copy: '© 2026 Amb el Cor · Carmen Moya · Tots els drets reservats',
@@ -459,11 +440,12 @@ export const translations = {
     nav: {
       quienesSomos: 'Who We Are',
       servicios: 'Services',
-      noticias: 'News',
+      instagram: 'Instagram',
       tienda: 'Shop',
       contacto: 'Contact',
       pedirCita: 'Book Appointment',
       carritoAria: 'Cart',
+      crmAria: 'CRM Access',
     },
     hero: {
       badge: 'Valencian Craftsmanship · Our Own Workshop since 2016',
@@ -527,21 +509,11 @@ export const translations = {
         },
       ],
     },
-    noticias: {
-      tag: 'Latest News',
-      title: 'Workshop updates',
-      subtitle: 'Stay up to date with the latest creations, events and news from the world of Valencian traditional attire.',
-      feat: {
-        cat: '2025 Collection',
-        title: "New spring collection: a l'antiga Valencian dresses for Fallas 2025",
-        date: 'January 10, 2025',
-      },
-      items: [
-        { cat: 'Workshop', title: 'New appointments available for measurements · Fallas 2025 Season', date: 'February 5, 2025' },
-        { cat: 'Restoration', title: 'We restore century-old dresses for the Museu de la Indumentària de València', date: 'November 18, 2024' },
-        { cat: 'Community', title: 'Amb el Cor, present at the Paiporta Valencian Attire Exhibition', date: 'October 3, 2024' },
-        { cat: 'Rental', title: 'New dresses available for rent: historic 18th and 19th century styles', date: 'September 1, 2024' },
-      ],
+    instagram: {
+      tag: 'Follow us',
+      title: 'Our Instagram',
+      subtitle: 'Discover the day-to-day life of the workshop and our latest Fallas creations.',
+      cta: 'Follow us on Instagram',
     },
     tienda: {
       tag: 'Online Shop',
@@ -585,7 +557,7 @@ export const translations = {
     footer: {
       desc: 'Artisanal workshop of Valencian traditional attire in Paiporta. Design, tailoring, alterations and dress rental since 2016.',
       servicios: { title: 'Services', items: ['Attire Design', 'Made-to-Measure Tailoring', 'Alterations & Restoration', 'Dress Rental', 'Online Shop'] },
-      navegacion: { title: 'Navigation', items: ['Home', 'Who We Are', 'News', 'Shop', 'Contact'] },
+      navegacion: { title: 'Navigation', items: ['Home', 'Who We Are', 'Instagram', 'Shop', 'Contact'] },
       contactoTitle: 'Contact',
       direccion: DIRECCION_FOOTER.en,
       copy: '© 2026 Amb el Cor · Carmen Moya · All rights reserved',
