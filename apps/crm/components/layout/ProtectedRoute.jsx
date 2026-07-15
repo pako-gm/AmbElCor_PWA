@@ -13,6 +13,8 @@ export default function ProtectedRoute({ children, permiso }) {
     }
   }, [loading, user, mfaVerified, perfil, signOut])
 
+  console.log('[ProtectedRoute] estado', { loading, user: user?.email, mfaVerified, perfil, permisos, permiso })
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-[--text-light]">

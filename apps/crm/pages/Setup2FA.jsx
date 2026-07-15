@@ -15,6 +15,7 @@ export default function Setup2FA() {
 
   useEffect(() => {
     supabase.auth.mfa.enroll({ factorType: 'totp' }).then(({ data, error }) => {
+      console.log('[Setup2FA] enroll resultado', { data, error })
       if (error) return
       setQrCode(data.totp.qr_code)
       setFactorId(data.id)
@@ -25,22 +26,38 @@ export default function Setup2FA() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { data: challenge } = await supabase.auth.mfa.challenge({ factorId })
-    const { error: verifyError } = await supabase.auth.mfa.verify({
-      factorId,
-      challengeId: challenge.id,
-      code,
-    })
-    if (verifyError) {
+    try {
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId })
+      console.log('[Setup2FA] challenge resultado', { challenge, challengeError })
+      if (challengeError) {
+        setLoading(false)
+        setError('No se pudo iniciar la verificación. Inténtalo de nuevo.')
+        return
+      }
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId,
+        challengeId: challenge.id,
+        code,
+      })
+      console.log('[Setup2FA] verify resultado', { verifyError })
+      if (verifyError) {
+        setLoading(false)
+        setError('Código incorrecto. Escanea el QR de nuevo.')
+        return
+      }
+      const refreshResult = await supabase.auth.refreshSession()
+      console.log('[Setup2FA] refreshSession resultado', refreshResult)
+      await recargarAal()
+      const rpcResult = await supabase.rpc('tocar_ultimo_acceso')
+      console.log('[Setup2FA] tocar_ultimo_acceso resultado', rpcResult)
       setLoading(false)
-      setError('Código incorrecto. Escanea el QR de nuevo.')
-      return
+      console.log('[Setup2FA] navegando a /')
+      navigate('/', { replace: true })
+    } catch (err) {
+      console.error('[Setup2FA] excepción no controlada', err)
+      setLoading(false)
+      setError('Ha ocurrido un error inesperado. Revisa la consola.')
     }
-    await supabase.auth.refreshSession()
-    await recargarAal()
-    await supabase.rpc('tocar_ultimo_acceso').catch(() => {})
-    setLoading(false)
-    navigate('/', { replace: true })
   }
 
   return (

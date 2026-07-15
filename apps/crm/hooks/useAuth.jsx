@@ -18,17 +18,20 @@ export function AuthProvider({ children }) {
 
   const cargarPerfil = useCallback(async (uid) => {
     if (!uid) {
+      console.log('[useAuth] cargarPerfil: sin uid, perfil = null')
       setPerfil(null)
       return
     }
     setPerfilLoading(true)
-    const { data } = await supabase.from('perfiles').select('*').eq('id', uid).maybeSingle()
+    const { data, error } = await supabase.from('perfiles').select('*').eq('id', uid).maybeSingle()
+    console.log('[useAuth] cargarPerfil resultado', { uid, data, error })
     setPerfil(data ?? null)
     setPerfilLoading(false)
   }, [])
 
   const cargarAal = useCallback(async () => {
-    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    console.log('[useAuth] cargarAal resultado', { data, error })
     setAal(data?.currentLevel ?? null)
   }, [])
 
@@ -37,12 +40,14 @@ export function AuthProvider({ children }) {
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!activo) return
+      console.log('[useAuth] getSession inicial', session)
       setSession(session)
       await Promise.all([cargarPerfil(session?.user?.id), cargarAal()])
       if (activo) setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[useAuth] onAuthStateChange', event, session)
       setSession(session)
       cargarPerfil(session?.user?.id)
       cargarAal()
