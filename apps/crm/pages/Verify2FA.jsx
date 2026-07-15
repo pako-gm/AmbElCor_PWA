@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { sanitizers } from '@/utils/validators'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function Verify2FA() {
   const [code, setCode] = useState('')
@@ -9,6 +10,7 @@ export default function Verify2FA() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { recargarAal } = useAuth()
 
   useEffect(() => {
     supabase.auth.mfa.listFactors().then(({ data }) => {
@@ -38,6 +40,7 @@ export default function Verify2FA() {
       return
     }
     await supabase.auth.refreshSession()
+    await recargarAal()
     await supabase.rpc('tocar_ultimo_acceso').catch(() => {})
     setLoading(false)
     navigate('/', { replace: true })

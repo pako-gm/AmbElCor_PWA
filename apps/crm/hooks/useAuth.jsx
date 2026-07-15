@@ -7,12 +7,14 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [perfil, setPerfil] = useState(null)
+  const [aal, setAal] = useState(null)
   const [loading, setLoading] = useState(true)
   const [perfilLoading, setPerfilLoading] = useState(false)
 
   const user = session?.user ?? null
-  // aal2 = MFA verificado en esta sesión
-  const mfaVerified = session?.aal === 'aal2'
+  // aal2 = MFA verificado en esta sesión (el objeto session del SDK no expone
+  // este dato directamente: hay que consultarlo con mfa.getAuthenticatorAssuranceLevel()).
+  const mfaVerified = aal === 'aal2'
 
   const cargarPerfil = useCallback(async (uid) => {
     if (!uid) {
@@ -25,26 +27,32 @@ export function AuthProvider({ children }) {
     setPerfilLoading(false)
   }, [])
 
+  const cargarAal = useCallback(async () => {
+    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    setAal(data?.currentLevel ?? null)
+  }, [])
+
   useEffect(() => {
     let activo = true
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!activo) return
       setSession(session)
-      await cargarPerfil(session?.user?.id)
+      await Promise.all([cargarPerfil(session?.user?.id), cargarAal()])
       if (activo) setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       cargarPerfil(session?.user?.id)
+      cargarAal()
     })
 
     return () => {
       activo = false
       subscription.unsubscribe()
     }
-  }, [cargarPerfil])
+  }, [cargarPerfil, cargarAal])
 
   const signOut = async () => {
     setPerfil(null)
@@ -56,6 +64,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, mfaVerified, perfil, permisos, signOut,
+      recargarAal: cargarAal,
       loading: loading || perfilLoading,
     }}>
       {children}
