@@ -55,13 +55,15 @@ export function PasswordPanel({ user, onBack, onSubmit, onForgot }) {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <Avatar user={user} size={60} ring />
-        <div>
-          <div style={{ fontFamily: AC.serif, fontWeight: 600, fontSize: 25, color: AC.ink, lineHeight: 1.1 }}>{user.nombre}</div>
-          <div style={{ fontFamily: AC.sans, fontWeight: 500, fontSize: 13, color: AC.muted, marginTop: 3 }}>{user.email}</div>
-          <div style={{ display: 'inline-flex', marginTop: 7, alignItems: 'center', gap: 6, background: a.soft, color: a.ink,
-            fontFamily: AC.sans, fontWeight: 700, fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>
-            <Icon name="user" size={13} /> {capitalizar(user.rol)}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ fontFamily: AC.serif, fontWeight: 600, fontSize: 25, color: AC.ink, lineHeight: 1.1 }}>{user.nombre}</div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: a.soft, color: a.ink,
+              fontFamily: AC.sans, fontWeight: 700, fontSize: 12, padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+              <Icon name="user" size={13} /> {capitalizar(user.rol)}
+            </div>
           </div>
+          <div style={{ fontFamily: AC.sans, fontWeight: 500, fontSize: 13, color: AC.muted, marginTop: 3 }}>{user.email}</div>
         </div>
       </div>
 
@@ -114,7 +116,7 @@ export function ForgotView({ user, onBack, onClose }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="mail" size={30} sw={1.8} /></div>
         <div style={{ fontFamily: AC.serif, fontWeight: 600, fontSize: 24, color: AC.ink }}>Aviso enviado</div>
         <div style={{ fontFamily: AC.sans, fontSize: 15, color: AC.muted, fontWeight: 500, lineHeight: 1.55, maxWidth: 320 }}>
-          La administración restablecerá tu contraseña.
+          El administrador restablecerá tu contraseña.
         </div>
         <Btn variant="ghost" onClick={onClose}>Volver al acceso</Btn>
       </div>

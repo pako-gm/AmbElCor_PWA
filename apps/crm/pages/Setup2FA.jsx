@@ -15,7 +15,6 @@ export default function Setup2FA() {
 
   useEffect(() => {
     supabase.auth.mfa.enroll({ factorType: 'totp' }).then(({ data, error }) => {
-      console.log('[Setup2FA] enroll resultado', { data, error })
       if (error) return
       setQrCode(data.totp.qr_code)
       setFactorId(data.id)
@@ -28,7 +27,6 @@ export default function Setup2FA() {
     setError('')
     try {
       const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId })
-      console.log('[Setup2FA] challenge resultado', { challenge, challengeError })
       if (challengeError) {
         setLoading(false)
         setError('No se pudo iniciar la verificación. Inténtalo de nuevo.')
@@ -39,19 +37,15 @@ export default function Setup2FA() {
         challengeId: challenge.id,
         code,
       })
-      console.log('[Setup2FA] verify resultado', { verifyError })
       if (verifyError) {
         setLoading(false)
         setError('Código incorrecto. Escanea el QR de nuevo.')
         return
       }
-      const refreshResult = await supabase.auth.refreshSession()
-      console.log('[Setup2FA] refreshSession resultado', refreshResult)
+      await supabase.auth.refreshSession()
       await recargarAal()
-      const rpcResult = await supabase.rpc('tocar_ultimo_acceso')
-      console.log('[Setup2FA] tocar_ultimo_acceso resultado', rpcResult)
+      await supabase.rpc('tocar_ultimo_acceso')
       setLoading(false)
-      console.log('[Setup2FA] navegando a /')
       navigate('/', { replace: true })
     } catch (err) {
       console.error('[Setup2FA] excepción no controlada', err)

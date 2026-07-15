@@ -13,8 +13,7 @@ export default function Verify2FA() {
   const { recargarAal } = useAuth()
 
   useEffect(() => {
-    supabase.auth.mfa.listFactors().then(({ data, error }) => {
-      console.log('[Verify2FA] listFactors resultado', { data, error })
+    supabase.auth.mfa.listFactors().then(({ data }) => {
       const totp = data?.totp?.[0]
       if (!totp) {
         navigate('/setup-2fa')
@@ -31,7 +30,6 @@ export default function Verify2FA() {
     setError('')
     try {
       const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId })
-      console.log('[Verify2FA] challenge resultado', { challenge, challengeError })
       if (challengeError) {
         setLoading(false)
         setError('No se pudo iniciar la verificación. Inténtalo de nuevo.')
@@ -42,19 +40,15 @@ export default function Verify2FA() {
         challengeId: challenge.id,
         code,
       })
-      console.log('[Verify2FA] verify resultado', { verifyError })
       if (verifyError) {
         setLoading(false)
         setError('Código incorrecto. Inténtalo de nuevo.')
         return
       }
-      const refreshResult = await supabase.auth.refreshSession()
-      console.log('[Verify2FA] refreshSession resultado', refreshResult)
+      await supabase.auth.refreshSession()
       await recargarAal()
-      const rpcResult = await supabase.rpc('tocar_ultimo_acceso')
-      console.log('[Verify2FA] tocar_ultimo_acceso resultado', rpcResult)
+      await supabase.rpc('tocar_ultimo_acceso')
       setLoading(false)
-      console.log('[Verify2FA] navegando a /')
       navigate('/', { replace: true })
     } catch (err) {
       console.error('[Verify2FA] excepción no controlada', err)

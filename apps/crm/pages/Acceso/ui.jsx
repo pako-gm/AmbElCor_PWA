@@ -76,6 +76,7 @@ export function Logo({ size = 34, light = false, showWord = true, mark = true, c
       {showWord && (
         <div style={{ fontFamily: AC.sans, fontWeight: 800, fontSize: size * 0.52, color: wordColor, letterSpacing: '-0.01em' }}>
           Amb<span style={{ color: light ? '#fff' : AC.brand }}>El</span>Cor
+          <span style={{ color: light ? '#fff' : AC.brand }}> - CRM</span>
         </div>
       )}
     </div>
