@@ -95,7 +95,7 @@ export function Avatar({ user, size = 48, ring = false }) {
   )
 }
 
-export function Field({ label, type = 'text', value, onChange, onKeyDown, placeholder, trailing, autoFocus, icon, invalid }) {
+export function Field({ label, type = 'text', value, onChange, onKeyDown, placeholder, trailing, autoFocus, icon, invalid, disabled }) {
   const [focus, setFocus] = useState(false)
   const ref = useRef(null)
   useEffect(() => { if (autoFocus && ref.current) ref.current.focus() }, [autoFocus])
@@ -104,17 +104,17 @@ export function Field({ label, type = 'text', value, onChange, onKeyDown, placeh
       <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: invalid ? AC.accents.rosa.ink : AC.muted, letterSpacing: '.02em', marginBottom: 7 }}>{label}</span>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 9,
-        background: '#fff', border: `1.5px solid ${invalid ? AC.accents.rosa.pastel : focus ? AC.brand : AC.line}`,
+        background: disabled ? AC.bg : '#fff', border: `1.5px solid ${invalid ? AC.accents.rosa.pastel : focus ? AC.brand : AC.line}`,
         borderRadius: 12, padding: '0 12px', height: 48,
         boxShadow: focus ? `0 0 0 4px ${AC.brandSoft}` : 'none', transition: 'border-color .15s, box-shadow .15s',
       }}>
         {icon && <Icon name={icon} size={18} stroke={AC.faint} />}
         <input
-          ref={ref} type={type} value={value} placeholder={placeholder}
+          ref={ref} type={type} value={value} placeholder={placeholder} disabled={disabled}
           onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown}
           onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
           style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent',
-            fontFamily: AC.sans, fontSize: 15.5, fontWeight: 500, color: AC.ink, height: '100%' }} />
+            fontFamily: AC.sans, fontSize: 15.5, fontWeight: 500, color: disabled ? AC.faint : AC.ink, height: '100%' }} />
         {trailing}
       </div>
     </label>

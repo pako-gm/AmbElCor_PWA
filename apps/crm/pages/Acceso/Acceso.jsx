@@ -1,12 +1,19 @@
-// Acceso.jsx — pantalla de selección de perfil + contraseña (skin A del diseño).
-// De momento es la puerta de entrada con credenciales hardcodeadas (sin Google OAuth).
+// Acceso.jsx — pantalla de selección de perfil + contraseña.
+// El selector se alimenta de la RPC listar_perfiles_login() (perfiles activos,
+// FASE 4/7) y la contraseña se valida contra Supabase Auth (PasswordPanel).
 // Portado de DESIGN/login AmbElCor/screens/skins.jsx (ShellA + AccessApp).
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
-import { USUARIOS, perfilDesdeUsuario, primeraRutaPermitida } from '@/lib/usuarios'
+import { supabase } from '@/lib/supabase'
 import { AC, Icon, Logo, Avatar, Blob, TextLink } from './ui'
-import { PasswordPanel, ForgotView, SuccessView } from './panels'
+import { PasswordPanel, ForgotView } from './panels'
+
+function formatUltimoAcceso(fecha) {
+  if (!fecha) return 'Sin accesos previos'
+  return new Date(fecha).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+
+const capitalizar = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s
 
 // Fila de perfil del selector
 function ProfileRow({ user, onClick }) {
@@ -20,7 +27,7 @@ function ProfileRow({ user, onClick }) {
       <Avatar user={user} size={46} ring={h} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: AC.sans, fontWeight: 700, fontSize: 16.5, color: AC.ink }}>{user.nombre}</div>
-        <div style={{ fontFamily: AC.sans, fontWeight: 500, fontSize: 13, color: AC.muted, marginTop: 1 }}>{user.rol} · {user.ultimoAcceso}</div>
+        <div style={{ fontFamily: AC.sans, fontWeight: 500, fontSize: 13, color: AC.muted, marginTop: 1 }}>{capitalizar(user.rol)} · {formatUltimoAcceso(user.ultimo_acceso)}</div>
       </div>
       <div style={{ width: 30, height: 30, borderRadius: '50%', background: h ? a.pastel : AC.bg, color: h ? a.ink : AC.faint,
         display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .14s' }}>
@@ -43,9 +50,9 @@ function SelectFooter({ onForgot }) {
 
 export default function Acceso() {
   const navigate = useNavigate()
-  const { loginPerfil } = useAuth()
   const [route, setRoute] = useState('select')
-  const [uid, setUid] = useState(null)
+  const [perfiles, setPerfiles] = useState([])
+  const [selected, setSelected] = useState(null)
   const [narrow, setNarrow] = useState(typeof window !== 'undefined' && window.innerWidth < 540)
 
   useEffect(() => {
@@ -54,29 +61,28 @@ export default function Acceso() {
     return () => window.removeEventListener('resize', on)
   }, [])
 
-  const user = USUARIOS.find((u) => u.id === uid) || USUARIOS[0]
+  useEffect(() => {
+    let activo = true
+    supabase.rpc('listar_perfiles_login').then(({ data }) => {
+      if (activo) setPerfiles(data ?? [])
+    })
+    return () => { activo = false }
+  }, [])
 
-  const pick = (id) => { setUid(id); setRoute('password') }
+  const pick = (u) => { setSelected(u); setRoute('password') }
   const toSelect = () => setRoute('select')
 
-  const onPasswordOk = () => {
-    const perfil = perfilDesdeUsuario(user)
-    loginPerfil(perfil)
-    setRoute('success')
+  // Contraseña verificada por Supabase Auth (dentro de PasswordPanel): ahora hay
+  // que pasar por 2FA. Si aún no tiene factor TOTP verificado, primero lo activa.
+  const onPasswordOk = async () => {
+    const { data } = await supabase.auth.mfa.listFactors()
+    const totpVerificado = data?.totp?.some(f => f.status === 'verified')
+    navigate(totpVerificado ? '/verify-2fa' : '/setup-2fa')
   }
 
-  // Tras la animación de éxito, redirige a la primera sección permitida del rol.
-  useEffect(() => {
-    if (route !== 'success') return
-    const perfil = perfilDesdeUsuario(user)
-    const t = setTimeout(() => navigate(primeraRutaPermitida(perfil.permisos), { replace: true }), 2600)
-    return () => clearTimeout(t)
-  }, [route, user, navigate])
-
   let body = null
-  if (route === 'password') body = <PasswordPanel user={user} onBack={toSelect} onSubmit={onPasswordOk} onForgot={() => setRoute('forgot')} />
-  else if (route === 'forgot') body = <ForgotView user={uid ? user : null} onBack={toSelect} onClose={toSelect} />
-  else if (route === 'success') body = <SuccessView user={user} />
+  if (route === 'password') body = <PasswordPanel user={selected} onBack={toSelect} onSubmit={onPasswordOk} onForgot={() => setRoute('forgot')} />
+  else if (route === 'forgot') body = <ForgotView user={selected} onBack={toSelect} onClose={toSelect} />
 
   const isSelect = route === 'select'
   const cardMax = 430
@@ -98,9 +104,9 @@ export default function Acceso() {
                 <div style={{ fontFamily: AC.sans, fontWeight: 500, fontSize: 15, color: AC.muted, marginTop: 7 }}>Elige tu perfil para entrar en el taller.</div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, margin: '20px 0 18px' }}>
-                {USUARIOS.map((u) => <ProfileRow key={u.id} user={u} onClick={() => pick(u.id)} />)}
+                {perfiles.map((u) => <ProfileRow key={u.email} user={u} onClick={() => pick(u)} />)}
               </div>
-              <SelectFooter onForgot={() => { setUid(null); setRoute('forgot') }} />
+              <SelectFooter onForgot={() => { setSelected(null); setRoute('forgot') }} />
             </>
           ) : (
             <>

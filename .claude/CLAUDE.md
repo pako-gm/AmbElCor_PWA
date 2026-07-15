@@ -13,7 +13,7 @@ Acceso CRM exclusivo de Carmen. Clientes acceden a sus encargos vía token/códi
 | Frontend | React 18 + Vite |
 | Estilos | Tailwind CSS + shadcn/ui |
 | Backend / BD | Supabase (PostgreSQL + Auth + RLS) |
-| Auth | Google OAuth + 2FA TOTP (Supabase MFA) |
+| Auth | Supabase Auth (email + contraseña) + 2FA TOTP (Supabase MFA) + RLS |
 | PDFs | jsPDF |
 | Excel | SheetJS (xlsx) |
 | PWA | vite-plugin-pwa |
@@ -32,7 +32,6 @@ Acceso CRM exclusivo de Carmen. Clientes acceden a sus encargos vía token/códi
 - **Project ref:** `mqbaorcowozqfbdxsvbl`
 - **URL:** `https://mqbaorcowozqfbdxsvbl.supabase.co`
 - **Claves:** en `.env.local` — nunca commitear
-- **Redirect URI OAuth:** `https://mqbaorcowozqfbdxsvbl.supabase.co/auth/v1/callback`
 - Usar MCP de Supabase para consultas SQL, migraciones y explorar esquema
 
 ## Diseño
@@ -84,7 +83,7 @@ supabase/
 
 ### Completado
 - SQL schema: 10 tablas + trigger `codigo_corto` (AMB-XXXX) + autonumeración YY/NNN + RLS
-- Auth completo: Google OAuth → 2FA TOTP → ProtectedRoute
+- Auth completo: Supabase Auth (email + contraseña) → 2FA TOTP → ProtectedRoute, con roles reales en tabla `perfiles` y RLS en todas las tablas (rama `feat/auth-supabase-rls`)
 - Layout: PageWrapper + sidebar desktop + BottomNav móvil
 - **Módulo Encargos:**
   - `EncargosLista`: filtros por estado, búsqueda, tarjetas clickables
@@ -103,7 +102,8 @@ supabase/
 - Edge Function `notify-whatsapp` para notificaciones al cliente
 
 ### Pendiente
-- Configurar Google OAuth en Google Cloud Console + Supabase Dashboard (producción)
+- Alta manual de los 3 usuarios reales en Supabase Dashboard (ver `docs/setup-usuarios.md`)
+- Desplegar Edge Functions `admin-usuarios` y `notificar-reset`
 - Fase 4: Stripe (pagos en línea)
 
 ## Flujo de estados de un encargo

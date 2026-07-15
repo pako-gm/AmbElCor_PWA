@@ -14,15 +14,12 @@ export default function SeguimientoForm() {
     setLoading(true)
     setError('')
     const { data, error: dbError } = await supabase
-      .from('encargos')
-      .select('token_publico')
-      .eq('codigo_corto', codigo.toUpperCase().trim())
-      .maybeSingle()
+      .rpc('buscar_encargo_por_codigo', { p_codigo: codigo.toUpperCase().trim() })
     setLoading(false)
     if (dbError || !data) {
       setError('Código no encontrado. Verifica e inténtalo de nuevo.')
     } else {
-      navigate(`/seguimiento/${data.token_publico}`)
+      navigate(`/seguimiento/${data}`)
     }
   }
 

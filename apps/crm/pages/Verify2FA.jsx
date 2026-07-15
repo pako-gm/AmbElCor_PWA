@@ -32,12 +32,15 @@ export default function Verify2FA() {
       challengeId: challenge.id,
       code,
     })
-    setLoading(false)
     if (verifyError) {
+      setLoading(false)
       setError('Código incorrecto. Inténtalo de nuevo.')
-    } else {
-      navigate('/dashboard')
+      return
     }
+    await supabase.auth.refreshSession()
+    await supabase.rpc('tocar_ultimo_acceso').catch(() => {})
+    setLoading(false)
+    navigate('/', { replace: true })
   }
 
   return (

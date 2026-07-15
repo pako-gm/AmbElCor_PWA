@@ -15,16 +15,7 @@ export default function SeguimientoDetalle() {
   useEffect(() => {
     const cargar = async () => {
       const { data, error } = await supabase
-        .from('encargos')
-        .select(`
-          id, numero, estado, fecha_encargo, fecha_entrega_estimada,
-          clientes (nombre, apellidos),
-          encargo_lineas (descripcion, cantidad, precio_unitario, prendas_catalogo (nombre)),
-          historial_estados (estado_nuevo, fecha),
-          pagos (fecha, importe, tipo)
-        `)
-        .eq('token_publico', token)
-        .maybeSingle()
+        .rpc('seguimiento_publico', { p_token: token })
       setLoading(false)
       if (error || !data) {
         setNotFound(true)

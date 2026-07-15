@@ -10,8 +10,8 @@ const tabs = [
 ]
 
 export default function BottomNav() {
-  const { perfil } = useAuth()
-  const visibles = tabs.filter(t => !t.permiso || perfil?.permisos?.includes(t.permiso))
+  const { permisos } = useAuth()
+  const visibles = tabs.filter(t => !t.permiso || permisos?.includes(t.permiso))
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-[--border] z-50 md:hidden">

@@ -1,61 +1,63 @@
-import { useState, useEffect, createContext, useContext } from 'react'
+import { useState, useEffect, useCallback, createContext, useContext } from 'react'
 import { supabase } from '@/lib/supabase'
+import { permisosDeRol } from '@/lib/usuarios'
 
 const AuthContext = createContext(null)
 
-// Clave de sesión del perfil local (credenciales hardcodeadas, modo pruebas).
-const PERFIL_KEY = 'ambelcor_perfil'
-
-const leerPerfil = () => {
-  try {
-    const raw = localStorage.getItem(PERFIL_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [mfaVerified, setMfaVerified] = useState(false)
+  const [session, setSession] = useState(null)
+  const [perfil, setPerfil] = useState(null)
   const [loading, setLoading] = useState(true)
-  // Perfil activo elegido en la pantalla de acceso (puerta de entrada actual).
-  const [perfil, setPerfil] = useState(leerPerfil)
+  const [perfilLoading, setPerfilLoading] = useState(false)
+
+  const user = session?.user ?? null
+  // aal2 = MFA verificado en esta sesión
+  const mfaVerified = session?.aal === 'aal2'
+
+  const cargarPerfil = useCallback(async (uid) => {
+    if (!uid) {
+      setPerfil(null)
+      return
+    }
+    setPerfilLoading(true)
+    const { data } = await supabase.from('perfiles').select('*').eq('id', uid).maybeSingle()
+    setPerfil(data ?? null)
+    setPerfilLoading(false)
+  }, [])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      // aal2 = MFA verificado en esta sesión
-      setMfaVerified(session?.aal === 'aal2')
-      setLoading(false)
+    let activo = true
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!activo) return
+      setSession(session)
+      await cargarPerfil(session?.user?.id)
+      if (activo) setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      setMfaVerified(session?.aal === 'aal2')
+      setSession(session)
+      cargarPerfil(session?.user?.id)
     })
 
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const loginPerfil = (p) => {
-    localStorage.setItem(PERFIL_KEY, JSON.stringify(p))
-    setPerfil(p)
-  }
-
-  const logoutPerfil = () => {
-    localStorage.removeItem(PERFIL_KEY)
-    setPerfil(null)
-  }
+    return () => {
+      activo = false
+      subscription.unsubscribe()
+    }
+  }, [cargarPerfil])
 
   const signOut = async () => {
-    setMfaVerified(false)
-    logoutPerfil()
+    setPerfil(null)
     await supabase.auth.signOut()
   }
 
+  const permisos = permisosDeRol(perfil?.rol)
+
   return (
-    <AuthContext.Provider value={{ user, mfaVerified, setMfaVerified, loading, signOut, perfil, loginPerfil, logoutPerfil }}>
+    <AuthContext.Provider value={{
+      user, mfaVerified, perfil, permisos, signOut,
+      loading: loading || perfilLoading,
+    }}>
       {children}
     </AuthContext.Provider>
   )

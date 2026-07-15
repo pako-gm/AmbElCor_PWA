@@ -25,11 +25,11 @@ function CopyrightYear() {
 }
 
 export default function PageWrapper({ children, title }) {
-  const { perfil } = useAuth()
+  const { permisos } = useAuth()
 
   // Filtra el menú según los permisos del perfil activo (rol).
   const itemsVisibles = navItems.filter(
-    item => !item.permiso || perfil?.permisos?.includes(item.permiso)
+    item => !item.permiso || permisos?.includes(item.permiso)
   )
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)

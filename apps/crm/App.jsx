@@ -2,9 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import PageWrapper from '@/components/layout/PageWrapper'
 import { useAuth } from '@/hooks/useAuth'
+import { primeraRutaPermitida } from '@/lib/usuarios'
 
 // Auth
-import Login from '@/pages/Login'
 import Setup2FA from '@/pages/Setup2FA'
 import Verify2FA from '@/pages/Verify2FA'
 import Acceso from '@/pages/Acceso/Acceso'
@@ -60,11 +60,15 @@ const Protected = ({ children, permiso }) => (
   <ProtectedRoute permiso={permiso}>{children}</ProtectedRoute>
 )
 
-// Ruta raíz: sin sesión va a login (Acceso); con sesión, directo a Encargos.
+// Ruta raíz: aplica el mismo criterio de acceso que ProtectedRoute
+// para decidir a dónde enviar según el estado real de la sesión.
 const Inicio = () => {
-  const { perfil, loading } = useAuth()
+  const { user, mfaVerified, perfil, permisos, loading } = useAuth()
   if (loading) return null
-  return <Navigate to={perfil ? '/encargos' : '/acceso'} replace />
+  if (!user) return <Navigate to="/acceso" replace />
+  if (!mfaVerified) return <Navigate to="/verify-2fa" replace />
+  if (!perfil || perfil.activo === false) return <Navigate to="/acceso" replace />
+  return <Navigate to={primeraRutaPermitida(permisos)} replace />
 }
 
 export default function App() {
@@ -72,7 +76,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* Rutas públicas */}
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Navigate to="/acceso" replace />} />
         <Route path="/setup-2fa" element={<Setup2FA />} />
         <Route path="/verify-2fa" element={<Verify2FA />} />
         <Route path="/acceso" element={<Acceso />} />

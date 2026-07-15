@@ -1,9 +1,17 @@
+import { useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { primeraRutaPermitida } from '@/lib/usuarios'
 
 export default function ProtectedRoute({ children, permiso }) {
-  const { perfil, loading } = useAuth()
+  const { user, mfaVerified, perfil, permisos, loading, signOut } = useAuth()
+
+  // Perfil inactivo o inexistente pese a tener sesión: cierra la sesión real.
+  useEffect(() => {
+    if (!loading && user && mfaVerified && (!perfil || perfil.activo === false)) {
+      signOut()
+    }
+  }, [loading, user, mfaVerified, perfil, signOut])
 
   if (loading) {
     return (
@@ -13,15 +21,13 @@ export default function ProtectedRoute({ children, permiso }) {
     )
   }
 
-  // Puerta de entrada actual: perfil local (credenciales hardcodeadas).
-  // TODO: cuando Google OAuth esté configurado, exigir antes user + mfaVerified:
-  //   if (!user) return <Navigate to="/login" replace />
-  //   if (!mfaVerified) return <Navigate to="/verify-2fa" replace />
-  if (!perfil) return <Navigate to="/acceso" replace />
+  if (!user) return <Navigate to="/acceso" replace />
+  if (!mfaVerified) return <Navigate to="/verify-2fa" replace />
+  if (!perfil || perfil.activo === false) return <Navigate to="/acceso" replace />
 
   // Visibilidad por rol: si la sección no está permitida, redirige a la primera permitida.
-  if (permiso && !perfil.permisos?.includes(permiso)) {
-    return <Navigate to={primeraRutaPermitida(perfil.permisos)} replace />
+  if (permiso && !permisos.includes(permiso)) {
+    return <Navigate to={primeraRutaPermitida(permisos)} replace />
   }
 
   return children

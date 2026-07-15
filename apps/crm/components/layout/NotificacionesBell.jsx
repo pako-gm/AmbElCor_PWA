@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, Euro, Wallet, Package, Truck, Calendar, ChevronRight } from 'lucide-react'
+import { Bell, Euro, Wallet, Package, Truck, Calendar, User, ChevronRight } from 'lucide-react'
 import { useAvisos } from '@/hooks/useAvisos'
+import { useAuth } from '@/hooks/useAuth'
 import { formatImporte } from '@/utils/formatters'
 
-const ICONOS = { euro: Euro, wallet: Wallet, package: Package, truck: Truck, calendar: Calendar }
+const ICONOS = { euro: Euro, wallet: Wallet, package: Package, truck: Truck, calendar: Calendar, user: User }
+
+// Roles con permisos de gestión (ve solicitudes de reset de contraseña).
+const ROLES_GESTOR = ['propietaria', 'administrador']
 
 const TONOS = {
   amber:  'bg-amber-100 text-amber-700',
@@ -17,7 +21,9 @@ const VISTOS_KEY = 'avisos_vistos'
 
 export default function NotificacionesBell() {
   const navigate = useNavigate()
-  const { loading, grupos, total, firma, recargar } = useAvisos()
+  const { perfil } = useAuth()
+  const esGestor = ROLES_GESTOR.includes(perfil?.rol)
+  const { loading, grupos, total, firma, recargar } = useAvisos(esGestor)
   const [abierto, setAbierto] = useState(false)
   const [vistos, setVistos] = useState(() => {
     try { return localStorage.getItem(VISTOS_KEY) || '' } catch { return '' }

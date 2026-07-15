@@ -1,10 +1,21 @@
 import { useState, useCallback } from 'react'
+import { supabase } from '@/lib/supabase'
 import { useContabilidad } from '@/hooks/useContabilidad'
 import { useInventario } from '@/hooks/useInventario'
 import { useConfiguracion } from '@/hooks/useConfiguracion'
 import { fetchEncargos } from '@/hooks/useEncargos'
 import { fetchCitas } from '@/hooks/useCitas'
 import { CONFIG_KEY_NOTIFICACIONES, parsePreferencias } from '@/lib/notificaciones'
+
+const fetchSolicitudesPassword = async () => {
+  const { data, error } = await supabase
+    .from('solicitudes_password')
+    .select('id, email, nombre, created_at')
+    .eq('estado', 'pendiente')
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return data ?? []
+}
 
 const hoyISO = () => new Date().toISOString().slice(0, 10)
 
@@ -13,7 +24,7 @@ const nombreCliente = (c) =>
 
 // Agrega los avisos importantes del día reutilizando los hooks existentes.
 // Devuelve grupos listos para pintar + el total y una "firma" para el punto rojo.
-export function useAvisos() {
+export function useAvisos(esGestor = false) {
   const { fetchCobros, fetchPagosProveedor } = useContabilidad()
   const { fetchAlertasStockBajo } = useInventario()
   const { fetchConfig } = useConfiguracion()
@@ -27,13 +38,14 @@ export function useAvisos() {
     const hoy = hoyISO()
     const mañana = new Date(Date.now() + 86400000).toISOString().slice(0, 10)
 
-    const [cobros, pagos, stock, encargos, citas, config] = await Promise.all([
+    const [cobros, pagos, stock, encargos, citas, config, solicitudes] = await Promise.all([
       fetchCobros().catch(() => []),
       fetchPagosProveedor().catch(() => []),
       fetchAlertasStockBajo().catch(() => []),
       fetchEncargos({ excludeEntregados: true }).catch(() => []),
       fetchCitas({ inicio: `${hoy}T00:00:00`, fin: `${mañana}T00:00:00` }).catch(() => []),
       fetchConfig().catch(() => ({})),
+      esGestor ? fetchSolicitudesPassword().catch(() => []) : Promise.resolve([]),
     ])
 
     const prefs = parsePreferencias(config?.[CONFIG_KEY_NOTIFICACIONES])
@@ -85,12 +97,19 @@ export function useAvisos() {
       detalle: new Date(c.inicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
     }))
 
+    // ── Solicitudes de reset de contraseña (solo gestores) ──
+    const solicitudesItems = (solicitudes ?? []).map(s => ({
+      texto: s.nombre || s.email,
+      detalle: 'Reset contraseña',
+    }))
+
     const nuevosGrupos = [
-      { clave: 'cobros',   titulo: 'Cobros pendientes',  icono: 'euro',    ruta: '/contabilidad?tab=cobros', items: cobrosItems, tono: 'amber' },
-      { clave: 'pagos',    titulo: 'Pagos pendientes',   icono: 'wallet',  ruta: '/contabilidad?tab=pagos',  items: pagosItems,  tono: 'amber' },
-      { clave: 'stock',    titulo: 'Stock bajo',         icono: 'package', ruta: '/inventario',              items: stockItems,  tono: 'red'   },
-      { clave: 'entregas', titulo: 'Entregas',           icono: 'truck',   ruta: '/encargos',                items: entregasItems, tono: 'violet' },
-      { clave: 'citas',    titulo: 'Citas de hoy',       icono: 'calendar',ruta: '/citas',                   items: citasItems,  tono: 'green' },
+      { clave: 'cobros',      titulo: 'Cobros pendientes',   icono: 'euro',    ruta: '/contabilidad?tab=cobros', items: cobrosItems, tono: 'amber' },
+      { clave: 'pagos',       titulo: 'Pagos pendientes',    icono: 'wallet',  ruta: '/contabilidad?tab=pagos',  items: pagosItems,  tono: 'amber' },
+      { clave: 'stock',       titulo: 'Stock bajo',          icono: 'package', ruta: '/inventario',              items: stockItems,  tono: 'red'   },
+      { clave: 'entregas',    titulo: 'Entregas',            icono: 'truck',   ruta: '/encargos',                items: entregasItems, tono: 'violet' },
+      { clave: 'citas',       titulo: 'Citas de hoy',        icono: 'calendar',ruta: '/citas',                   items: citasItems,  tono: 'green' },
+      { clave: 'solicitudes', titulo: 'Solicitudes de acceso', icono: 'user', ruta: '/ajustes?seccion=usuarios', items: solicitudesItems, tono: 'violet' },
     ].filter(g => prefs[g.clave] !== false && g.items.length > 0)
 
     const totalAvisos = nuevosGrupos.reduce((s, g) => s + g.items.length, 0)
@@ -100,7 +119,7 @@ export function useAvisos() {
     setTotal(totalAvisos)
     setFirma(totalAvisos > 0 ? nuevaFirma : '')
     setLoading(false)
-  }, [fetchCobros, fetchPagosProveedor, fetchAlertasStockBajo, fetchConfig])
+  }, [fetchCobros, fetchPagosProveedor, fetchAlertasStockBajo, fetchConfig, esGestor])
 
   return { loading, grupos, total, firma, recargar }
 }

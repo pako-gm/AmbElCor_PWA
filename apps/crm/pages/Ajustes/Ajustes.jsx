@@ -3,7 +3,7 @@ import {
   Tags, Ruler, TrendingUp, UserCog, Plus, Trash2, Pencil,
   Shirt, Layers, Gem, Scissors, Circle, Box, Boxes, Heart,
   Wind, Flower, Crown, PersonStanding, Ribbon, Footprints, Sparkles, Feather,
-  Mail, ShieldCheck, ShieldAlert, ReceiptText, Bell, Coins,
+  Mail, ShieldCheck, ShieldAlert, ReceiptText, Bell, Coins, KeyRound,
 } from 'lucide-react'
 import PageWrapper from '@/components/layout/PageWrapper'
 import PageHeader from '@/components/ui/PageHeader'
@@ -22,7 +22,8 @@ import { useDatosFiscales } from '@/hooks/useDatosFiscales'
 import { sanitizers } from '@/utils/validators'
 import { formatFecha } from '@/utils/formatters'
 import { useAuth } from '@/hooks/useAuth'
-import { USUARIOS } from '@/lib/usuarios'
+import { supabase } from '@/lib/supabase'
+import { invocarAdminUsuarios } from '@/lib/adminUsuarios'
 import { UsuarioForm } from '@/pages/Acceso/panels'
 
 // ── Iconos de categoría ───────────────────────────────────────────────────────
@@ -989,14 +990,128 @@ function SeccionNotificaciones({ prefs, loading, onGuardar }) {
   )
 }
 
+// Mínimo 8 caracteres, 1 mayúscula, 1 número, 1 carácter especial (igual que el backend).
+function passwordValida(p) {
+  return typeof p === 'string' && p.length >= 8 &&
+    /[A-ZÁÉÍÓÚÑ]/.test(p) && /[0-9]/.test(p) && /[^A-Za-z0-9]/.test(p)
+}
+function generarPassword() {
+  const mayus = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+  const minus = 'abcdefghijkmnpqrstuvwxyz'
+  const num = '23456789'
+  const especial = '!@#$%&*'
+  const azar = (s) => s[Math.floor(Math.random() * s.length)]
+  const base = [azar(mayus), azar(num), azar(especial)]
+  const resto = minus + mayus + num
+  for (let i = 0; i < 6; i++) base.push(azar(resto))
+  return base.sort(() => Math.random() - 0.5).join('')
+}
+const formatUltimoAcceso = (fecha) => {
+  if (!fecha) return 'Sin accesos previos'
+  return `${formatFecha(fecha)} · ${new Date(fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`
+}
+
+// Formulario de contraseña (nueva x2, con validación de complejidad) reutilizado
+// tanto para "cambiar mi contraseña" como para "restablecer" la de otro usuario.
+function PasswordForm({ onSubmit, submitLabel }) {
+  const [pass, setPass] = useState('')
+  const [pass2, setPass2] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const enviar = async () => {
+    setError('')
+    if (!passwordValida(pass)) {
+      setError('Mínimo 8 caracteres, con una mayúscula, un número y un carácter especial.')
+      return
+    }
+    if (pass !== pass2) {
+      setError('Las contraseñas no coinciden.')
+      return
+    }
+    setLoading(true)
+    try {
+      await onSubmit(pass)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <label className="block text-xs font-medium text-[--text-medium]">Nueva contraseña</label>
+        <div className="flex gap-2">
+          <Input type="text" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Mínimo 8 caracteres" />
+          <Button variant="secondary" onClick={() => setPass(generarPassword())}>Generar</Button>
+        </div>
+      </div>
+      <Field label="Repite la contraseña">
+        <Input type="text" value={pass2} onChange={(e) => setPass2(e.target.value)} />
+      </Field>
+      {error && <p className="text-xs text-red-500">{error}</p>}
+      <Button full onClick={enviar} loading={loading} disabled={!pass || !pass2}>
+        {submitLabel}
+      </Button>
+    </div>
+  )
+}
+
 // ── Sección: Usuarios CRM ─────────────────────────────────────────────────────
 function SeccionUsuarios() {
-  const { user, mfaVerified } = useAuth()
+  const { user, mfaVerified, perfil } = useAuth()
   const toast = useToast()
+  const esGestor = perfil?.rol === 'propietaria' || perfil?.rol === 'administrador'
+
   // modal = null | { modo: 'nuevo' } | { modo: 'editar', inicial: usuario }
   const [modal, setModal] = useState(null)
+  const [perfiles, setPerfiles] = useState([])
+  const [solicitudes, setSolicitudes] = useState([])
+  const [resetObjetivo, setResetObjetivo] = useState(null) // { id, nombre, email } | null
+  const [miPasswordAbierto, setMiPasswordAbierto] = useState(false)
+
+  const cargarPerfiles = () => {
+    supabase.from('perfiles').select('*').order('nombre').then(({ data }) => setPerfiles(data ?? []))
+  }
+  const cargarSolicitudes = () => {
+    supabase.from('solicitudes_password').select('*').eq('estado', 'pendiente').order('created_at')
+      .then(({ data }) => setSolicitudes(data ?? []))
+  }
+  useEffect(() => {
+    if (!esGestor) return
+    cargarPerfiles()
+    cargarSolicitudes()
+  }, [esGestor])
 
   const cerrar = () => setModal(null)
+
+  const resolverReset = async (nuevaPassword) => {
+    await invocarAdminUsuarios('reset_password', { user_id: resetObjetivo.id, nueva_password: nuevaPassword })
+    toast.success(`Contraseña restablecida para ${resetObjetivo.nombre}.`)
+    setResetObjetivo(null)
+    cargarSolicitudes()
+  }
+
+  const cambiarMiPassword = async (nuevaPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: nuevaPassword })
+    if (error) throw error
+    toast.success('Tu contraseña se ha actualizado.')
+    setMiPasswordAbierto(false)
+  }
+
+  if (!esGestor) {
+    return (
+      <section className="bg-white rounded-lg border border-[--border] p-5">
+        <EmptyState
+          icon={ShieldAlert}
+          titulo="Sección restringida"
+          descripcion="Solo propietaria o administrador pueden gestionar usuarios del CRM."
+        />
+      </section>
+    )
+  }
 
   return (
     <section className="bg-white rounded-lg border border-[--border] p-5 space-y-4">
@@ -1028,10 +1143,41 @@ function SeccionUsuarios() {
             </>
           )}
         </div>
+        <button
+          onClick={() => setMiPasswordAbierto(true)}
+          className="flex items-center gap-2.5 text-sm text-primary hover:underline"
+        >
+          <KeyRound size={16} /> Cambiar mi contraseña
+        </button>
       </div>
 
+      {solicitudes.length > 0 && (
+        <div className="px-3 py-3 bg-amber-50 rounded-lg border border-amber-200 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold text-amber-800">
+            <Bell size={16} /> Solicitudes de restablecimiento pendientes
+          </div>
+          <ul className="space-y-1.5">
+            {solicitudes.map(s => {
+              const objetivo = perfiles.find(p => p.email === s.email)
+              return (
+                <li key={s.id} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-[--text-dark] truncate">{s.nombre || s.email}</span>
+                  <button
+                    onClick={() => objetivo && setResetObjetivo(objetivo)}
+                    disabled={!objetivo}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-amber-800 hover:bg-amber-100 transition-colors disabled:opacity-40 flex-shrink-0"
+                  >
+                    <KeyRound size={13} /> Restablecer
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
       <ul className="space-y-2">
-        {USUARIOS.map(u => (
+        {perfiles.map(u => (
           <li
             key={u.id}
             className="flex items-center justify-between gap-3 px-3 py-2.5 bg-[--bg-gray] rounded-lg border border-[--border]"
@@ -1039,17 +1185,30 @@ function SeccionUsuarios() {
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-[--text-dark]">{u.nombre}</span>
-                <span className="text-[11px] font-bold tracking-wide px-2 py-0.5 rounded-full bg-primary-light text-primary-darker">{u.rol}</span>
+                <span className="text-[11px] font-bold tracking-wide px-2 py-0.5 rounded-full bg-primary-light text-primary-darker capitalize">{u.rol}</span>
+                {!u.activo && (
+                  <span className="text-[11px] font-bold tracking-wide px-2 py-0.5 rounded-full bg-gray-200 text-[--text-light]">Inactivo</span>
+                )}
               </div>
               <div className="text-xs text-[--text-light] truncate">{u.email}</div>
+              <div className="text-[11px] text-[--text-light]">Último acceso: {formatUltimoAcceso(u.ultimo_acceso)}</div>
             </div>
-            <button
-              onClick={() => setModal({ modo: 'editar', inicial: u })}
-              aria-label={`Editar usuario ${u.nombre}`}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm text-[--text-medium] hover:text-primary hover:bg-primary-light/50 transition-colors flex-shrink-0"
-            >
-              <Pencil size={14} /> Editar
-            </button>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => setResetObjetivo(u)}
+                aria-label={`Restablecer contraseña de ${u.nombre}`}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm text-[--text-medium] hover:text-primary hover:bg-primary-light/50 transition-colors"
+              >
+                <KeyRound size={14} />
+              </button>
+              <button
+                onClick={() => setModal({ modo: 'editar', inicial: u })}
+                aria-label={`Editar usuario ${u.nombre}`}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm text-[--text-medium] hover:text-primary hover:bg-primary-light/50 transition-colors"
+              >
+                <Pencil size={14} /> Editar
+              </button>
+            </div>
           </li>
         ))}
       </ul>
@@ -1062,10 +1221,22 @@ function SeccionUsuarios() {
               inicial={modal.inicial}
               compact
               onClose={cerrar}
-              onSubmit={() => { toast.success('Datos actualizados.'); cerrar() }}
+              onSubmit={(nuevaPassword) => {
+                toast.success(nuevaPassword ? `Usuario creado. Contraseña inicial: ${nuevaPassword}` : 'Datos actualizados.')
+                cerrar()
+                cargarPerfiles()
+              }}
             />
           </div>
         )}
+      </Modal>
+
+      <Modal open={!!resetObjetivo} onClose={() => setResetObjetivo(null)} title={`Restablecer contraseña de ${resetObjetivo?.nombre || ''}`} maxWidth="max-w-sm">
+        {resetObjetivo && <PasswordForm submitLabel="Restablecer contraseña" onSubmit={resolverReset} />}
+      </Modal>
+
+      <Modal open={miPasswordAbierto} onClose={() => setMiPasswordAbierto(false)} title="Cambiar mi contraseña" maxWidth="max-w-sm">
+        <PasswordForm submitLabel="Actualizar contraseña" onSubmit={cambiarMiPassword} />
       </Modal>
     </section>
   )

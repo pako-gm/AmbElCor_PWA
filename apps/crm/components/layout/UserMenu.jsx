@@ -54,7 +54,7 @@ export default function UserMenu() {
         <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-1.5rem)] bg-white border border-[--border] rounded-xl shadow-xl z-40 overflow-hidden">
           <div className="px-4 py-3 border-b border-[--border]">
             <div className="text-sm font-medium text-[--text-dark] leading-tight">{perfil.nombre}</div>
-            {perfil.rol && <div className="text-xs text-[--text-light]">{perfil.rol}</div>}
+            {perfil.rol && <div className="text-xs text-[--text-light] capitalize">{perfil.rol}</div>}
           </div>
           <a
             href="/manual-usuario.html"
