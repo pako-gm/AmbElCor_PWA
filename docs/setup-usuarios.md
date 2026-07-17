@@ -89,6 +89,21 @@ Cuando alguien pulsa "¿Has olvidado la contraseña?" en `/acceso`, la solicitud
 
 ---
 
+## 7. CAPTCHA anti-spam (Cloudflare Turnstile)
+
+El login y "Recuperar contraseña" de `/acceso` llevan un widget CAPTCHA (Cloudflare Turnstile, gratuito) para frenar el abuso automatizado. Mientras no se complete este paso, los widgets simplemente no aparecen y los formularios funcionan igual que antes (sin CAPTCHA) — no es un requisito bloqueante, es una capa de seguridad adicional.
+
+1. Crear una cuenta gratuita en [Cloudflare](https://dash.cloudflare.com/sign-up) si no tienes una.
+2. **Turnstile → Add site**. Dominios: `ambelcorpwa.vercel.app` y `localhost` (para poder probar en desarrollo).
+3. Copiar la **Site Key** (pública) y la **Secret Key** (privada).
+4. Site Key → añadir `VITE_TURNSTILE_SITE_KEY` en `.env.local` y en las variables de entorno del proyecto en Vercel (Settings → Environment Variables), luego redesplegar.
+5. Secret Key → Dashboard de Supabase → **Edge Functions → Secrets** → añadir `TURNSTILE_SECRET_KEY`.
+6. Para que el CAPTCHA también proteja el login (`signInWithPassword`), además: Dashboard de Supabase → **Authentication → Attack Protection → Enable CAPTCHA protection**, proveedor **Turnstile**, pegar la misma Secret Key.
+
+Sin `TURNSTILE_SECRET_KEY` configurada, el Edge Function `notificar-reset` deja pasar las solicitudes sin verificar CAPTCHA (no rompe el flujo de recuperación de contraseña, simplemente no filtra spam todavía).
+
+---
+
 ## Checklist de pruebas manual (FASE 9)
 
 Una vez completados los pasos 1-4 de este documento (usuarios creados y perfiles insertados), verifica en el CRM desplegado:
@@ -116,6 +131,7 @@ Una vez completados los pasos 1-4 de este documento (usuarios creados y perfiles
 | Paso 4 — Verificar TOTP habilitado | ⬜ Pendiente (Dashboard) |
 | Paso 5 — Desactivar proveedor Google | ⬜ Pendiente (Dashboard) |
 | Paso 6 — Secret `RESEND_API_KEY` (opcional) | ⬜ Opcional, no bloquea nada |
+| Paso 7 — CAPTCHA Turnstile (`VITE_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` + Attack Protection) | ⬜ Opcional, no bloquea nada |
 | Checklist de pruebas manual de arriba | ⬜ Pendiente, tras completar los pasos 1-4 |
 
 No queda ningún script SQL ni despliegue de código pendiente por mi parte: todo lo que falta es configuración del Dashboard de Supabase (pasos 1, 2, 4, 5) y el SQL de alta de perfiles del paso 3, que son deliberadamente manuales para que tú controles las contraseñas y accesos reales.

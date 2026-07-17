@@ -48,7 +48,11 @@ revoke all on table public.solicitudes_password from anon;
 -- ------------------------------------------------------------
 -- 2. RPC solicitar_reset_password(p_email)
 --    - No revela si el email existe o no (siempre éxito genérico).
---    - Anti-spam: máximo una solicitud pendiente por email/hora.
+--    - Anti-spam: máximo 3 solicitudes por email cada hora (cuenta
+--      todas, pendientes o resueltas, no solo si hay una pendiente).
+--    - Solo invocable por service_role: el único camino de entrada es
+--      el Edge Function notificar-reset, que verifica CAPTCHA antes
+--      de llamar a esta RPC (ver notificar-reset/index.ts).
 -- ------------------------------------------------------------
 create or replace function public.solicitar_reset_password(p_email text)
 returns void
@@ -58,7 +62,7 @@ set search_path = public
 as $$
 declare
   v_nombre text;
-  v_ya_pendiente boolean;
+  v_intentos int;
 begin
   select nombre into v_nombre
   from public.perfiles
@@ -68,15 +72,12 @@ begin
     return;
   end if;
 
-  select exists(
-    select 1
-    from public.solicitudes_password
-    where email = p_email
-      and estado = 'pendiente'
-      and created_at > now() - interval '1 hour'
-  ) into v_ya_pendiente;
+  select count(*) into v_intentos
+  from public.solicitudes_password
+  where email = p_email
+    and created_at > now() - interval '1 hour';
 
-  if v_ya_pendiente then
+  if v_intentos >= 3 then
     return;
   end if;
 
@@ -85,8 +86,8 @@ begin
 end;
 $$;
 
-revoke all on function public.solicitar_reset_password(text) from public;
-grant execute on function public.solicitar_reset_password(text) to anon, authenticated;
+revoke all on function public.solicitar_reset_password(text) from public, anon, authenticated;
+grant execute on function public.solicitar_reset_password(text) to service_role;
 
 -- ------------------------------------------------------------
 -- Verificación (ejecutar a mano si se quiere comprobar):

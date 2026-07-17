@@ -2,12 +2,13 @@
 // Portado de DESIGN/login AmbElCor/screens/views.jsx.
 // ForgotView llama a la RPC solicitar_reset_password (FASE 5). UsuarioForm
 // persiste de verdad vía la Edge Function admin-usuarios (FASE 6/8).
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ROLES, accentsDisponibles } from '@/lib/usuarios'
 import { AC, Icon, Avatar, Field, Btn, Switch, TextLink } from './ui'
 import { sanitizers } from '@/utils/validators'
 import { supabase } from '@/lib/supabase'
 import { invocarAdminUsuarios } from '@/lib/adminUsuarios'
+import Turnstile from './Turnstile'
 
 const capitalizar = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s
 
@@ -36,15 +37,23 @@ export function PasswordPanel({ user, onBack, onSubmit, onForgot }) {
   const [show, setShow] = useState(false)
   const [err, setErr] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState('')
+  const turnstileRef = useRef(null)
   const a = AC.accents[user.accent] || AC.accents.salvia
+  const captchaRequerido = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY)
 
   const submit = async () => {
     if (loading) return
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email: user.email, password: pass })
+    const { error } = await supabase.auth.signInWithPassword({
+      email: user.email, password: pass, options: { captchaToken },
+    })
     setLoading(false)
-    if (error) { setErr(true) }
-    else { setErr(false); onSubmit() }
+    if (error) {
+      setErr(true)
+      setCaptchaToken('')
+      turnstileRef.current?.reset()
+    } else { setErr(false); onSubmit() }
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -76,7 +85,9 @@ export function PasswordPanel({ user, onBack, onSubmit, onForgot }) {
         } />
       {err && <div style={{ marginTop: -8, color: AC.accents.rosa.ink, fontFamily: AC.sans, fontWeight: 600, fontSize: 13 }}>La contraseña no es correcta. Inténtalo de nuevo.</div>}
 
-      <Btn variant="brand" full size="lg" onClick={submit} disabled={loading}>{loading ? 'Entrando…' : 'Entrar en el CRM'}</Btn>
+      <Turnstile ref={turnstileRef} onToken={setCaptchaToken} />
+
+      <Btn variant="brand" full size="lg" onClick={submit} disabled={loading || (captchaRequerido && !captchaToken)}>{loading ? 'Entrando…' : 'Entrar en el CRM'}</Btn>
       <div style={{ textAlign: 'center', marginTop: -4 }}>
         <TextLink onClick={onForgot} color={AC.muted}>¿Has olvidado la contraseña?</TextLink>
       </div>
@@ -92,18 +103,27 @@ export function ForgotView({ user, onBack, onClose }) {
   const [email, setEmail] = useState(user ? user.email : '')
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [captchaToken, setCaptchaToken] = useState('')
+  const turnstileRef = useRef(null)
+  const captchaRequerido = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY)
 
+  // La verificación del captcha y el registro de la solicitud (RPC
+  // solicitar_reset_password) ocurren dentro del Edge Function, con
+  // privilegios de service role — el frontend ya no llama a la RPC
+  // directamente. El envío por Resend sigue siendo silencioso/opcional.
   const enviar = async () => {
     setLoading(true)
-    try {
-      await supabase.rpc('solicitar_reset_password', { p_email: email })
-    } catch {
-      // Silencioso: no se revela si el email existe o no.
-    }
-    try {
-      await supabase.functions.invoke('notificar-reset', { body: { email } })
-    } catch {
-      // Opcional: el aviso de campana es la garantía si no hay Resend configurado.
+    setError('')
+    const { data, error: invokeError } = await supabase.functions.invoke('notificar-reset', {
+      body: { email, captchaToken },
+    })
+    if (invokeError || data?.ok === false) {
+      setError('No se pudo verificar el captcha. Inténtalo de nuevo.')
+      setCaptchaToken('')
+      turnstileRef.current?.reset()
+      setLoading(false)
+      return
     }
     setLoading(false)
     setSent(true)
@@ -136,7 +156,9 @@ export function ForgotView({ user, onBack, onClose }) {
       </div>
       <Field label="CORREO ELECTRÓNICO" type="email" value={email} onChange={setEmail} placeholder="tu@ambelcor.com" icon="mail" autoFocus
         onKeyDown={(e) => e.key === 'Enter' && email.includes('@') && !loading && enviar()} />
-      <Btn variant="brand" full size="lg" icon="mail" disabled={!email.includes('@') || loading} onClick={enviar}>
+      {error && <div style={{ marginTop: -8, color: AC.accents.rosa.ink, fontFamily: AC.sans, fontWeight: 600, fontSize: 13 }}>{error}</div>}
+      <Turnstile ref={turnstileRef} onToken={setCaptchaToken} />
+      <Btn variant="brand" full size="lg" icon="mail" disabled={!email.includes('@') || loading || (captchaRequerido && !captchaToken)} onClick={enviar}>
         {loading ? 'Enviando…' : 'Enviar aviso'}
       </Btn>
     </div>
