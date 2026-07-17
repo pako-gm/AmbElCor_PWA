@@ -151,11 +151,17 @@ export function ForgotView({ user, onBack, onClose }) {
       <div>
         <div style={{ fontFamily: AC.serif, fontWeight: 600, fontSize: 26, color: AC.ink, lineHeight: 1.12 }}>Recuperar contraseña</div>
         <div style={{ fontFamily: AC.sans, fontSize: 15, color: AC.muted, fontWeight: 500, marginTop: 8, lineHeight: 1.55 }}>
-          Escribe tu correo-e y avisaremos al administrador para restablecer tu contraseña.
+          El administrador verá tu solicitud y restablecerá tu contraseña desde el CRM.
         </div>
       </div>
-      <Field label="CORREO ELECTRÓNICO" type="email" value={email} onChange={setEmail} placeholder="tu@ambelcor.com" icon="mail" autoFocus
-        onKeyDown={(e) => e.key === 'Enter' && email.includes('@') && !loading && enviar()} />
+      <div>
+        <Field label="CORREO ELECTRÓNICO" type="email" value={email} onChange={setEmail} placeholder="tu@ambelcor.com" icon="mail" autoFocus
+          disabled={Boolean(user)}
+          onKeyDown={(e) => e.key === 'Enter' && email.includes('@') && !loading && enviar()} />
+        <div style={{ fontFamily: AC.sans, fontSize: 12.5, color: AC.faint, fontWeight: 500, marginTop: 6 }}>
+          Sirve para identificar tu cuenta; el aviso no se envía a esta dirección.
+        </div>
+      </div>
       {error && <div style={{ marginTop: -8, color: AC.accents.rosa.ink, fontFamily: AC.sans, fontWeight: 600, fontSize: 13 }}>{error}</div>}
       <Turnstile ref={turnstileRef} onToken={setCaptchaToken} />
       <Btn variant="brand" full size="lg" icon="mail" disabled={!email.includes('@') || loading || (captchaRequerido && !captchaToken)} onClick={enviar}>
